@@ -106,6 +106,10 @@ payout sent, order closes.
 - Live serve check: `/`, `/api/config`, `/api/state`, hub CSS/JS and
   game files all return 200; config shows the real CEO address.
 
+## v3.8.0 — 2026-11-01 (9 more, 85 tracked features)
+
+LEVEL UP launcher look: 3-column layout (nav rail / stage / profile rail), featured Cosmos BTD hero, game cards with an info window, Recently Played, Find Games search, separate Keplr/Leap connect buttons with sticky provider signing, demo mode removed, CEO side tabs, space ATOM-orb battlefield. Link previews: Open Graph + Twitter tags with the battlefield image (1600x900) and platform description.
+
 ## v3.6.0 — 2026-11-01 (5 more, 71 tracked features)
 
 Batch 8 (BTD depth II): mortar/cannon splash preview ring while
