@@ -4,6 +4,15 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.7.0 — 2026-11-01 — 5 features (76 total)
+
+| Area | Features |
+|---|---|
+| Cosmos BTD (3) | Muzzle flash + recoil on fire, Leak warning at 80% path progress, Victory/defeat end screens with run stats |
+| Hub UI (2) | Animated starfield behind the header (CSS only, static on Low quality), Equipped-hero portrait glow |
+
+Honest limits: muzzle flash/recoil + leak edge + end-screen panel are canvas draw code, harness-verified via state/HUD helpers only (no browser screenshot check); starfield + hero glow are CSS/DOM, code-reviewed only; end-screen run time starts at the first wave and freezes on win/loss.
+
 ## v3.6.0 — 2026-11-01 — 5 features (71 total)
 
 | Area | Features |
