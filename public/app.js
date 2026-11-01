@@ -1,10 +1,27 @@
-let address=null, playerName='Player', heroDefs=[], state=null, cfg=null;
+let address=null, playerName='Player', heroDefs=[], state=null, cfg=null, ceoPubkeyB64=null;
 const $=id=>document.getElementById(id);
+function canonicalJson(v){if(v===null||typeof v!=='object')return JSON.stringify(v);if(Array.isArray(v))return '['+v.map(canonicalJson).join(',')+']';return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonicalJson(v[k])).join(',')+'}';}
+async function api(path, body, admin=false){const h={'Content-Type':'application/json'};if(admin){const ts=Date.now();const message=path+'\n'+canonicalJson(body||{})+'\n'+String(ts);const sig=await ceoSign(message);h['x-ceo-address']=address;h['x-ceo-signature']=sig.signature;h['x-ceo-pubkey']=sig.pubkey;h['x-ceo-timestamp']=String(ts);}const r=await fetch(path,{method:body?'POST':'GET',headers:h,body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j;}
+// CEO sign-in, Swap-style: connect Keplr, prove you own the CEO address by
+// signing a message with your keys. No key is typed, no seed phrase, and
+// every CEO action is signed separately — nothing moves without your keys.
+async function ceoSign(message){
+  if(!window.keplr) throw new Error('Keplr not found. Install Keplr extension on desktop, then try again.');
+  if(!cfg) throw new Error('Config not loaded yet.');
+  await window.keplr.enable(cfg.chainId);
+  const key=await window.keplr.getKey(cfg.chainId);
+  if(key.bech32Address!==cfg.ceoAddress) throw new Error('This wallet is not the CEO address. Connected: '+key.bech32Address+' — CEO: '+cfg.ceoAddress);
+  address=key.bech32Address; playerName=key.name||'Player';
+  const sig=await window.keplr.signArbitrary(cfg.chainId, key.bech32Address, message);
+  const pubkey=sig.pub_key && sig.pub_key.value ? sig.pub_key.value : null;
+  if(!pubkey) throw new Error('Keplr did not return a public key. Try again.');
+  const st=$('ceoStatus'); if(st) st.textContent='Signed in as CEO: '+key.bech32Address+' — signed with your wallet keys, like Swap.';
+  return {signature: sig.signature, pubkey};
+}
 function portrait(h, big){
   const c=h.color||'#7bdff2';
   return `<svg viewBox="0 0 220 150" role="img" aria-label="${h.name}"><defs><linearGradient id="g${h.defId||h.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b3a8f"/><stop offset="1" stop-color="#070b22"/></linearGradient></defs><rect width="220" height="150" fill="url(#g${h.defId||h.id})"/><circle cx="30" cy="25" r="2" fill="#fff"/><circle cx="190" cy="18" r="1.5" fill="#fff"/><circle cx="170" cy="42" r="2" fill="#fff"/><path d="M110 22 L132 48 L128 92 L92 92 L88 48 Z" fill="${c}" opacity=".9"/><ellipse cx="110" cy="52" rx="20" ry="13" fill="#0b1026"/><ellipse cx="110" cy="52" rx="14" ry="8" fill="#7bdff2" opacity=".9"/><path d="M78 96 L142 96 L152 128 L68 128 Z" fill="#1b2352" stroke="${c}" stroke-width="2"/><circle cx="110" cy="112" r="8" fill="${c}"/><text x="110" y="144" text-anchor="middle" fill="#fff" font-size="10" font-family="Arial">${h.rarity||''} • Lv ${h.level||1}</text></svg>`;
 }
-async function api(path, body, admin=false){const h={'Content-Type':'application/json'};if(admin)h['x-admin-key']=$('adminKey').value;const r=await fetch(path,{method:body?'POST':'GET',headers:h,body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j;}
 async function loadConfig(){cfg=await api('/api/config');heroDefs=cfg.heroDefs;const sel=$('demoHero');sel.innerHTML=heroDefs.map(d=>`<option value="${d.id}">${d.name} — ${d.rarity} — unlocks Lv ${d.unlockLevel}</option>`).join('');$('feeBox').innerHTML=`CEO fee: <b>${cfg.feePercent}%</b> (4–7% configurable) — CEO address: <code>${cfg.ceoAddress}</code><br>Example on 10 ATOM: seller gets ${(10*(1-cfg.feePercent/100)).toFixed(2)} ATOM, CEO gets ${(10*cfg.feePercent/100).toFixed(2)} ATOM.`;renderAllHeroes();return cfg;}
 function shortAddr(a){return a?a.slice(0,12)+'…'+a.slice(-6):'';}
 async function savePlayer(){const j=await api('/api/player',{address,name:playerName});$('walletInfo').textContent='Connected: '+j.player.name+' — '+j.player.address; $('levelInfo').textContent='Level '+j.player.level+' • XP '+j.player.xp+' • Credits '+j.player.credits+' • Best score '+j.player.bestScore; renderHeroes(j.heroes); return j;}
