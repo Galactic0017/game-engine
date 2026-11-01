@@ -27,6 +27,9 @@
     if (typeof document === 'undefined') return;
     document.documentElement.style.setProperty('--ui-scale', String(ctx.settings.uiScale || 1));
     document.body.setAttribute('data-glass', ctx.settings.glass === false ? 'off' : 'on');
+    /* Batch 9: expose graphics quality on <body> so the CSS-only
+     * starfield freezes its animation on Low quality. */
+    document.body.setAttribute('data-quality', ctx.settings.quality === 'low' ? 'low' : 'high');
   }
   ctx.applyUiPrefs = applyUiPrefs;
   function applySettings(handle) { if (!handle) { applyUiPrefs(); return; } if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); if (handle.setPostFx) handle.setPostFx(ctx.settings.postfx !== false); if (handle.setDof) handle.setDof(ctx.settings.dof !== false); if (handle.setFpsTarget) handle.setFpsTarget(ctx.settings.fpsTarget); if (handle.setParticleDensity) handle.setParticleDensity(ctx.settings.particleDensity); if (handle.setMotionBlur) handle.setMotionBlur(ctx.settings.motionBlur); if (handle.setDisplayScale) handle.setDisplayScale(ctx.settings.displayScale); applyUiPrefs(); }
@@ -222,8 +225,9 @@
     var el = document.getElementById('heroList'); if (!el) return;
     var equipped = ctx.host && ctx.host.equippedHero;
     el.innerHTML = heroes.length ? heroes.map(function (h) {
-      return '<div class="heroCard">' + heroImg(h) + '<div style="flex:1"><strong>' + esc(h.name) + '</strong><br><span class="small muted">Lv ' + h.level + ' · ' + esc(h.rarity) + ' · Power ' + h.basePower + '</span></div>'
-        + '<button data-equip="' + h.id + '">' + (equipped && equipped.id === h.id ? 'Equipped ✓' : 'Equip') + '</button></div>';
+      var isEquipped = !!(equipped && equipped.id === h.id);
+      return '<div class="heroCard' + (isEquipped ? ' equipped' : '') + '">' + heroImg(h) + '<div style="flex:1"><strong>' + esc(h.name) + '</strong><br><span class="small muted">Lv ' + h.level + ' · ' + esc(h.rarity) + ' · Power ' + h.basePower + '</span></div>'
+        + '<button data-equip="' + h.id + '">' + (isEquipped ? 'Equipped ✓' : 'Equip') + '</button></div>';
     }).join('') : '<p class="muted small">No heroes yet. Get a demo hero below (unlocks by level).</p>';
     el.querySelectorAll('[data-equip]').forEach(function (btn) {
       btn.addEventListener('click', function () {
