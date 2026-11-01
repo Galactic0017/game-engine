@@ -307,6 +307,14 @@
       var d = defs[k];
       return '<button class="towerBtn" data-tower="' + k + '"><strong>' + d.name + ' (' + d.key + ')</strong><small>' + d.cost + 'g · ' + esc(d.desc) + '</small></button>';
     }).join('');
+    /* Batch 8: sell preview (refund from the inspect payload) + hero
+     * ability cooldown bar (seconds left, fill = charge recovered). */
+    var sellLabel = (hud.inspect && hud.inspect.sellRefund != null) ? 'Sell +' + hud.inspect.sellRefund + 'g' : 'Sell 70%';
+    var cdLeft = Math.max(0, hud.heroCd || 0);
+    var cdMax = hud.heroCdMax || 12;
+    var cdPct = cdLeft > 0 ? Math.max(0, Math.round(100 * (1 - cdLeft / cdMax))) : 100;
+    var cdText = cdLeft > 0 ? 'Ability recharging: ' + cdLeft + 's' : 'Ability ready';
+    var abilityLabel = 'Hero ability' + (cdLeft > 0 ? ' (' + cdLeft + 's)' : '');
     bar.innerHTML = '<div class="hud"><span>Gold <b>' + (hud.gold != null ? hud.gold : '—') + '</b></span><span>Lives <b>' + (hud.lives != null ? hud.lives : '—') + '</b></span><span>Wave <b>' + (hud.wave || 0) + (hud.endless ? '/∞' : '/50') + '</b></span><span>Score <b>' + (hud.score || 0) + '</b></span><span>Pops <b>' + (hud.pops || 0) + '</b></span><span class="muted small">FPS ' + (hud.fps || '—') + '</span><span class="muted small">Next: ' + esc(hud.nextWave || '—') + '</span></div>'
       + towersHtml
       + '<label class="small" style="margin:0">Target<select id="abTarget" style="width:auto"><option value="first">First</option><option value="last">Last</option><option value="strong">Strong</option><option value="weak">Weak</option><option value="closest">Closest</option><option value="elite">Elite-only</option></select></label>'
@@ -316,8 +324,8 @@
       + '<button id="abPause">' + (hud.paused ? '▶ Resume' : '⏸ Pause') + '</button>'
       + '<button id="abEndless">Endless: ' + (hud.endless ? 'ON' : 'OFF') + '</button>'
       + '<button id="abChallenge">Challenge: ' + (hud.challenge ? 'ON' : 'OFF') + '</button>'
-      + '<button id="abUpgrade">Upgrade ★</button><button id="abSell" class="ghost">Sell 70%</button>' + branchHtml
-      + '<button id="abAbility">Hero ability</button>'
+      + '<button id="abUpgrade">Upgrade ★</button><button id="abSell" class="ghost">' + esc(sellLabel) + '</button>' + branchHtml
+      + '<button id="abAbility">' + esc(abilityLabel) + '</button><span class="small" style="display:inline-flex;align-items:center;gap:6px"><span style="display:inline-block;width:80px;height:8px;background:#26314a;border-radius:4px;overflow:hidden;vertical-align:middle"><span style="display:block;height:100%;width:' + cdPct + '%;background:#ffd166"></span></span>' + esc(cdText) + '</span>'
       + '<button id="abPatrol">Hero patrol: ' + (hud.heroPatrol ? 'ON' : 'OFF') + '</button>'
       + '<button id="abHelp" class="ghost">⌨ Shortcuts</button>';
     var ts = document.getElementById('abTarget'); if (ts) { ts.value = hud.targeting || 'first'; ts.addEventListener('change', function () { if (handle) handle.setTargeting(ts.value); }); }
