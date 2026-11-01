@@ -33,7 +33,7 @@
   }
   async function renderPanel(panelEl, ctx) {
     panelEl.innerHTML = '<div class="ceoTabs">'
-      + ['orders', 'ledger', 'users', 'flags', 'settings', 'audit'].map(function (t) { return '<button data-ceotab="' + t + '" class="' + (activeTab === t ? 'active' : '') + '">' + t[0].toUpperCase() + t.slice(1) + (t === 'flags' && cache.flags.length ? ' (' + cache.flags.length + ')' : '') + '</button>'; }).join('')
+      + ['orders', 'ledger', 'users', 'flags', 'settings', 'announce', 'audit'].map(function (t) { return '<button data-ceotab="' + t + '" class="' + (activeTab === t ? 'active' : '') + '">' + t[0].toUpperCase() + t.slice(1) + (t === 'flags' && cache.flags.length ? ' (' + cache.flags.length + ')' : '') + '</button>'; }).join('')
       + '</div><div id="ceoTabBody"></div><p class="small muted" id="ceoWatcherStatus"></p>';
     setWatcherStatus(watcherStatus);
     panelEl.querySelectorAll('[data-ceotab]').forEach(function (b) { b.addEventListener('click', function () { activeTab = b.getAttribute('data-ceotab'); renderPanel(panelEl, ctx); }); });
@@ -55,6 +55,7 @@
     else if (activeTab === 'users') { await refreshUsers(ctx); renderUsers(body, ctx); }
     else if (activeTab === 'flags') { await refreshFlags(ctx); renderFlags(body, ctx); }
     else if (activeTab === 'settings') { await refreshSettings(ctx); renderSettings(body, ctx); }
+    else if (activeTab === 'announce') { renderAnnounce(body, ctx); }
     else if (activeTab === 'audit') { await refreshAudit(ctx); renderAudit(body, ctx); }
   }
   async function refreshOrders(ctx) { try { var r = await ctx.ceoGet('/api/admin/pending'); cache.sales = r.sales || []; cache.flags = r.flags || []; cache.settings = r.settings || null; } catch (e) { ctx.toast(e.message, 'err'); } }
@@ -259,6 +260,15 @@
     });
     body.querySelector('#setWatch').addEventListener('click', function () {
       if (ctx.watcher) { (cache.sales || []).forEach(function (s) { try { ctx.watcher.watch(s.txid, { listingId: s.listingId }); } catch (e) {} }); ctx.toast('Watcher started for pending TXs. Confirmations still need server auto-verify.', 'ok'); }
+    });
+  }
+  function renderAnnounce(body, ctx) {
+    body.innerHTML = '<h4>Post an announcement</h4><p class="small muted">Shows as a banner at the top of the hub for all players.</p>'
+      + '<label>Title</label><input id="annTitle" maxlength="80" placeholder="e.g. Double XP weekend">'
+      + '<label>Message</label><textarea id="annBody" rows="3" maxlength="500" placeholder="What should players know?"></textarea>'
+      + '<p><button id="annPost" class="primary">Post announcement</button></p><div id="annList"></div>';
+    body.querySelector('#annPost').addEventListener('click', async function () {
+      try { var r = await ctx.ceoFetch('/api/admin/announce', { title: body.querySelector('#annTitle').value, body: body.querySelector('#annBody').value }); ctx.toast('Announcement posted.', 'ok'); body.querySelector('#annList').innerHTML = '<p class="small">Latest: <strong>' + ctx.esc(r.announcements[0].title) + '</strong></p>'; if (ctx.refreshState) ctx.refreshState(); } catch (e) { ctx.toast(e.message, 'err'); }
     });
   }
   function renderAudit(body, ctx) {
