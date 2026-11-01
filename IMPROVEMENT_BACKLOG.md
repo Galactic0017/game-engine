@@ -134,12 +134,15 @@ build was tested locally, never pushed, and never logged. It ships
 with this push under v3.5.0; the 9 features were already listed in
 public/features.json and are real code in btd.js/shell.js.
 
-## Batch 8 — BTD depth II (was Batch 4)
-- [ ] Mortar target preview: show splash radius ring while placing mortar.
-- [ ] Tower sell preview: show refund amount on the Sell button.
-- [ ] Hero ability cooldown bar in the action bar (seconds left).
-- [ ] Wave skip bonus: +25 gold for starting the next wave early.
-- [ ] Balloon speed lines: fast balloons (Pink/Zebra) get motion streaks.
+## Batch 8 — DONE 2026-11-01 — v3.6.0 (5 features, 71 total)
+BTD depth II
+- [x] Mortar target preview: dashed splash ring (82 mortar / 58 cannon) at the cursor while placing a splash tower; `placingSplash` in HUD.
+- [x] Tower sell preview: Sell button shows the exact refund from the inspect payload (e.g. +70g for a base dart tower), else "Sell 70%".
+- [x] Hero ability cooldown bar in the action bar: fill + seconds-left label (max 12/9/7s by ability tier, `heroCdMax` in HUD).
+- [x] Wave skip bonus: +25 gold for a manual start between waves after wave 1; auto-start and wave 1 pay nothing; counters in HUD/state, cleared on reset.
+- [x] Balloon speed lines: Pink (112) / Zebra (96) balloons draw 3 trailing streaks; slower balloons and bosses draw none.
+Tests: server 25/25, BTD 129/129, shooter pass; serve 200s (server test covers homepage/config/features/shooter).
+Limits: splash ring + speed lines are canvas draw code, harness-verified via helpers/state only (no browser screenshot check); cooldown bar + sell label are shell DOM, code-reviewed only.
 
 ## Batch 9 — Visuals (was Batch 5)
 - [ ] Tower muzzle flash + recoil animation on fire (barrel kick).
@@ -219,3 +222,5 @@ public/features.json and are real code in btd.js/shell.js.
 - 2026-11-01 14:51 EST: VERIFIED LIVE — 6 files pushed (commits 46ec7d5, de3002c, a8cf3b4, 2069f20, 6dd2a0b, e177410; HEAD e177410, 51 commits). Fresh /api/config crawl 19:51 UTC shows version 3.3.0, real CEO address, 5% fee, 30-min orders. Batch 6 shipped. (/api/health still served a stale 19:29 crawl showing 3.1.0; same deployment as config, crawler artifact only.)
 - 2026-11-01 14:52 EST: Batch 7 built locally (v3.5.0, Pillar 5): health/config 200 at run start (config fresh 3.3.0; health stale 3.1.0 crawl). Local copy already at v3.4.0/63 features, unpushed — reconciled above, ships with this push. Tests: server 25/25, BTD 116/116, shooter pass. Push via browser task; verify /api/config shows 3.5.0.
 - 2026-11-01 ~14:53 EST: Track 3 gaps built locally (v3.4.0, 9 features, 63 total): BTD 86/86, server 25/25, shooter pass. Batch 6 verified live 3.3.0 before this push. Push via browser task; verify /api/config shows 3.4.0.
+- 2026-11-01 15:05 EST: VERIFIED LIVE — push 9 files / 9 commits (HEAD 7221b4b, 65 commits total; GitHub server.js was 3.4.0 before replace). Fresh live-browser reload: /api/config version 3.5.0 (real CEO address, 5% fee, 30-min orders), /api/health version 3.5.0 at 2026-11-01T20:05:08Z. Batch 7 shipped. Correction to the reconciliation note above: per the memory record, the v3.4.0 Track 3 push had landed 5 of 8 files (HEAD 9b9554a) before this run, not zero; the complete v3.4.0 + v3.5.0 set shipped together in this push.
+- 2026-11-01 15:07 EST: Batch 8 built locally (v3.6.0, BTD depth II): health/config 200 at run start (live 3.5.0). Tests: server 25/25, BTD 129/129, shooter pass. Push via browser task; verify /api/config shows 3.6.0.
