@@ -4,6 +4,15 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.8.0 — 2026-11-01 — 9 features (85 total)
+
+| Area | Features |
+|---|---|
+| Hub UI (7) | LEVEL UP 3-column launcher layout, Featured game hero banner, Game cards + info window, Recently Played rail, Find Games search, Wallet provider choice (Keplr/Leap), No demo mode (real players only) |
+| CEO Panel (1) | Side tabs (vertical rail) |
+| Cosmos BTD (1) | Space ATOM look — energy lane + ATOM orb |
+| Sharing (link preview) | Open Graph + Twitter card tags with battlefield.jpg (1600x900) and the platform description, so shared links show an image + description |
+
 ## v3.7.0 — 2026-11-01 — 5 features (76 total)
 
 | Area | Features |
