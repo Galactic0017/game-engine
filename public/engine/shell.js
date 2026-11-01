@@ -296,6 +296,12 @@
     if (ctx.currentGame !== 'cosmos-btd') { bar.innerHTML = '<span class="muted small">This game has its own controls inside the panel above.</span>'; return; }
     var hud = ctx.hud || {};
     var handle = ctx.host.current && ctx.host.current.handle;
+    var branchHtml = '';
+    if (hud.inspect && hud.inspect.branchOptions) {
+      branchHtml = hud.inspect.branchOptions.map(function (o) {
+        return '<button data-branch="' + o.branch + '"' + (o.locked || o.cost == null ? ' disabled' : '') + '>' + esc(o.name) + ' ' + (o.cost != null ? o.cost + 'g' : 'MAX') + '</button>';
+      }).join('');
+    }
     var defs = (window.CosmosBTD && window.CosmosBTD.TOWER_DEFS) || {};
     var towersHtml = Object.keys(defs).map(function (k) {
       var d = defs[k];
@@ -303,15 +309,16 @@
     }).join('');
     bar.innerHTML = '<div class="hud"><span>Gold <b>' + (hud.gold != null ? hud.gold : '—') + '</b></span><span>Lives <b>' + (hud.lives != null ? hud.lives : '—') + '</b></span><span>Wave <b>' + (hud.wave || 0) + (hud.endless ? '/∞' : '/50') + '</b></span><span>Score <b>' + (hud.score || 0) + '</b></span><span>Pops <b>' + (hud.pops || 0) + '</b></span><span class="muted small">FPS ' + (hud.fps || '—') + '</span><span class="muted small">Next: ' + esc(hud.nextWave || '—') + '</span></div>'
       + towersHtml
-      + '<label class="small" style="margin:0">Target<select id="abTarget" style="width:auto"><option value="first">First</option><option value="last">Last</option><option value="strong">Strong</option><option value="weak">Weak</option></select></label>'
+      + '<label class="small" style="margin:0">Target<select id="abTarget" style="width:auto"><option value="first">First</option><option value="last">Last</option><option value="strong">Strong</option><option value="weak">Weak</option><option value="closest">Closest</option><option value="elite">Elite-only</option></select></label>'
       + '<label class="small" style="margin:0">Speed<select id="abSpeed" style="width:auto"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option></select></label>'
       + '<button id="abWave" class="primary">▶ Start wave</button>'
       + '<button id="abAuto">Auto: ' + (hud.autoStart ? 'ON' : 'OFF') + '</button>'
       + '<button id="abPause">' + (hud.paused ? '▶ Resume' : '⏸ Pause') + '</button>'
       + '<button id="abEndless">Endless: ' + (hud.endless ? 'ON' : 'OFF') + '</button>'
       + '<button id="abChallenge">Challenge: ' + (hud.challenge ? 'ON' : 'OFF') + '</button>'
-      + '<button id="abUpgrade">Upgrade ★</button><button id="abSell" class="ghost">Sell 70%</button>'
+      + '<button id="abUpgrade">Upgrade ★</button><button id="abSell" class="ghost">Sell 70%</button>' + branchHtml
       + '<button id="abAbility">Hero ability</button>'
+      + '<button id="abPatrol">Hero patrol: ' + (hud.heroPatrol ? 'ON' : 'OFF') + '</button>'
       + '<button id="abHelp" class="ghost">⌨ Shortcuts</button>';
     var ts = document.getElementById('abTarget'); if (ts) { ts.value = hud.targeting || 'first'; ts.addEventListener('change', function () { if (handle) handle.setTargeting(ts.value); }); }
     var sp = document.getElementById('abSpeed'); if (sp) { sp.value = String(hud.speed || 1); sp.addEventListener('change', function () { if (handle) handle.setSpeed(Number(sp.value)); }); }
@@ -323,6 +330,8 @@
     document.getElementById('abUpgrade').addEventListener('click', function () { if (handle) handle.upgradeSelected(); });
     document.getElementById('abSell').addEventListener('click', function () { if (handle) handle.sellSelected(); });
     document.getElementById('abAbility').addEventListener('click', function () { if (handle) handle.heroAbility(); });
+    bar.querySelectorAll('[data-branch]').forEach(function (btn) { btn.addEventListener('click', function () { if (handle && handle.upgradeBranch) handle.upgradeBranch(btn.getAttribute('data-branch')); }); });
+    var pb = document.getElementById('abPatrol'); if (pb) pb.addEventListener('click', function () { if (handle && handle.setHeroPatrol) handle.setHeroPatrol(!hud.heroPatrol); });
     document.getElementById('abPause').addEventListener('click', function () { if (handle && handle.setPaused) handle.setPaused(!hud.paused); });
     document.getElementById('abEndless').addEventListener('click', function () { if (handle && handle.setEndless) { handle.setEndless(!hud.endless); toast(!hud.endless ? 'Endless mode ON: waves continue past 50.' : 'Endless mode OFF.'); } });
     document.getElementById('abChallenge').addEventListener('click', function () { if (handle && handle.setChallenge) { handle.setChallenge(!hud.challenge); toast(!hud.challenge ? 'Challenge mode: 100 gold, 20 lives. Applies on restart.' : 'Challenge mode OFF.'); } });
@@ -343,7 +352,7 @@
     ctx.host = new window.EngineHost(bus, ctx.wallet, ctx.config);
     ctx.watcher = new window.RpcWatcher(bus, ctx.config);
     ctx.host.setViewport(document.getElementById('game-viewport'));
-    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 5 towers · heroes', status: 'playable', load: async function () { return window.CosmosBTD; } });
+    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', status: 'playable', load: async function () { return window.CosmosBTD; } });
     ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', status: 'playable', load: async function () { return window.SpaceTycoon; } });
     ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', status: 'playable', load: async function () { return window.AtomClicker; } });
     if (window.SpaceShooter) ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', status: 'playable', load: async function () { return window.SpaceShooter; } });
