@@ -252,6 +252,36 @@
    "tested": "BTD harness 27/27: ECS entities + component tables asserted live",
    "title": "ECS architecture — entities with component tables (position/health/path/combat/render/lifetime) and Movement/Combat/Projectile/Fx/Spike systems"
   },
+ {
+   "category": "Engine UI",
+   "id": "glass-theme",
+   "tested": "code-reviewed; shell applies glass on/off + UI scale live via CSS vars (not harness-tested, no DOM harness for the shell)",
+   "title": "Glassmorphism theme engine — translucent glass panels, backdrop blur, glowing borders, UI text scaling, hover/click sound feedback"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "floating-combat-text",
+   "tested": "harness: crit/coin floaters spawn on big hits and kills; vy + gravity update in FxSystem; outlined sized text in drawOverlays",
+   "title": "Floating combat text — crits, damage numbers and coin gains with gravity + fade"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "inspection-cards",
+   "tested": "harness: getHud inspect payload for a selected tower (stats, upgrade step, effectiveness); DOM card render code-reviewed",
+   "title": "Inspection stat cards — hover/select a tower for animated stat bars, upgrade tree and tactical effectiveness chart"
+  },
+  {
+   "category": "Engine UI",
+   "id": "settings-modal",
+   "tested": "harness: setFpsTarget/setParticleDensity/setMotionBlur/setDisplayScale drive without errors; modal form code-reviewed",
+   "title": "Settings modal — FPS target 30/60/120, motion blur, particle density, master audio, Retina/HiDPI display scaling"
+  },
+  {
+   "category": "Engine Core",
+   "id": "ecs-table-iteration",
+   "tested": "harness: Movement/Combat iterate ECS tables; ECS balloon/tower counts match array counts after waves",
+   "title": "ECS tables are the iteration source — Movement/Combat iterate ECS component tables by kind; arrays stay render-order lists"
+  },
   {
    "category": "Engine Core",
    "id": "fixed-timestep",
@@ -273,5 +303,5 @@
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.1.0"
+ "version": "3.2.0"
 }

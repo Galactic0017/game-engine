@@ -82,3 +82,22 @@ footer { padding: 18px; text-align: center; color: var(--muted); font-size: 12px
 .ach.locked { opacity: .55; }
 .featureList { list-style: none; padding: 0; margin: 0 0 12px; }
 .featureList li { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 14px; }
+
+/* ---- Pillar 3: glassmorphism theme engine (reactive, settings-driven) ---- */
+:root { --glass-blur: 14px; --glass-alpha: .72; --glass-border: rgba(0,246,255,.22); --ui-scale: 1; }
+.glass, aside.sidebar, .card, .actionbar, .wallet, header.topbar { backdrop-filter: blur(var(--glass-blur)); }
+body[data-glass="off"] aside.sidebar, body[data-glass="off"] .card, body[data-glass="off"] .actionbar, body[data-glass="off"] .wallet, body[data-glass="off"] header.topbar { backdrop-filter: none; background: #141a30; border-color: #2a356e; }
+button:hover:not(:disabled) { box-shadow: 0 0 14px rgba(0,246,255,.35); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; box-shadow: 0 0 0 3px rgba(0,246,255,.25); }
+.layout, .topbar, .card, aside.sidebar { font-size: calc(14px * var(--ui-scale, 1)); }
+.small { font-size: calc(12px * var(--ui-scale, 1)); }
+.modalOverlay { position: fixed; inset: 0; background: rgba(3,6,16,.72); backdrop-filter: blur(6px); z-index: 100; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; }
+.modalOverlay[hidden] { display: none; }
+.modalCard { width: min(560px, 100%); max-height: 85vh; overflow: auto; }
+.modalCard .checkRow input { width: auto; }
+.inspectCard { border-color: var(--cyan); box-shadow: 0 0 18px rgba(0,246,255,.18); }
+.statBar { height: 8px; background: #1a2342; border-radius: 99px; overflow: hidden; }
+.statBar > div { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--violet)); transition: width .45s ease; }
+.effRow { display: grid; grid-template-columns: 92px 1fr 38px; gap: 8px; align-items: center; font-size: 12px; margin: 4px 0; }
+.effRow span:last-child { text-align: right; font-variant-numeric: tabular-nums; }

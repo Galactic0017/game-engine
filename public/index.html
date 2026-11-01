@@ -19,6 +19,7 @@
   <div class="wallet" id="walletWidget">
     <span id="walletStatus">Not connected</span>
     <span class="bal" id="walletBalance"></span>
+    <button id="btnSettings" class="ghost" title="Display, audio and theme settings">⚙ Settings</button>
     <button id="btnConnect" class="primary">Connect Keplr / Leap</button>
     <button id="btnDemo" class="ghost">Demo address</button>
     <button id="btnDisconnect" class="ghost" hidden>Disconnect</button>
@@ -53,6 +54,7 @@
     <section class="view active" id="view-games">
       <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>
       <div class="actionbar" id="actionBar"></div>
+      <div class="card inspectCard" id="inspectCard" hidden style="margin-top:12px"></div>
       <div class="card" id="helpCard" hidden style="margin-top:12px">
         <h3>Shortcuts</h3>
         <p class="small"><b>1–7</b> pick tower · <b>Space</b> start wave · <b>P</b> pause · <b>R</b> restart · <b>Esc</b> cancel placement · <b>Click</b> place / select tower · <b>Touch</b> works on mobile.</p>
@@ -81,6 +83,14 @@
       </div>
     </section>
   </main>
+</div>
+
+<div id="settingsModal" class="modalOverlay" hidden>
+  <div class="card modalCard" role="dialog" aria-modal="true" aria-label="Settings">
+    <h3>⚙ Settings</h3>
+    <div id="settingsModalBody"></div>
+    <p><button id="btnCloseSettings">Close</button></p>
+  </div>
 </div>
 
 <div id="toasts" aria-live="polite"></div>
