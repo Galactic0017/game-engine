@@ -108,6 +108,7 @@
       bestBelt: 1, bestValue: 0,
       shiftEnded: false, shiftCount: 0,
       hero: null, address: 'guest', saveKey: null,
+      fps: 0, fpsTarget: 60, _fpsN: 0, _fpsT: 0, _dynFactor: 1,
       _hudAcc: 0
     };
   }
@@ -149,9 +150,27 @@
     for (var i = 0; i < ORES.length; i++) v += (st.ore[ORES[i].id] || 0) * ORES[i].value;
     return Math.round(v * oreValueMult(st.scannerLevel));
   }
+  /* Batch 15: dynamic quality — particle cap follows measured FPS.
+   * Same mapping as BTD/Shooter (1 / 0.6 / 0.35, step-up hysteresis). */
+  function dynFactorFor(fps, fpsTarget) {
+    if (!fps || fps <= 0) return 1;
+    var ratio = fps / (fpsTarget || 60);
+    return ratio >= 0.9 ? 1 : ratio >= 0.6 ? 0.6 : 0.35;
+  }
+  function particleCapFor(fps, fpsTarget, baseCap) {
+    return Math.max(40, Math.round(baseCap * dynFactorFor(fps, fpsTarget)));
+  }
+  function updateDynFactor(st) {
+    var nf = dynFactorFor(st.fps, st.fpsTarget);
+    var cur = st._dynFactor || 1;
+    if (nf < cur) st._dynFactor = nf;
+    else if (nf > cur && st.fps >= 0.95 * (st.fpsTarget || 60)) st._dynFactor = nf;
+    return st._dynFactor;
+  }
   function spawnParticle(st, x, y, color, n, speed) {
+    var cap = Math.max(40, Math.round(300 * (st._dynFactor || 1)));
     for (var i = 0; i < (n || 8); i++) {
-      if (st.particles.length > 300) st.particles.shift();
+      if (st.particles.length > cap) st.particles.shift();
       var a = Math.random() * TAU, s = (speed || 90) * (0.4 + Math.random() * 0.9);
       st.particles.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.35 + Math.random() * 0.35, max: 0.7, color: color, size: 2 + Math.random() * 3 });
     }
@@ -331,7 +350,7 @@
       bankedValue: st.bankedValue, powerLevel: st.powerLevel, autoLevel: st.autoLevel,
       scannerLevel: st.scannerLevel, bestBelt: st.bestBelt, bestValue: st.bestValue,
       shiftEnded: st.shiftEnded, shiftCount: st.shiftCount, asteroids: st.asteroids.length,
-      paused: st.paused
+      paused: st.paused, fps: st.fps, particleCap: particleCapFor(st.fps, st.fpsTarget, 300), dynFactor: st._dynFactor || 1, particles: st.particles.length
     };
   }
 
@@ -457,6 +476,7 @@
     var dt = 0.016;
     if (st.lastT) dt = Math.min(0.05, Math.max(0, (now - st.lastT) / 1000));
     st.lastT = now;
+    st._fpsN++; st._fpsT += dt; if (st._fpsT >= 0.5) { st.fps = Math.round(st._fpsN / st._fpsT); st._fpsN = 0; st._fpsT = 0; updateDynFactor(st); }
     if (st.running && !st.paused) update(st, dt);
     draw(st);
   }
@@ -555,7 +575,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'asteroid-miner', { score: st.bankedValue, wave: st.belt, kills: st.totalMined });
   }
 
-  var manifest = { id: 'asteroid-miner', name: 'Asteroid Miner', version: '1.0.0', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', entry: 'miner.js', canvas: true };
+  var manifest = { id: 'asteroid-miner', name: 'Asteroid Miner', version: '1.1.0', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', entry: 'miner.js', canvas: true };
 
-  global.AsteroidMiner = { manifest: manifest, init: init, _createState: createState, _ORES: ORES, _pickOre: pickOre, _beltQuota: beltQuota, _upgradeCost: upgradeCost, _cargoValue: cargoValue };
+  global.AsteroidMiner = { manifest: manifest, init: init, _createState: createState, _ORES: ORES, _pickOre: pickOre, _beltQuota: beltQuota, _upgradeCost: upgradeCost, _cargoValue: cargoValue, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
 })(typeof window !== 'undefined' ? window : globalThis);
