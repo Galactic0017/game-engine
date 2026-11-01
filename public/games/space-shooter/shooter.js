@@ -114,6 +114,7 @@
       spawnQueue: [], spawnTimer: 0, betweenWaves: false, waveTimer: 0,
       score: 0, wave: 0, lives: 3, shotsFired: 0, kills: 0,
       gameOver: false, shake: 0, rapidUntil: 0, spreadUntil: 0, shield: false,
+      fps: 0, fpsTarget: 60, _fpsN: 0, _fpsT: 0, _dynFactor: 1,
       combo: 0, comboMult: 1, bestCombo: 0,
       powerupCounts: { shield: 0, rapid: 0, spread: 0, life: 0 },
       touch: { joyId: null, fireId: null, joyOX: 0, joyOY: 0, dx: 0, dy: 0, seen: false },
@@ -121,9 +122,27 @@
       audio: makeAudio()
     };
   }
+  /* Batch 15: dynamic quality — particle cap follows measured FPS.
+   * Same mapping as BTD (1 / 0.6 / 0.35 with step-up hysteresis). */
+  function dynFactorFor(fps, fpsTarget) {
+    if (!fps || fps <= 0) return 1;
+    var ratio = fps / (fpsTarget || 60);
+    return ratio >= 0.9 ? 1 : ratio >= 0.6 ? 0.6 : 0.35;
+  }
+  function particleCapFor(fps, fpsTarget, baseCap) {
+    return Math.max(40, Math.round(baseCap * dynFactorFor(fps, fpsTarget)));
+  }
+  function updateDynFactor(st) {
+    var nf = dynFactorFor(st.fps, st.fpsTarget);
+    var cur = st._dynFactor || 1;
+    if (nf < cur) st._dynFactor = nf;
+    else if (nf > cur && st.fps >= 0.95 * (st.fpsTarget || 60)) st._dynFactor = nf;
+    return st._dynFactor;
+  }
   function spawnParticle(st, x, y, color, n, speed) {
+    var cap = Math.max(40, Math.round(400 * (st._dynFactor || 1)));
     for (var i = 0; i < (n || 8); i++) {
-      if (st.particles.length > 400) st.particles.shift();
+      if (st.particles.length > cap) st.particles.shift();
       var a = Math.random() * TAU, s = (speed || 90) * (0.4 + Math.random() * 0.9);
       st.particles.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.35 + Math.random() * 0.35, max: 0.7, color: color, size: 2 + Math.random() * 3 });
     }
@@ -687,6 +706,7 @@
     var dt = 0.016;
     if (st.lastT) dt = Math.min(0.05, Math.max(0, (now - st.lastT) / 1000));
     st.lastT = now;
+    st._fpsN++; st._fpsT += dt; if (st._fpsT >= 0.5) { st.fps = Math.round(st._fpsN / st._fpsT); st._fpsN = 0; st._fpsT = 0; updateDynFactor(st); }
     if (st.running && !st.paused) update(st, dt);
     draw(st);
   }
@@ -823,7 +843,7 @@
       pause: function () { st.paused = true; emitHud(st); },
       resume: function () { st.paused = false; emitHud(st); },
       startWave: function () { if (!st.gameOver) startWave(st); },
-      getState: function () { return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, shield: st.shield, spreadUntil: st.spreadUntil, rapidUntil: st.rapidUntil, bosses: st.bosses.length, bossHp: st.bosses[0] ? st.bosses[0].hp : null, powerupCounts: st.powerupCounts, touchSeen: st.touch.seen }; },
+      getState: function () { return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, shield: st.shield, spreadUntil: st.spreadUntil, rapidUntil: st.rapidUntil, bosses: st.bosses.length, bossHp: st.bosses[0] ? st.bosses[0].hp : null, powerupCounts: st.powerupCounts, touchSeen: st.touch.seen, fps: st.fps, particleCap: particleCapFor(st.fps, st.fpsTarget, 400), dynFactor: st._dynFactor || 1, particles: st.particles.length }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -852,7 +872,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'space-shooter', { score: st.score, wave: st.wave, kills: st.kills });
   }
 
-  var manifest = { id: 'space-shooter', name: 'Space Shooter', version: '1.1.0', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves. Power-ups, boss waves, combos, touch controls.', entry: 'shooter.js', canvas: true };
+  var manifest = { id: 'space-shooter', name: 'Space Shooter', version: '1.2.0', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves. Power-ups, boss waves, combos, touch controls.', entry: 'shooter.js', canvas: true };
 
-  global.SpaceShooter = { manifest: manifest, init: init, _createState: createState };
+  global.SpaceShooter = { manifest: manifest, init: init, _createState: createState, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
 })(typeof window !== 'undefined' ? window : globalThis);
