@@ -278,7 +278,8 @@
       balloons: [], towers: [], projectiles: [], beams: [], floaters: [], spikes: [],
       particles: [], spawnQueue: [], spawnTimer: 0, betweenWaves: true,
       speed: 1, autoStart: false, targeting: 'first', placing: null,
-      selected: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
+      selected: null, hoverTower: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
+      fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', _lastFrameT: 0,
       sessionId: null, sessionNonce: null, pendingReports: [],
       shake: 0, waveActive: false, won: false, lost: false,
       mouse: { x: -999, y: -999 },
@@ -329,13 +330,56 @@
     for (var i = 0; i < tables.length; i++) delete st.ecs[tables[i]][id];
   }
   function ecsQuery(st, table) { return st.ecs[table]; }
+  /* Pillar 3 (ECS remainder): component tables are the single iteration
+   * source for systems. ecsEntitiesOfKind returns the live objects in
+   * registration order from the tables; the plain arrays (st.balloons,
+   * st.towers) remain render-order lists, kept in sync by the same
+   * ecsAdd/ecsRemove calls. */
+  function ecsEntitiesOfKind(st, kind) {
+    var out = [], ids = Object.keys(st.ecs.entities);
+    for (var i = 0; i < ids.length; i++) {
+      var e = st.ecs.entities[ids[i]];
+      if (!e || e.kind !== kind) continue;
+      var obj = st.ecs.position[ids[i]] || st.ecs.combat[ids[i]] || st.ecs.render[ids[i]];
+      if (obj) out.push(obj);
+    }
+    return out;
+  }
+  function upgradeCostFor(t) { return t.level >= 5 ? null : 80 + t.level * 60; }
+  function effectivenessFor(t, def) {
+    var dps = t.dmg / Math.max(0.22, t.rate);
+    var fast = clamp(Math.round(t.rate <= 0.5 ? 92 : t.rate <= 0.9 ? 78 : t.rate <= 1.2 ? 64 : 48) + (def.splash ? 8 : 0), 0, 100);
+    var armored = (t.kind === 'cannon' || t.kind === 'mortar' || t.kind === 'sniper') ? 95 : t.kind === 'tesla' ? 70 : t.kind === 'spikes' ? 60 : t.kind === 'frost' ? 55 : 15;
+    var camo = t.canSeeCamo ? 95 : 10;
+    var boss = clamp(Math.round(dps * 10 + (def.splash ? 25 : 0)), 0, 100);
+    return { fast: fast, armored: armored, camo: camo, boss: boss };
+  }
+  /* Inspection payload for the shell's stat card: current stats, the
+   * next upgrade step, sell refund, and tactical effectiveness. */
+  function towerInspect(st, t) {
+    if (!t) return null;
+    var def = TOWER_DEFS[t.kind]; if (!def) return null;
+    var cost = upgradeCostFor(t);
+    return {
+      kind: t.kind, name: def.name, level: t.level, maxed: !!t.maxed,
+      dmg: t.dmg, range: Math.round(t.range), rate: t.rate, cost: def.cost,
+      upgradeCost: cost,
+      nextDmg: t.level >= 5 ? t.dmg : (t.level === 4 ? t.dmg + 2 : t.dmg + 1),
+      nextRange: t.level >= 5 ? Math.round(t.range) : Math.round(t.range + (t.level === 4 ? 15 : 10)),
+      sellRefund: Math.floor(def.cost * 0.7),
+      effectiveness: effectivenessFor(t, def)
+    };
+  }
 
   /* ---- Particle system: pooled, kinds, wind (Pillar 1) ---- */
   function spawnParticle(st, x, y, color, n, speed, kind) {
     if (st.quality === 'low') return;
+    var densityMul = st.particleDensity === 'low' ? 0.35 : st.particleDensity === 'med' ? 0.65 : 1;
+    n = Math.max(1, Math.ceil((n || 8) * densityMul));
+    var cap = st.particleDensity === 'low' ? 150 : 400;
     kind = kind || 'spark';
     for (var i = 0; i < (n || 8); i++) {
-      if (st.particles.length > 400) { var old = st.particles.shift(); if (old && old.ecsId) ecsRemove(st, old.ecsId); }
+      if (st.particles.length > cap) { var old = st.particles.shift(); if (old && old.ecsId) ecsRemove(st, old.ecsId); }
       var a = Math.random() * TAU, s = (speed || 90) * (0.4 + Math.random() * 0.9);
       var p = { x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.35 + Math.random() * 0.35, max: 0.7, color: color, size: 2 + Math.random() * 3, kind: kind, grow: 22 };
       if (kind === 'smoke') { p.life = 0.6 + Math.random() * 0.5; p.max = p.life; p.size = 6 + Math.random() * 6; p.vy -= 30; }
@@ -345,8 +389,12 @@
       st.particles.push(p);
     }
   }
-  function floater(st, x, y, text, color) {
-    var fl = { x: x, y: y, text: text, color: color || '#ffd166', life: 0.9 };
+  /* Floating combat text: kinds carry size/life; FxSystem gives them
+   * upward velocity + gravity and fades them out (drawOverlays). */
+  function floater(st, x, y, text, color, opts) {
+    opts = opts || {};
+    var kind = opts.kind || 'info';
+    var fl = { x: x, y: y, text: text, color: color || '#ffd166', life: kind === 'crit' ? 1.1 : 0.9, vy: kind === 'crit' ? -95 : -70, size: kind === 'crit' ? 22 : kind === 'coin' ? 14 : 16, kind: kind };
     fl.ecsId = ecsAdd(st, 'floater', { position: fl, render: fl, lifetime: fl });
     st.floaters.push(fl);
   }
@@ -396,10 +444,11 @@
     if (b.fortified && !(sourceTower && (sourceTower.kind === 'cannon' || sourceTower.kind === 'mortar'))) dmg = Math.max(1, Math.ceil(dmg / 2));
     var heroNear = st.heroPlaced && st.hero && dist(b.x, b.y, st.hero.x, st.hero.y) < 170;
     if (b.armored && sourceTower && sourceTower.kind === 'dart') return; // darts cannot crack lead
-    if (b.boss) { b.layers -= dmg; st.pops += dmg; if (b.layers <= 0) { b.dead = true; st.gold += b.reward; st.score += 500; spawnParticle(st, b.x, b.y, '#ffd166', 26, 160, 'spark'); spawnParticle(st, b.x, b.y, '#ffd166', 1, 10, 'ring'); spawnParticle(st, b.x, b.y, '#8a8f9c', 8, 60, 'smoke'); addLight(st, b.x, b.y, 160, '#ffd166', 0.4, 1); addShake(st, 7); floater(st, b.x, b.y, '+' + b.reward + 'g', '#ffd166'); st.audio.coin(); } return; }
+    if (b.boss) { b.layers -= dmg; st.pops += dmg; if (b.layers <= 0) { b.dead = true; st.gold += b.reward; st.score += 500; spawnParticle(st, b.x, b.y, '#ffd166', 26, 160, 'spark'); spawnParticle(st, b.x, b.y, '#ffd166', 1, 10, 'ring'); spawnParticle(st, b.x, b.y, '#8a8f9c', 8, 60, 'smoke'); addLight(st, b.x, b.y, 160, '#ffd166', 0.4, 1); addShake(st, 7); floater(st, b.x, b.y, '+' + b.reward + 'g', '#ffd166', { kind: 'coin' }); st.audio.coin(); } return; }
     b.layers -= dmg; st.pops += dmg;
     if (b.layers <= 0) {
       b.dead = true; st.gold += b.reward; st.score += 10;
+      if (st.floaters.length < 24) floater(st, b.x, b.y - 28, '+' + b.reward + 'g', '#ffd166', { kind: 'coin' });
       spawnParticle(st, b.x, b.y, b.type.color, 10, 110);
       if (heroNear) st.heroXp += 2;
       if (b.splits) { for (var i = 0; i < 2; i++) { var nb = { boss: false, x: b.x + (i ? 8 : -8), y: b.y, dist: b.dist, prevDist: b.dist, layers: 2, maxLayers: 2, r: 14, speed: b.speed * 1.15, reward: 7, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, splits: false, sprite: 'monster-2', type: BALLOON_TYPES[1] }; nb.ecsId = ecsAdd(st, 'balloon', { position: nb, health: nb, path: nb, render: nb }); st.balloons.push(nb); } }
@@ -407,7 +456,7 @@
     } else {
       b.r = 11 + b.layers * 1.5;
       spawnParticle(st, b.x, b.y, b.type.color, 4, 70);
-      if (dmg >= 3 && st.floaters.length < 24) floater(st, b.x, b.y - 16, '-' + dmg, '#ffffff');
+      if (dmg >= 3 && st.floaters.length < 24) floater(st, b.x, b.y - 16, (dmg >= 5 ? 'CRIT -' : '-') + dmg, dmg >= 5 ? '#ffd166' : '#ffffff', { kind: dmg >= 5 ? 'crit' : 'damage' });
     }
   }
   function splashDamage(st, x, y, radius, dmg, sourceTower) {
@@ -478,8 +527,9 @@
   function heroPowerMult(hero) { if (!hero) return 1; return 1 + ((hero.level || 1) - 1) * 0.08 + ((hero.xp || 0) / 4000); }
   /* ---- Engine systems (ECS queries over component tables) ---- */
   function MovementSystem(st, dt) {
-    for (var i = 0; i < st.balloons.length; i++) {
-      var b = st.balloons[i];
+    var balloons = ecsEntitiesOfKind(st, 'balloon');
+    for (var i = 0; i < balloons.length; i++) {
+      var b = balloons[i];
       if (b.dead) continue;
       var f = (st.time < b.slowUntil) ? b.slowF : 1;
       if (b.regen && !b.boss && b.layers < b.maxLayers) { b.regenT += dt; if (b.regenT >= 2) { b.regenT = 0; b.layers++; b.r = 11 + b.layers * 1.5; } }
@@ -503,8 +553,9 @@
     for (i = 0; i < st.balloons.length; i++) { var bb = st.balloons[i]; if (bb.dead) continue; for (var si = 0; si < st.spikes.length; si++) { var spp = st.spikes[si]; if (dist(bb.x, bb.y, spp.x, spp.y) <= bb.r + 10) { damageBalloon(st, bb, spp.dmg, null); spp.pops--; if (spp.pops <= 0) break; } } }
   }
   function CombatSystem(st, dt) {
-    for (var i = 0; i < st.towers.length; i++) {
-      var t = st.towers[i];
+    var towers = ecsEntitiesOfKind(st, 'tower');
+    for (var i = 0; i < towers.length; i++) {
+      var t = towers[i];
       t.cd -= dt; if (t.flash > 0) t.flash -= dt;
       if (t.cd > 0) continue;
       if (t.kind === 'spikes') { fireTower(st, t, null); t.cd = t.rate; continue; }
@@ -550,7 +601,7 @@
   function FxSystem(st, dt) {
     var i;
     for (i = st.beams.length - 1; i >= 0; i--) { var bm = st.beams[i]; bm.life -= dt; if (bm.life <= 0) { if (bm.ecsId) ecsRemove(st, bm.ecsId); st.beams.splice(i, 1); } }
-    for (i = st.floaters.length - 1; i >= 0; i--) { var fl = st.floaters[i]; fl.life -= dt; fl.y -= 34 * dt; if (fl.life <= 0) { if (fl.ecsId) ecsRemove(st, fl.ecsId); st.floaters.splice(i, 1); } }
+    for (i = st.floaters.length - 1; i >= 0; i--) { var fl = st.floaters[i]; fl.life -= dt; fl.vy = (fl.vy == null ? -70 : fl.vy) + 160 * dt; fl.y += fl.vy * dt; if (fl.life <= 0) { if (fl.ecsId) ecsRemove(st, fl.ecsId); st.floaters.splice(i, 1); } }
     for (i = st.particles.length - 1; i >= 0; i--) {
       var pa = st.particles[i]; pa.life -= dt;
       var grav = pa.kind === 'smoke' ? -30 : (pa.kind === 'splash' ? 320 : 260);
@@ -605,7 +656,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -727,10 +778,10 @@
     // projectiles
     for (i = 0; i < st.projectiles.length; i++) {
       var pr = st.projectiles[i];
-      if (pr.kind === 'dart') { ctx.save(); ctx.translate(pr.x, pr.y); ctx.rotate(Math.atan2(pr.vy, pr.vx)); ctx.fillStyle = '#ffe8a3'; ctx.fillRect(-7, -1.5, 14, 3); ctx.restore(); }
+      if (pr.kind === 'dart') { ctx.save(); ctx.translate(pr.x, pr.y); ctx.rotate(Math.atan2(pr.vy, pr.vx)); if (st.motionBlur) { ctx.strokeStyle = 'rgba(255,232,163,.55)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-28, 0); ctx.lineTo(7, 0); ctx.stroke(); } ctx.fillStyle = '#ffe8a3'; ctx.fillRect(-7, -1.5, 14, 3); ctx.restore(); }
       else { var tt = Math.min(1, pr.t), mx = pr.x + (pr.tx - pr.x) * tt, my = pr.y + (pr.ty - pr.y) * tt - Math.sin(tt * Math.PI) * 70; ctx.fillStyle = pr.kind === 'mortar' ? '#00f6ff' : '#ff6b35'; ctx.beginPath(); ctx.arc(mx, my, pr.kind === 'mortar' ? 7 : 5, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.arc(pr.tx, pr.ty, 8, 0, TAU); ctx.stroke(); }
     }
-    for (i = 0; i < st.beams.length; i++) { var bm = st.beams[i]; ctx.strokeStyle = bm.color; ctx.globalAlpha = Math.max(0, bm.life / 0.18); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(bm.x1, bm.y1); ctx.lineTo(bm.x2, bm.y2); ctx.stroke(); ctx.globalAlpha = 1; }
+    for (i = 0; i < st.beams.length; i++) { var bm = st.beams[i]; ctx.strokeStyle = bm.color; ctx.globalAlpha = Math.max(0, bm.life / 0.18); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(bm.x1, bm.y1); ctx.lineTo(bm.x2, bm.y2); ctx.stroke(); if (st.motionBlur) { ctx.globalAlpha = Math.max(0, bm.life / 0.18) * 0.35; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(bm.x1, bm.y1); ctx.lineTo(bm.x2, bm.y2); ctx.stroke(); } ctx.globalAlpha = 1; }
     for (i = 0; i < st.particles.length; i++) {
       var pa = st.particles[i];
       var paA = Math.max(0, pa.life / pa.max);
@@ -741,7 +792,7 @@
     ctx.globalAlpha = 1;
   }
   function drawOverlays(ctx, st) {
-    for (var i = 0; i < st.floaters.length; i++) { var fl = st.floaters[i]; ctx.globalAlpha = Math.min(1, fl.life); ctx.fillStyle = fl.color; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText(fl.text, fl.x, fl.y); }
+    for (var i = 0; i < st.floaters.length; i++) { var fl = st.floaters[i]; ctx.globalAlpha = Math.max(0, Math.min(1, fl.life / 0.3)); ctx.fillStyle = fl.color; ctx.font = 'bold ' + (fl.size || 16) + 'px Arial'; ctx.textAlign = 'center'; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 3; if (ctx.strokeText) ctx.strokeText(fl.text, fl.x, fl.y); ctx.fillText(fl.text, fl.x, fl.y); }
     ctx.globalAlpha = 1;
     if (st.won || st.lost) {
       ctx.fillStyle = 'rgba(5,8,20,.72)'; ctx.fillRect(0, 0, W, H);
@@ -840,9 +891,23 @@
   }
   /* ---- Input + lifecycle ---- */
   var STEP = 1 / 60;
+  /* Retina/HiDPI display scaling: raise the canvas backing store while
+   * keeping the 960x600 logical coordinate space. Guarded for the VM
+   * harness, whose stub context has no setTransform. */
+  function applyDisplayScale(st) {
+    var f = st.displayScale === 'auto' ? (typeof devicePixelRatio !== 'undefined' ? Math.min(2, devicePixelRatio || 1) : 1) : (parseFloat(st.displayScale) || 1);
+    f = Math.min(2, Math.max(1, f));
+    if (st.canvas) { st.canvas.width = Math.round(W * f); st.canvas.height = Math.round(H * f); }
+    if (st.ctx && st.ctx.setTransform) st.ctx.setTransform(f, 0, 0, f, 0, 0);
+  }
   function loop(st, now) {
     if (st.destroyed) return;
     st.rafId = (typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(function (t) { loop(st, t); }) : setTimeout(function () { loop(st, Date.now()); }, 16));
+    /* FPS target pacing: below 60, skip frames so physics+draw run at
+     * the target rate (rAF is already scheduled above, so the queue
+     * keeps flowing). 120 is a cap only — the display refresh limits it. */
+    if (st.fpsTarget && st.fpsTarget < 60 && st._lastFrameT && (now - st._lastFrameT) < (1000 / st.fpsTarget - 1)) return;
+    st._lastFrameT = now;
     var dt = 0.016;
     if (st.lastT) dt = Math.min(0.1, Math.max(0, (now - st.lastT) / 1000));
     st.lastT = now;
@@ -885,6 +950,7 @@
     viewport.innerHTML = '';
     viewport.appendChild(canvas);
     st.canvas = canvas; st.ctx = canvas.getContext('2d');
+    applyDisplayScale(st);
     var mkCv = function (w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
     st.glowCv = mkCv(480, 300); st.glowCtx = st.glowCv.getContext('2d');
     st.sceneCv = mkCv(W, H); st.sceneCtx = st.sceneCv.getContext('2d');
@@ -898,7 +964,12 @@
     loadSprites(function () { st.bg = paintBackground(); });
     if (opts.hero) { st.hero = opts.hero; }
     if (opts.bus) opts.bus.emit('game:start', 'cosmos-btd', opts.hero ? [opts.hero.id] : []);
-    var onMove = function (ev) { var pos = canvasPos(st, ev); st.mouse = pos; };
+    var onMove = function (ev) {
+      var pos = canvasPos(st, ev); st.mouse = pos;
+      var prevHover = st.hoverTower; st.hoverTower = null;
+      if (!st.placing) for (var i = 0; i < st.towers.length; i++) if (dist(pos.x, pos.y, st.towers[i].x, st.towers[i].y) < 22) { st.hoverTower = st.towers[i]; break; }
+      if (st.hoverTower !== prevHover) emitHud(st);
+    };
     var onClick = function (ev) {
       st.audio.unlock();
       var pos = canvasPos(st, ev);
@@ -948,6 +1019,10 @@
       setQuality: function (q) { st.quality = q === 'low' ? 'low' : 'high'; },
       setPostFx: function (v) { st.postfx = v !== false; },
       setDof: function (v) { st.dof = v !== false; },
+      setFpsTarget: function (v) { st.fpsTarget = [30, 60, 120].indexOf(Number(v)) >= 0 ? Number(v) : 60; },
+      setParticleDensity: function (v) { st.particleDensity = ['low', 'med', 'high'].indexOf(v) >= 0 ? v : 'high'; },
+      setMotionBlur: function (v) { st.motionBlur = v !== false; },
+      setDisplayScale: function (v) { st.displayScale = ['auto', '1', '1.5', '2'].indexOf(String(v)) >= 0 ? String(v) : 'auto'; applyDisplayScale(st); },
       setVolume: function (v) { if (st.audio && st.audio.setVolume) st.audio.setVolume(v); },
       upgradeSelected: function () { return upgradeSelected(st); },
       sellSelected: function () { return sellSelected(st); },
@@ -997,7 +1072,7 @@
     var keep = { gold: 650, lives: 100, wave: 0, score: 0, pops: 0, heroXp: 0 };
     st.gold = st.challenge ? 100 : keep.gold; st.lives = st.challenge ? 20 : keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
     st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = []; st.spikes = []; st.lights = []; st.ecs = createECS(); st.acc = 0; st.alpha = 1; st.paused = false;
-    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.placing = null;
+    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null;
     emitHud(st);
   }
   function destroy(st) {
@@ -1011,7 +1086,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.1.0', description: 'Bloons-style tower defense: 50 waves + endless, 7 towers, camo/fortified/regen enemies, heroes, image sprites, ECS + spatial hash, fixed 60Hz timestep, bloom/lighting/vignette/tilt-shift/water post-processing, particle engine.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.2.0', description: 'Bloons-style tower defense: 50 waves + endless, 7 towers, camo/fortified/regen enemies, heroes, image sprites, ECS + spatial hash, fixed 60Hz timestep, bloom/lighting/vignette/tilt-shift/water post-processing, particle engine, Pillar 3 UI: floating combat text, inspection stat cards, settings (FPS/particles/motion blur/HiDPI), ECS-table iteration.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect };
 })(typeof window !== 'undefined' ? window : globalThis);
