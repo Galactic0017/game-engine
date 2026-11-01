@@ -72,3 +72,13 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .checkRow { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
 .checkRow input { width: auto; }
 footer { padding: 18px; text-align: center; color: var(--muted); font-size: 12px; }
+
+.banner { max-width: 1400px; margin: 12px auto 0; padding: 10px 16px; background: linear-gradient(90deg, rgba(0,246,255,.15), rgba(80,37,156,.25)); border: 1px solid var(--line); border-radius: 12px; }
+.banner p { margin: 4px 0; font-size: 13px; }
+.questCard { border: 1px solid var(--line); border-radius: 10px; padding: 8px; margin-bottom: 8px; }
+.achGrid { display: flex; flex-wrap: wrap; gap: 6px; }
+.ach { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font-size: 12px; }
+.ach.got { border-color: var(--gold); color: var(--gold); }
+.ach.locked { opacity: .55; }
+.featureList { list-style: none; padding: 0; margin: 0 0 12px; }
+.featureList li { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 14px; }
