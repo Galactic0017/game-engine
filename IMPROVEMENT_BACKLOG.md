@@ -38,19 +38,26 @@ Tests: server 25/25, BTD 27/27, shooter harness all pass; serve 200s.
 Limits: DoF/water/lighting visual quality not browser-verified;
 danger pulse code-reviewed only; normal maps deferred (see above).
 
-## Batch 5 — Pillar 3: Engine UI/UX Framework
-- [ ] Glassmorphism theme engine: unified reactive UI layer (translucent
+## Batch 5 — DONE 2026-11-01 — v3.2.0 (5 features, 50 total)
+Pillar 3: Engine UI/UX Framework
+- [x] Glassmorphism theme engine: unified reactive UI layer (translucent
       dark glass, backdrop blur, glowing borders, dynamic font scaling,
       hover/click sound feedback) across hub + CEO panel.
-- [ ] Floating combat text: damage numbers, crits, coin gains with
+- [x] Floating combat text: damage numbers, crits, coin gains with
       gravity + fade (build on existing floaters).
-- [ ] Inspection stat cards: hover any tower/unit opens a card with
+- [x] Inspection stat cards: hover any tower/unit opens a card with
       animated stat bars, upgrade tree, tactical effectiveness chart.
-- [ ] Settings modal: FPS target (30/60/120), motion blur toggle,
+- [x] Settings modal: FPS target (30/60/120), motion blur toggle,
       particle density (Low/Med/High), master audio, display scaling
       (Retina/HiDPI canvas scaling).
-- [ ] ECS remainder: migrate balloons/towers to id-array iteration
+- [x] ECS remainder: migrate balloons/towers to id-array iteration
       (component tables as the single iteration source), harness-gated.
+Tests: server 25/25, BTD 34/34, shooter pass; serve 200s.
+Limits: shell/modal/inspect-card DOM rendering + glass visuals are
+code-reviewed only (no browser/DOM harness for the shell); 120 FPS is
+a cap only, display refresh limits it; motion blur is projectile/beam
+streaks, not a frame-blur pass; strokeText guarded for minimal canvas
+impls. CEO panel itself unchanged (glass applies via shared hub.css).
 
 ## Batch 6 — Pillar 4: Deep Gameplay & Progression
 - [ ] Branching tower upgrade trees: 2 paths per tower (e.g. Speed/Fire
@@ -148,3 +155,4 @@ danger pulse code-reviewed only; normal maps deferred (see above).
 - 2026-11-01 ~14:10: cron game-auto-improve created (every 10 min).
 - 2026-11-01 ~14:14: v3.0.0 push started (browser task, 13 files) — result pending at time of Batch 4 build; v3.1.0 push waits for it.
 - 2026-11-01 ~14:19: Batch 4 built locally (v3.1.0): server 25/25, BTD 27/27, shooter pass. Push queued after the v3.0.0 upload finishes.
+- 2026-11-01 14:29 EST: Batch 5 built locally (v3.2.0, Pillar 3): server 25/25, BTD 34/34, shooter pass. Health 200 (3.1.0) at run start. Push via browser task; verify /api/config shows 3.2.0.
