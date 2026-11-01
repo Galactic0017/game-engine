@@ -62,7 +62,7 @@ function isCeoRequest(req, bodyForMessage) {
   const message = effPath + '\n' + canonicalJson(bodyForMessage || {}) + '\n' + String(ts);
   return verifyAdr36(address, message, sig, pub);
 }
-const VERSION = '3.11.0';
+const VERSION = '3.12.0';
 const MODE = (process.env.MODE || 'live').toLowerCase();
 const EXPLORER = process.env.EXPLORER_TX_URL || 'https://www.mintscan.io/cosmos/txs/';
 const CHAIN_ID = process.env.CHAIN_ID || 'cosmoshub-4';
@@ -144,7 +144,7 @@ function feePercent() { const f = parseFloat(db.settings && db.settings.feePerce
 function orderTtlMinutes() { const t = parseFloat(db.settings && db.settings.orderTtlMinutes); return isFinite(t) ? Math.min(1440, Math.max(1, t)) : ORDER_TTL_MINUTES; }
 function autoVerifyEnabled() { return !!(db.settings && db.settings.autoVerifyEnabled); }
 function load() {
-  const base = { players: {}, heroes: [], listings: [], sales: [], offers: [], rentals: [], saleHistory: [], usedTxids: [], duels: [], bans: {}, ledger: [], flags: [], sessions: {}, auditLog: [], announcements: [], settings: { feePercent: ENV_FEE, orderTtlMinutes: ORDER_TTL_MINUTES, autoVerifyEnabled: false } };
+  const base = { players: {}, heroes: [], listings: [], sales: [], offers: [], rentals: [], saleHistory: [], usedTxids: [], duels: [], bans: {}, ledger: [], flags: [], sessions: {}, auditLog: [], announcements: [], scheduledAnnouncements: [], settings: { feePercent: ENV_FEE, orderTtlMinutes: ORDER_TTL_MINUTES, autoVerifyEnabled: false } };
   if (IS_VERCEL) return base;
   try {
     const d = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
@@ -371,11 +371,62 @@ async function validateRentalTx(rental) {
   return { verified: checks.every(c => c.ok), checks, tx };
 }
 
+// --- Batch 13: CEO tools II (disputes, fee analytics, scheduled announcements) ---
+// A dispute is a review marker on a sale record plus a matching
+// anti-cheat flag. It changes nothing about expiry or the escrow money
+// model: the order still closes on its timer and only the existing
+// approve/execute/reject paths move heroes or record payouts.
+function ensureScheduled() { db.scheduledAnnouncements = db.scheduledAnnouncements || []; }
+// Scheduled posts publish when due. On Vercel there is no background
+// job, so this sweep runs on every request (same pattern as the order
+// expiry sweep); the standalone server also runs it on a 60s timer.
+function publishDueAnnouncements() {
+  ensureScheduled();
+  const now = Date.now(); let changed = false;
+  db.announcements = db.announcements || [];
+  for (const s of db.scheduledAnnouncements) {
+    if (s.status === 'scheduled' && s.publishAt && now >= s.publishAt) {
+      s.status = 'published'; s.publishedAt = new Date().toISOString(); changed = true;
+      db.announcements.unshift({ id: uid('ann'), title: s.title, body: s.body, at: s.publishedAt, by: CEO_ADDRESS, scheduled: true });
+      db.announcements = db.announcements.slice(0, 10);
+      addLedger('announcement_published', { title: s.title, scheduledId: s.id });
+      addAudit('announce-scheduled', { title: s.title, scheduledId: s.id });
+    }
+  }
+  if (changed) save(db);
+  return changed;
+}
+// Fees/volume by UTC day from closed sales and started rentals only.
+// Pending/expired orders contribute nothing until the CEO closes them.
+function feeAnalytics(days) {
+  const n = Math.min(90, Math.max(1, parseInt(days, 10) || 14));
+  const out = [];
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+  for (let i = n - 1; i >= 0; i--) { const d = new Date(today.getTime() - i * 86400000); out.push({ date: d.toISOString().slice(0, 10), volume: 0, fees: 0, orders: 0, rentals: 0, payouts: 0 }); }
+  const byDay = {}; out.forEach(d => { byDay[d.date] = d; });
+  const bucket = (iso, fn) => { if (!iso) return; const b = byDay[String(iso).slice(0, 10)]; if (b) fn(b); };
+  for (const s of db.sales) {
+    if (s.status === 'closed' || s.status === 'approved') {
+      bucket(s.closedAt || s.decidedAt, b => { b.volume = round6(b.volume + (s.priceAtom || 0)); b.fees = round6(b.fees + (s.ceoFee || 0)); b.orders += 1; });
+      if (s.sellerPayout && s.sellerPayout.status === 'paid') bucket(s.closedAt || s.decidedAt, b => { b.payouts = round6(b.payouts + (s.sellerPayout.amount || 0)); });
+    }
+  }
+  ensureMarketplaceArrays();
+  for (const r of db.rentals) {
+    if ((r.status === 'active' || r.status === 'returned') && r.startsAt) {
+      bucket(r.startsAt, b => { b.volume = round6(b.volume + (r.priceAtom || 0)); b.fees = round6(b.fees + (r.ceoFee || 0)); b.rentals += 1; });
+      if (r.sellerPayout && r.sellerPayout.status === 'paid') bucket(r.startsAt, b => { b.payouts = round6(b.payouts + (r.sellerPayout.amount || 0)); });
+    }
+  }
+  const totals = out.reduce((a, d) => ({ volume: round6(a.volume + d.volume), fees: round6(a.fees + d.fees), orders: a.orders + d.orders, rentals: a.rentals + d.rentals, payouts: round6(a.payouts + d.payouts) }), { volume: 0, fees: 0, orders: 0, rentals: 0, payouts: 0 });
+  return { days: out, totals, windowDays: n };
+}
+
 async function handle(req, res) {
   const u = new URL(req.url, 'http://x'); let p = u.pathname;
   if (p === '/api/index' && u.searchParams.get('__path')) p = u.searchParams.get('__path');
   ensureMarketplaceArrays();
-  expireSweep(); expireOfferSweep(); rentalSweep();
+  expireSweep(); expireOfferSweep(); rentalSweep(); publishDueAnnouncements();
   const fee = feePercent(), ttl = orderTtlMinutes();
   if (p === '/api/health') return send(res, 200, { ok: true, version: VERSION, platform: 'GAME', time: new Date().toISOString(), players: Object.keys(db.players).length, listings: db.listings.filter(l => l.status === 'active').length, pendingOrders: db.sales.filter(s => s.status === 'pending').length });
   const shooterPlayable = fs.existsSync(path.join(__dirname, 'public', 'games', 'space-shooter', 'shooter.js'));
@@ -443,7 +494,7 @@ async function handle(req, res) {
   if (req.method === 'POST' && p === '/api/duels/result') { const b = await readBody(req); const duel = db.duels.find(d => d.id === b.duelId); if (!duel || duel.status !== 'pending') return send(res, 400, { error: 'Duel not pending' }); if (duel.challenger !== b.address) return send(res, 403, { error: 'Only the challenger submits the result.' }); const score = Math.max(0, Math.min(100000, Number(b.score) || 0)); const won = score > duel.rivalBest; duel.status = won ? 'challenger_won' : 'challenger_lost'; duel.score = score; duel.decidedAt = new Date().toISOString(); const pl = db.players[b.address]; pl.gamesPlayed = (pl.gamesPlayed || 0) + 1; if (score > (pl.bestScore || 0)) pl.bestScore = score; if (won) { pl.wins = (pl.wins || 0) + 1; pl.credits = (pl.credits || 0) + 150; pl.xp = (pl.xp || 0) + 100; ensureQuests(pl); pl.questProgress.duelsWon = (pl.questProgress.duelsWon || 0) + 1; } else { pl.losses = (pl.losses || 0) + 1; pl.xp = (pl.xp || 0) + 20; } pl.bests = pl.bests || {}; if (score > (pl.bests['cosmos-btd'] || 0)) pl.bests['cosmos-btd'] = score; recordSeasonBest(pl, 'cosmos-btd', score); const achUnlocked = checkAchievements(pl); save(db); return send(res, 200, { duel: duelView(duel), won, rivalBest: duel.rivalBest, achievementsUnlocked: achUnlocked }); }
   // ---------------- CEO PANEL (ADR-36 signed, every action) ----------------
   const ceoOnly = async (body) => { if (!isCeoRequest(req, body)) { send(res, 401, { error: 'CEO wallet signature required: connect Keplr with the CEO address and sign.' }); return false; } return true; };
-  if (p === '/api/admin/pending') { if (!(await ceoOnly({}))) return; return send(res, 200, { sales: db.sales.filter(s => s.status === 'pending').map(saleView), rentals: (db.rentals || []).filter(r => r.status === 'pending').map(rentalView), flags: db.flags.filter(f => !f.resolved), settings: db.settings, feePercent: fee, orderTtlMinutes: ttl, ceoAddress: CEO_ADDRESS }); }
+  if (p === '/api/admin/pending') { if (!(await ceoOnly({}))) return; return send(res, 200, { sales: db.sales.filter(s => s.status === 'pending').map(saleView), rentals: (db.rentals || []).filter(r => r.status === 'pending').map(rentalView), flags: db.flags.filter(f => !f.resolved), openDisputes: db.sales.filter(s => s.dispute && !s.dispute.resolved).length, settings: db.settings, feePercent: fee, orderTtlMinutes: ttl, ceoAddress: CEO_ADDRESS }); }
   if (p === '/api/admin/settings') {
     if (req.method === 'GET') { if (!(await ceoOnly({}))) return; return send(res, 200, { settings: db.settings, feePercent: fee, orderTtlMinutes: ttl, autoVerifyEnabled: autoVerifyEnabled(), ceoAddress: CEO_ADDRESS, lcdUrls: LCD_URLS, wsUrl: WS_URL }); }
     const b = await readBody(req); if (!(await ceoOnly(b))) return;
@@ -453,7 +504,7 @@ async function handle(req, res) {
     addLedger('settings_changed', { feePercent: feePercent(), orderTtlMinutes: orderTtlMinutes(), autoVerifyEnabled: autoVerifyEnabled() }); addAudit('settings', { by: CEO_ADDRESS }); save(db);
     return send(res, 200, { settings: db.settings });
   }
-  if (p === '/api/admin/ledger') { if (!(await ceoOnly({}))) return; const kind = u.searchParams.get('kind') || ''; const limit = Math.min(500, Math.max(1, parseInt(u.searchParams.get('limit') || '200', 10))); const entries = db.ledger.filter(e => !kind || e.kind === kind).slice().reverse().slice(0, limit); const closed = db.sales.filter(s => s.status === 'closed' || s.status === 'approved'); const volume = round6(closed.reduce((a, s) => a + (s.priceAtom || 0), 0)); const fees = round6(closed.reduce((a, s) => a + (s.ceoFee || 0), 0)); const payouts = round6(db.sales.filter(s => s.sellerPayout && s.sellerPayout.status === 'paid').reduce((a, s) => a + (s.sellerPayout.amount || 0), 0)); return send(res, 200, { entries, totals: { volume, fees, payouts, orders: db.sales.length, pending: db.sales.filter(s => s.status === 'pending').length, closed: closed.length, expired: db.sales.filter(s => s.status === 'expired').length }, kinds: [...new Set(db.ledger.map(e => e.kind))] }); }
+  if (p === '/api/admin/ledger') { if (!(await ceoOnly({}))) return; const kind = u.searchParams.get('kind') || ''; const limit = Math.min(5000, Math.max(1, parseInt(u.searchParams.get('limit') || '200', 10))); const entries = db.ledger.filter(e => !kind || e.kind === kind).slice().reverse().slice(0, limit); const closed = db.sales.filter(s => s.status === 'closed' || s.status === 'approved'); const volume = round6(closed.reduce((a, s) => a + (s.priceAtom || 0), 0)); const fees = round6(closed.reduce((a, s) => a + (s.ceoFee || 0), 0)); const payouts = round6(db.sales.filter(s => s.sellerPayout && s.sellerPayout.status === 'paid').reduce((a, s) => a + (s.sellerPayout.amount || 0), 0)); return send(res, 200, { entries, totals: { volume, fees, payouts, orders: db.sales.length, pending: db.sales.filter(s => s.status === 'pending').length, closed: closed.length, expired: db.sales.filter(s => s.status === 'expired').length }, kinds: [...new Set(db.ledger.map(e => e.kind))] }); }
   if (p === '/api/admin/users') { if (!(await ceoOnly({}))) return; const users = Object.values(db.players).map(pl => ({ address: pl.address, name: pl.name, credits: pl.credits || 0, xp: pl.xp || 0, level: levelForXp(pl.xp || 0), bestScore: pl.bestScore || 0, bestWave: pl.bestWave || 0, totalPops: pl.totalPops || 0, achievements: (pl.achievements || []).length, heroes: db.heroes.filter(h => h.owner === pl.address).length, listings: db.listings.filter(l => l.sellerAddress === pl.address).length, orders: db.sales.filter(s => s.buyerAddress === pl.address || s.sellerAddress === pl.address).length, banned: isBanned(pl.address), ban: db.bans[pl.address] || null })); return send(res, 200, { users, banned: Object.keys(db.bans) }); }
   if (p === '/api/admin/flags') { if (!(await ceoOnly({}))) return; return send(res, 200, { flags: db.flags.slice().reverse() }); }
   if (p === '/api/admin/audit') { if (!(await ceoOnly({}))) return; return send(res, 200, { audit: db.auditLog.slice().reverse().slice(0, 200) }); }
@@ -512,6 +563,13 @@ async function handle(req, res) {
   if (req.method === 'POST' && p === '/api/admin/remove-listing') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const l = db.listings.find(x => x.id === b.listingId); if (!l) return send(res, 404, { error: 'Listing not found' }); if (l.status !== 'active') return send(res, 400, { error: 'Only active listings can be removed (status: ' + l.status + '). Resolve its order first.' }); l.status = 'removed'; l.removedReason = String(b.reason || 'Removed by CEO').slice(0, 200); restoreListingOffer(l); addLedger('listing_removed', { listingId: l.id, heroId: l.heroId, heroName: l.heroName, reason: l.removedReason, sellerAddress: l.sellerAddress }); addAudit('remove-listing', { listingId: l.id }); save(db); return send(res, 200, { listing: l }); }
   if (req.method === 'POST' && p === '/api/admin/remove-hero') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const idx = db.heroes.findIndex(h => h.id === b.heroId); if (idx < 0) return send(res, 404, { error: 'Hero not found' }); const hero = db.heroes[idx]; if (db.sales.some(s => s.heroId === hero.id && s.status === 'pending')) return send(res, 400, { error: 'Hero has a pending order. Resolve the order first.' }); if ((db.rentals || []).some(r => r.heroId === hero.id && (r.status === 'pending' || r.status === 'active' || r.status === 'available'))) return send(res, 400, { error: 'Hero has a rental. Resolve or cancel the rental first.' }); db.heroes.splice(idx, 1); let removed = 0; for (const l of db.listings) if (l.heroId === hero.id && l.status === 'active') { l.status = 'removed'; removed++; } addLedger('hero_removed', { heroId: hero.id, heroName: hero.name, owner: hero.owner, reason: String(b.reason || 'Removed by CEO').slice(0, 200), listingsRemoved: removed }); addAudit('remove-hero', { heroId: hero.id }); save(db); return send(res, 200, { removed: hero.id, listingsRemoved: removed }); }
   if (req.method === 'POST' && p === '/api/admin/flag-resolve') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const f = db.flags.find(x => x.id === b.flagId); if (!f) return send(res, 404, { error: 'Flag not found' }); f.resolved = true; f.resolvedAt = new Date().toISOString(); addAudit('flag-resolve', { flagId: f.id }); save(db); return send(res, 200, { flag: f }); }
+  if (p === '/api/admin/disputes') { if (!(await ceoOnly({}))) return; const disputed = db.sales.filter(s => s.dispute && !s.dispute.resolved).map(saleView); return send(res, 200, { disputes: disputed, count: disputed.length, flags: db.flags.filter(f => f.type === 'order-dispute' && !f.resolved) }); }
+  if (req.method === 'POST' && p === '/api/admin/orders/dispute') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const sale = db.sales.find(s => s.id === b.saleId); if (!sale) return send(res, 404, { error: 'Order not found' }); if (sale.dispute && !sale.dispute.resolved) return send(res, 400, { error: 'Order already has an open dispute.' }); const reason = String(b.reason || 'Disputed by CEO').slice(0, 200); sale.dispute = { reason, by: CEO_ADDRESS, at: new Date().toISOString(), resolved: false }; addFlag('order-dispute', { saleId: sale.id, listingId: sale.listingId, heroName: sale.heroName, address: sale.buyerAddress, reason }); addLedger('order_disputed', { saleId: sale.id, listingId: sale.listingId, heroName: sale.heroName, priceAtom: sale.priceAtom, buyerAddress: sale.buyerAddress, sellerAddress: sale.sellerAddress, reason }); addAudit('dispute-order', { saleId: sale.id, reason }); save(db); return send(res, 200, { sale: saleView(sale) }); }
+  if (req.method === 'POST' && p === '/api/admin/orders/dispute/resolve') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const sale = db.sales.find(s => s.id === b.saleId); if (!sale) return send(res, 404, { error: 'Order not found' }); if (!sale.dispute || sale.dispute.resolved) return send(res, 400, { error: 'Order has no open dispute.' }); sale.dispute.resolved = true; sale.dispute.resolvedAt = new Date().toISOString(); sale.dispute.resolution = String(b.note || 'Resolved by CEO').slice(0, 200); for (const f of db.flags) if (f.type === 'order-dispute' && f.saleId === sale.id && !f.resolved) { f.resolved = true; f.resolvedAt = new Date().toISOString(); } addLedger('dispute_resolved', { saleId: sale.id, listingId: sale.listingId, heroName: sale.heroName, resolution: sale.dispute.resolution }); addAudit('dispute-resolve', { saleId: sale.id }); save(db); return send(res, 200, { sale: saleView(sale) }); }
+  if (p === '/api/admin/analytics') { if (!(await ceoOnly({}))) return; return send(res, 200, feeAnalytics(u.searchParams.get('days') || 14)); }
+  if (p === '/api/admin/announce/scheduled') { if (!(await ceoOnly({}))) return; ensureScheduled(); return send(res, 200, { scheduled: db.scheduledAnnouncements.slice().reverse() }); }
+  if (req.method === 'POST' && p === '/api/admin/announce/schedule') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const title = String(b.title || '').slice(0, 80); const schedBody = String(b.body || '').slice(0, 500); if (!title || !schedBody) return send(res, 400, { error: 'Title and body required.' }); const at = Date.parse(b.publishAt); if (!isFinite(at)) return send(res, 400, { error: 'publishAt must be an ISO date/time.' }); if (at <= Date.now()) return send(res, 400, { error: 'Scheduled time must be in the future.' }); ensureScheduled(); if (db.scheduledAnnouncements.filter(s => s.status === 'scheduled').length >= 20) return send(res, 400, { error: 'Too many scheduled announcements (max 20).' }); const item = { id: uid('sched'), title, body: schedBody, publishAt: at, publishAtIso: new Date(at).toISOString(), status: 'scheduled', createdAt: new Date().toISOString(), by: CEO_ADDRESS }; db.scheduledAnnouncements.push(item); addLedger('announcement_scheduled', { title, scheduledId: item.id, publishAt: item.publishAtIso }); addAudit('announce-schedule', { title, scheduledId: item.id }); save(db); return send(res, 200, { scheduled: item }); }
+  if (req.method === 'POST' && p === '/api/admin/announce/schedule/cancel') { const b = await readBody(req); if (!(await ceoOnly(b))) return; ensureScheduled(); const item = db.scheduledAnnouncements.find(s => s.id === b.id); if (!item) return send(res, 404, { error: 'Scheduled announcement not found' }); if (item.status !== 'scheduled') return send(res, 400, { error: 'Only a scheduled announcement can be cancelled (status: ' + item.status + ')' }); item.status = 'cancelled'; item.cancelledAt = new Date().toISOString(); addLedger('announcement_cancelled', { title: item.title, scheduledId: item.id }); addAudit('announce-cancel', { scheduledId: item.id }); save(db); return send(res, 200, { scheduled: item }); }
   if (req.method === 'POST' && p === '/api/admin/announce') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const title = String(b.title || '').slice(0, 80); const body = String(b.body || '').slice(0, 500); if (!title || !body) return send(res, 400, { error: 'Title and body required.' }); db.announcements = db.announcements || []; db.announcements.unshift({ id: uid('ann'), title, body, at: new Date().toISOString(), by: CEO_ADDRESS }); db.announcements = db.announcements.slice(0, 10); addLedger('announcement', { title }); addAudit('announce', { title }); save(db); return send(res, 200, { announcements: db.announcements }); }
   // ---------------- Static files ----------------
   let file = p === '/' ? '/index.html' : p;
@@ -520,7 +578,7 @@ async function handle(req, res) {
   fs.readFile(fp, (e, data) => { if (e) return send(res, 404, { error: 'not found' }); res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'text/plain' }); res.end(data); });
 }
 const server = http.createServer(handle);
-if (require.main === module) { server.listen(PORT, () => console.log('GAME listening on ' + PORT + ' mode=' + MODE + ' chain=' + CHAIN_ID + ' fee=' + feePercent() + '% ceo=' + CEO_ADDRESS)); }
+if (require.main === module) { server.listen(PORT, () => console.log('GAME listening on ' + PORT + ' mode=' + MODE + ' chain=' + CHAIN_ID + ' fee=' + feePercent() + '% ceo=' + CEO_ADDRESS)); setInterval(() => { try { publishDueAnnouncements(); } catch {} }, 60000); }
 module.exports = handle;
 module.exports.default = handle;
 module.exports.verifyAdr36 = verifyAdr36;
