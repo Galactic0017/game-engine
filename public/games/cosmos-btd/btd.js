@@ -4,15 +4,19 @@
  *   init(viewport, {bus, wallet, config, hero, player, onHud, onToast})
  *   destroy(), setHero(hero), getState()
  *
- * Rendering is 100% procedural Canvas 2D: no image files, so nothing can
- * break if an asset is missing. The background is pre-rendered once to
- * an offscreen canvas. Collisions use a spatial hash (64px cells) and
- * particles/projectiles come from fixed pools, so the loop holds 60 FPS
- * on ordinary hardware.
+ * Rendering: real image sprites (battlefield photo, monster/tower/hero
+ * art from public/assets/sprites) with a full procedural fallback, so
+ * nothing breaks if an asset is missing. The background is pre-rendered
+ * once to an offscreen canvas. Collisions use a spatial hash (64px
+ * cells) and particles/projectiles come from fixed pools, so the loop
+ * holds 60 FPS on ordinary hardware.
  *
- * Towers: Dart Archer, Cannon (splash), Sniper (hitscan, global range),
- * Frost Beam (slow), Plasma Mortar (long-range lobbed splash).
- * Targeting: first | last | strong | weak. Waves: 50, boss every 10.
+ * Towers (7): Dart Archer, Cannon (splash), Sniper (hitscan, global
+ * range), Frost Beam (slow), Plasma Mortar (lobbed splash), Tesla Coil
+ * (chain lightning, sees camo), Spike Factory (contact spike piles).
+ * Targeting: first | last | strong | weak. Waves: 50 + endless mode,
+ * boss every 10 (shielded from wave 30). Enemies: camo, fortified,
+ * regen, splitting, armored lead.
  *
  * Heroes: an equipped hero is placed as a high-power unit. Pops near the
  * hero grant hero XP; hero level-ups are emitted on the bus
@@ -43,20 +47,46 @@
   var TOWER_DEFS = {
     dart:   { name: 'Dart Archer',   key: '1', cost: 100, range: 112, rate: 0.45, dmg: 1, color: '#ffb703', desc: 'Fast darts, one target. Cannot crack lead.' },
     cannon: { name: 'Cannon',        key: '2', cost: 175, range: 125, rate: 1.15, dmg: 2, splash: 58, color: '#ff6b35', desc: 'Splash damage. Cracks lead. Shakes the screen.' },
-    sniper: { name: 'Sniper',        key: '3', cost: 250, range: 999, rate: 1.45, dmg: 3, color: '#c792ea', desc: 'Global range. Instant beam. Cracks lead.' },
+    sniper: { name: 'Sniper',        key: '3', cost: 250, range: 999, rate: 1.45, dmg: 3, color: '#c792ea', camo: true, desc: 'Global range. Instant beam. Cracks lead. Sees camo.' },
     frost:  { name: 'Frost Beam',    key: '4', cost: 150, range: 98,  rate: 0.90, dmg: 1, slow: 0.5, slowDur: 1.3, color: '#7bdff2', desc: 'Slows everything it touches.' },
-    mortar: { name: 'Plasma Mortar', key: '5', cost: 350, range: 330, rate: 2.30, dmg: 4, splash: 82, color: '#00f6ff', desc: 'Long-range lobbed plasma. Huge splash. Cracks lead.' }
+    mortar: { name: 'Plasma Mortar', key: '5', cost: 350, range: 330, rate: 2.30, dmg: 4, splash: 82, color: '#00f6ff', desc: 'Long-range lobbed plasma. Huge splash. Cracks lead.' },
+    tesla:  { name: 'Tesla Coil',     key: '6', cost: 300, range: 140, rate: 1.10, dmg: 2, chains: 3, color: '#facc15', camo: true, desc: 'Chain lightning hits 3. Sees camo.' },
+    spikes: { name: 'Spike Factory', key: '7', cost: 220, range: 90,  rate: 0.80, dmg: 1, color: '#94a3b8', desc: 'Drops spikes that pop on contact.' }
   };
 
   var BALLOON_TYPES = [
-    { layers: 1, color: '#ff5a5a', dark: '#c62828', speed: 62,  reward: 6,  name: 'Red' },
-    { layers: 2, color: '#4f8cff', dark: '#1d4ed8', speed: 70,  reward: 7,  name: 'Blue' },
-    { layers: 3, color: '#3ddc5f', dark: '#15803d', speed: 78,  reward: 8,  name: 'Green' },
-    { layers: 4, color: '#ffd166', dark: '#d97706', speed: 88,  reward: 9,  name: 'Gold' },
-    { layers: 5, color: '#ff8fab', dark: '#db2777', speed: 112, reward: 11, name: 'Pink' },
-    { layers: 6, color: '#c9ced6', dark: '#6b7280', speed: 56,  reward: 14, name: 'Lead', armored: true },
-    { layers: 5, color: '#e8e8f0', dark: '#111827', speed: 96,  reward: 13, name: 'Zebra', splits: true }
+    { layers: 1, color: '#ff5a5a', dark: '#c62828', speed: 62,  reward: 6,  name: 'Red', sprite: 'monster-1' },
+    { layers: 2, color: '#4f8cff', dark: '#1d4ed8', speed: 70,  reward: 7,  name: 'Blue', sprite: 'monster-2' },
+    { layers: 3, color: '#3ddc5f', dark: '#15803d', speed: 78,  reward: 8,  name: 'Green', sprite: 'monster-3' },
+    { layers: 4, color: '#ffd166', dark: '#d97706', speed: 88,  reward: 9,  name: 'Gold', sprite: 'monster-4' },
+    { layers: 5, color: '#ff8fab', dark: '#db2777', speed: 112, reward: 11, name: 'Pink', sprite: 'monster-5' },
+    { layers: 6, color: '#c9ced6', dark: '#6b7280', speed: 56,  reward: 14, name: 'Lead', armored: true, sprite: 'monster-3' },
+    { layers: 5, color: '#e8e8f0', dark: '#111827', speed: 96,  reward: 13, name: 'Zebra', splits: true, sprite: 'monster-2' },
+    { layers: 3, color: '#1f2937', dark: '#000000', speed: 84,  reward: 10, name: 'Camo', camo: true, sprite: 'monster-5' },
+    { layers: 8, color: '#78350f', dark: '#451a03', speed: 48,  reward: 18, name: 'Fortified', fortified: true, sprite: 'monster-4' },
+    { layers: 4, color: '#f472b6', dark: '#be185d', speed: 80,  reward: 10, name: 'Regen', regen: true, sprite: 'monster-1' }
   ];
+
+  /* ---- Image sprites (procedural fallback when assets are missing) ---- */
+  var SPRITES = {};
+  var TOWER_SPRITES = { dart: 'tower-validator', cannon: 'tower-railgun', sniper: 'tower-nova', frost: 'tower-cryo', mortar: 'tower-ion', tesla: 'tower-nova', spikes: 'tower-validator' };
+  var HERO_SPRITES = { astra: 'hero-astra', lyra: 'hero-lyra', koda: 'hero-koda', nova7: 'hero-nova7', vex: 'hero-vex', orin: 'hero-orin' };
+  function spriteReady(img) { return !!(img && img.complete && img.naturalWidth > 0); }
+  function loadSprites(onReady) {
+    if (typeof Image === 'undefined' || typeof document === 'undefined') return;
+    var files = { bg: 'assets/sprites/battlefield.jpg' };
+    BALLOON_TYPES.forEach(function (t) { files[t.sprite] = 'assets/sprites/' + t.sprite + '.png'; });
+    Object.keys(TOWER_SPRITES).forEach(function (k) { var f = TOWER_SPRITES[k]; files[f] = 'assets/sprites/' + f + '.png'; });
+    Object.keys(HERO_SPRITES).forEach(function (k) { var f = HERO_SPRITES[k]; files[f] = 'assets/sprites/' + f + '.png'; });
+    var pending = 0;
+    Object.keys(files).forEach(function (key) {
+      pending++;
+      var img = new Image();
+      img.onload = function () { SPRITES[key] = img; if (--pending === 0 && onReady) onReady(); };
+      img.onerror = function () { if (--pending === 0 && onReady) onReady(); };
+      img.src = files[key];
+    });
+  }
 
   /* ---- Curved multi-lane track: Catmull-Rom spline, sampled to a polyline ---- */
   var CTRL = [[-40, 118], [140, 118], [222, 238], [182, 418], [362, 472], [522, 382], [542, 202], [700, 140], [862, 220], [822, 420], [1000, 420]];
@@ -127,8 +157,10 @@
   function paintBackground() {
     var bg = document.createElement('canvas'); bg.width = W; bg.height = H;
     var b = bg.getContext('2d');
+    var bgImg = SPRITES.bg;
+    if (spriteReady(bgImg)) { b.drawImage(bgImg, 0, 0, W, H); b.fillStyle = 'rgba(6,10,22,.55)'; b.fillRect(0, 0, W, H); }
     var g = b.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#3f9e4d'); g.addColorStop(0.55, '#2f8a3e'); g.addColorStop(1, '#2a7d38');
+    g.addColorStop(0, 'rgba(63,158,77,.55)'); g.addColorStop(0.55, 'rgba(47,138,62,.55)'); g.addColorStop(1, 'rgba(42,125,56,.55)');
     b.fillStyle = g; b.fillRect(0, 0, W, H);
     for (var i = 0; i < 2600; i++) { b.fillStyle = rnd() > 0.5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)'; b.fillRect(rnd() * W, rnd() * H, 2, 2); }
     for (i = 0; i < 900; i++) { var gx = rnd() * W, gy = rnd() * H; b.strokeStyle = 'rgba(20,80,30,.5)'; b.lineWidth = 1; b.beginPath(); b.moveTo(gx, gy); b.lineTo(gx + (rnd() - 0.5) * 5, gy - 4 - rnd() * 4); b.stroke(); }
@@ -166,7 +198,7 @@
 
   /* ---- Synthesized audio (Web Audio, muted + torn down on destroy) ---- */
   function makeAudio() {
-    var AC = null, muted = false;
+    var AC = null, muted = false, master = 1;
     function audio() {
       if (muted) return null;
       if (!AC) { try { AC = new (global.AudioContext || global.webkitAudioContext)(); } catch (e) { return null; } }
@@ -177,7 +209,7 @@
       var ac = audio(); if (!ac) return;
       var t = ac.currentTime + (when || 0), o = ac.createOscillator(), g = ac.createGain();
       o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
-      g.gain.setValueAtTime(vol || 0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      g.gain.setValueAtTime((vol || 0.12) * master, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
       o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.02);
     }
     function noise(dur, vol, fc) {
@@ -186,7 +218,7 @@
       for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
       var s = ac.createBufferSource(); s.buffer = buf;
       var f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = fc || 900;
-      var g = ac.createGain(); g.gain.value = vol || 0.2;
+      var g = ac.createGain(); g.gain.value = (vol || 0.2) * master;
       s.connect(f); f.connect(g); g.connect(ac.destination); s.start();
     }
     return {
@@ -202,7 +234,10 @@
       clear: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, f, 0.14, 'triangle', 0.1, i * 0.09); }); },
       leak: function () { tone(220, 90, 0.3, 'sawtooth', 0.14); },
       place: function () { tone(420, 640, 0.1, 'triangle', 0.1); },
-      over: function () { [400, 320, 240, 160].forEach(function (f, i) { tone(f, f, 0.22, 'sawtooth', 0.11, i * 0.14); }); }
+      over: function () { [400, 320, 240, 160].forEach(function (f, i) { tone(f, f, 0.22, 'sawtooth', 0.11, i * 0.14); }); },
+      spike: function () { tone(340, 160, 0.07, 'square', 0.07); },
+      zap: function () { tone(1800, 300, 0.12, 'sawtooth', 0.07); noise(0.04, 0.08, 5000); },
+      setVolume: function (v) { master = clamp(v, 0, 1); }
     };
   }
 
@@ -212,8 +247,8 @@
       opts: opts || {},
       canvas: null, ctx: null, bg: null,
       running: false, destroyed: false, rafId: 0, lastT: 0, time: 0,
-      gold: 650, lives: 100, wave: 0, score: 0, pops: 0,
-      balloons: [], towers: [], projectiles: [], beams: [], floaters: [],
+      gold: 650, lives: 100, wave: 0, score: 0, pops: 0, endless: false, challenge: false, paused: false, quality: 'high', shakeOn: true, fps: 0, _fpsN: 0, _fpsT: 0,
+      balloons: [], towers: [], projectiles: [], beams: [], floaters: [], spikes: [],
       particles: [], spawnQueue: [], spawnTimer: 0, betweenWaves: true,
       speed: 1, autoStart: false, targeting: 'first', placing: null,
       selected: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
@@ -244,6 +279,7 @@
     return out;
   }
   function spawnParticle(st, x, y, color, n, speed) {
+    if (st.quality === 'low') return;
     for (var i = 0; i < (n || 8); i++) {
       if (st.particles.length > 400) st.particles.shift();
       var a = Math.random() * TAU, s = (speed || 90) * (0.4 + Math.random() * 0.9);
@@ -256,9 +292,9 @@
     var list = [];
     var push = function (type, n) { for (var i = 0; i < n; i++) list.push(type); };
     if (w <= 5) { push(0, 6 + w * 2); if (w >= 3) push(1, w); }
-    else if (w <= 12) { push(0, 8); push(1, 6 + w); push(2, w - 3); if (w >= 8) push(3, w - 6); }
-    else if (w <= 25) { push(1, 8); push(2, 10 + w); push(3, w - 8); push(4, Math.floor(w / 2)); if (w >= 18) push(5, 2 + Math.floor(w / 6)); if (w >= 20) push(6, 1 + Math.floor(w / 8)); }
-    else { push(2, 14); push(3, 14); push(4, 10); push(5, 6); push(6, 3 + Math.floor(w / 6)); }
+    else if (w <= 12) { push(0, 8); push(1, 6 + w); push(2, w - 3); if (w >= 8) push(3, w - 6); if (w >= 6) push(7, w - 4); }
+    else if (w <= 25) { push(1, 8); push(2, 10 + w); push(3, w - 8); push(4, Math.floor(w / 2)); if (w >= 18) push(5, 2 + Math.floor(w / 6)); if (w >= 20) push(6, 1 + Math.floor(w / 8)); if (w >= 10) push(9, Math.floor(w / 3)); if (w >= 14) push(8, 2 + Math.floor(w / 7)); push(7, 3); }
+    else { push(2, 14); push(3, 14); push(4, 10); push(5, 6); push(6, 3 + Math.floor(w / 6)); push(7, 6); push(8, 4); push(9, 6); }
     if (w % 10 === 0) list.push(-1); // boss blimp
     return list;
   }
@@ -274,14 +310,16 @@
   function spawnBalloon(st, typeIdx) {
     if (typeIdx === -1) {
       var pt = pointAt(0);
-      st.balloons.push({ boss: true, x: pt[0], y: pt[1], dist: 0, layers: 60, maxLayers: 60, r: 34, speed: 26, reward: 250, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, type: BALLOON_TYPES[3] });
+      st.balloons.push({ boss: true, x: pt[0], y: pt[1], dist: 0, layers: 60, maxLayers: 60, r: 34, speed: 26, reward: 250, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, shieldUntil: st.wave >= 30 ? st.time + 5 : 0, sprite: 'monster-4', type: BALLOON_TYPES[3] });
       return;
     }
     var t = BALLOON_TYPES[typeIdx], p2 = pointAt(0);
-    st.balloons.push({ boss: false, x: p2[0], y: p2[1], dist: 0, layers: t.layers, maxLayers: t.layers, r: 11 + t.layers * 1.5, speed: t.speed * (1 + st.wave * 0.012), reward: t.reward, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: !!t.armored, splits: !!t.splits, type: t });
+    st.balloons.push({ boss: false, x: p2[0], y: p2[1], dist: 0, layers: t.layers, maxLayers: t.layers, r: 11 + t.layers * 1.5, speed: t.speed * (1 + st.wave * 0.012), reward: t.reward, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: !!t.armored, splits: !!t.splits, camo: !!t.camo, fortified: !!t.fortified, regen: !!t.regen, regenT: 0, sprite: t.sprite, type: t });
   }
   function damageBalloon(st, b, dmg, sourceTower) {
     if (b.dead) return;
+    if (b.shieldUntil && st.time < b.shieldUntil) return;
+    if (b.fortified && !(sourceTower && (sourceTower.kind === 'cannon' || sourceTower.kind === 'mortar'))) dmg = Math.max(1, Math.ceil(dmg / 2));
     var heroNear = st.heroPlaced && st.hero && dist(b.x, b.y, st.hero.x, st.hero.y) < 170;
     if (b.armored && sourceTower && sourceTower.kind === 'dart') return; // darts cannot crack lead
     if (b.boss) { b.layers -= dmg; st.pops += dmg; if (b.layers <= 0) { b.dead = true; st.gold += b.reward; st.score += 500; spawnParticle(st, b.x, b.y, '#ffd166', 26, 160); floater(st, b.x, b.y, '+' + b.reward + 'g', '#ffd166'); st.audio.coin(); } return; }
@@ -290,11 +328,12 @@
       b.dead = true; st.gold += b.reward; st.score += 10;
       spawnParticle(st, b.x, b.y, b.type.color, 10, 110);
       if (heroNear) st.heroXp += 2;
-      if (b.splits) { for (var i = 0; i < 2; i++) { var nb = { boss: false, x: b.x + (i ? 8 : -8), y: b.y, dist: b.dist, layers: 2, maxLayers: 2, r: 14, speed: b.speed * 1.15, reward: 7, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, splits: false, type: BALLOON_TYPES[1] }; st.balloons.push(nb); } }
+      if (b.splits) { for (var i = 0; i < 2; i++) { var nb = { boss: false, x: b.x + (i ? 8 : -8), y: b.y, dist: b.dist, layers: 2, maxLayers: 2, r: 14, speed: b.speed * 1.15, reward: 7, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, splits: false, sprite: 'monster-2', type: BALLOON_TYPES[1] }; st.balloons.push(nb); } }
       st.audio.pop();
     } else {
       b.r = 11 + b.layers * 1.5;
       spawnParticle(st, b.x, b.y, b.type.color, 4, 70);
+      if (dmg >= 3 && st.floaters.length < 24) floater(st, b.x, b.y - 16, '-' + dmg, '#ffffff');
     }
   }
   function splashDamage(st, x, y, radius, dmg, sourceTower) {
@@ -305,7 +344,7 @@
   function pickTarget(st, tower) {
     var inRange = [];
     var cands = nearby(st, tower.x, tower.y, tower.range + 40);
-    for (var i = 0; i < cands.length; i++) { var b = cands[i]; if (!b.dead && dist(b.x, b.y, tower.x, tower.y) <= tower.range + b.r) inRange.push(b); }
+    for (var i = 0; i < cands.length; i++) { var b = cands[i]; if (!b.dead && dist(b.x, b.y, tower.x, tower.y) <= tower.range + b.r && (!b.camo || tower.canSeeCamo || tower.kind === 'hero')) inRange.push(b); }
     if (!inRange.length) return null;
     var mode = st.targeting;
     if (mode === 'last') return inRange.reduce(function (a, b) { return b.dist < a.dist ? b : a; });
@@ -315,8 +354,27 @@
   }
   function fireTower(st, tower, target) {
     var def = TOWER_DEFS[tower.kind];
+    if (tower.kind === 'spikes') {
+      if (st.spikes.length > 60) st.spikes.shift();
+      var a = Math.random() * TAU, rr = Math.random() * tower.range * 0.7;
+      st.spikes.push({ x: tower.x + Math.cos(a) * rr, y: tower.y + Math.sin(a) * rr, life: 8, pops: 3, dmg: tower.dmg });
+      tower.flash = 0.12; st.audio.spike(); return;
+    }
     tower.angle = Math.atan2(target.y - tower.y, target.x - tower.x);
     tower.flash = 0.12;
+    if (tower.kind === 'tesla') {
+      var hit = [target], cur = target;
+      for (var c = 0; c < (def.chains || 3) - 1; c++) {
+        var nx = null, nd = 110, near = nearby(st, cur.x, cur.y, 110);
+        for (var k = 0; k < near.length; k++) { var nb = near[k]; if (!nb.dead && hit.indexOf(nb) < 0) { var dd = dist(cur.x, cur.y, nb.x, nb.y); if (dd < nd) { nd = dd; nx = nb; } } }
+        if (!nx) break;
+        st.beams.push({ x1: cur.x, y1: cur.y, x2: nx.x, y2: nx.y, life: 0.14, color: def.color });
+        damageBalloon(st, nx, Math.max(1, tower.dmg - c), tower);
+        hit.push(nx); cur = nx;
+      }
+      st.beams.push({ x1: tower.x, y1: tower.y - 12, x2: target.x, y2: target.y, life: 0.14, color: def.color });
+      damageBalloon(st, target, tower.dmg, tower); st.audio.zap(); return;
+    }
     if (tower.kind === 'sniper') {
       st.beams.push({ x1: tower.x, y1: tower.y - 14, x2: target.x, y2: target.y, life: 0.12, color: def.color });
       damageBalloon(st, target, tower.dmg, tower); st.audio.sniper();
@@ -353,6 +411,7 @@
       var b = st.balloons[i];
       if (b.dead) continue;
       var f = (st.time < b.slowUntil) ? b.slowF : 1;
+      if (b.regen && !b.boss && b.layers < b.maxLayers) { b.regenT += dt; if (b.regenT >= 2) { b.regenT = 0; b.layers++; b.r = 11 + b.layers * 1.5; } }
       b.dist += b.speed * f * dt;
       if (b.dist >= totalLen) {
         b.dead = true; b.leaked = true;
@@ -365,11 +424,15 @@
       var pt = pointAt(b.dist); b.x = pt[0]; b.y = pt[1]; b.wob += dt * 6;
     }
     rebuildGrid(st);
+    // spike piles decay and pop balloons on contact
+    for (i = st.spikes.length - 1; i >= 0; i--) { var sp = st.spikes[i]; sp.life -= dt; if (sp.life <= 0 || sp.pops <= 0) st.spikes.splice(i, 1); }
+    for (i = 0; i < st.balloons.length; i++) { var bb = st.balloons[i]; if (bb.dead) continue; for (var si = 0; si < st.spikes.length; si++) { var spp = st.spikes[si]; if (dist(bb.x, bb.y, spp.x, spp.y) <= bb.r + 10) { damageBalloon(st, bb, spp.dmg, null); spp.pops--; if (spp.pops <= 0) break; } } }
     // towers fire
     for (i = 0; i < st.towers.length; i++) {
       var t = st.towers[i];
       t.cd -= dt; if (t.flash > 0) t.flash -= dt;
       if (t.cd > 0) continue;
+      if (t.kind === 'spikes') { fireTower(st, t, null); t.cd = t.rate; continue; }
       var target = pickTarget(st, t);
       if (target) { fireTower(st, t, target); t.cd = t.rate; }
     }
@@ -410,25 +473,33 @@
     for (i = st.beams.length - 1; i >= 0; i--) { st.beams[i].life -= dt; if (st.beams[i].life <= 0) st.beams.splice(i, 1); }
     for (i = st.floaters.length - 1; i >= 0; i--) { st.floaters[i].life -= dt; st.floaters[i].y -= 34 * dt; if (st.floaters[i].life <= 0) st.floaters.splice(i, 1); }
     for (i = st.particles.length - 1; i >= 0; i--) { var pa = st.particles[i]; pa.life -= dt; pa.x += pa.vx * dt; pa.y += pa.vy * dt; pa.vx *= 0.94; pa.vy *= 0.94; if (pa.life <= 0) st.particles.splice(i, 1); }
+    // hero levels up inside the run from hero XP (100 XP = +1 level)
+    if (st.heroPlaced && st.hero) { var runLv = 1 + Math.floor(st.heroXp / 100); if (runLv > (st.hero.level || 1)) { st.hero.level = runLv; floater(st, st.hero.x, st.hero.y - 34, 'HERO LV ' + runLv + '!', '#ffd166'); st.audio.clear(); } }
     // cleanup + wave end
     st.balloons = st.balloons.filter(function (b) { return !b.dead; });
     if (st.waveActive && !st.spawnQueue.length && !st.balloons.length && !st.lost) {
       st.waveActive = false; st.betweenWaves = true;
-      var bonus = 60 + st.wave * 8; st.gold += bonus; st.score += 50;
+      var interest = Math.min(50, Math.floor(st.gold * 0.05));
+      var bonus = 60 + st.wave * 8 + interest; st.gold += bonus; st.score += 50;
       st.audio.clear();
       floater(st, W / 2, 90, 'WAVE CLEAR  +' + bonus + 'g', '#3ddc5f');
       reportWave(st);
-      if (st.wave >= 50) { st.won = true; st.audio.clear(); }
+      if (st.wave >= 50 && !st.endless) { st.won = true; st.audio.clear(); }
       else if (st.autoStart) startWave(st);
       emitHud(st);
     }
     emitHudThrottled(st, dt);
   }
+  function wavePreview(w) {
+    var comp = waveComposition(w), counts = {};
+    comp.forEach(function (t) { var name = t === -1 ? 'BOSS' : BALLOON_TYPES[t].name; counts[name] = (counts[name] || 0) + 1; });
+    return Object.keys(counts).map(function (k) { return counts[k] + 'x ' + k; }).join(', ');
+  }
   function emitHud(st) { if (st.opts.onHud) st.opts.onHud(getHud(st)); }
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -460,9 +531,20 @@
       ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.fillText('BOSS ' + b.layers, 0, 5);
       ctx.fillStyle = '#ff5a5a'; ctx.fillRect(-40, 34, 80, 6);
       ctx.fillStyle = '#3ddc5f'; ctx.fillRect(-40, 34, 80 * (b.layers / b.maxLayers), 6);
+      if (b.shieldUntil && time < b.shieldUntil) { ctx.strokeStyle = '#00f6ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, 0, 50, 32, 0, 0, TAU); ctx.stroke(); }
       ctx.restore(); return;
     }
     var t = b.type;
+    var spr = SPRITES[b.sprite];
+    if (spriteReady(spr)) {
+      ctx.save(); ctx.translate(x, y);
+      var sz = b.r * 2.8;
+      ctx.drawImage(spr, -sz / 2, -sz / 2, sz, sz);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.fillText(String(b.layers), 0, -sz / 2 - 4);
+      if (st_slow(b, time)) { ctx.strokeStyle = 'rgba(123,223,242,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, sz / 2 + 3, 0, TAU); ctx.stroke(); }
+      if (b.camo) { ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = 'bold 8px Arial'; ctx.fillText('CAMO', 0, sz / 2 + 10); }
+      ctx.restore(); return;
+    }
     ctx.save(); ctx.translate(x, y);
     ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(2, b.r * 0.9, b.r * 0.8, 4, 0, 0, TAU); ctx.fill();
     var g2 = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.4, 2, 0, 0, b.r * 1.2);
@@ -478,6 +560,16 @@
   function st_slow(b, time) { return time < b.slowUntil; }
   function drawTower(ctx, t, time) {
     var def = TOWER_DEFS[t.kind];
+    var spr = SPRITES[TOWER_SPRITES[t.kind]];
+    if (spriteReady(spr)) {
+      ctx.save(); ctx.translate(t.x, t.y);
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
+      ctx.drawImage(spr, -22, -22, 44, 44);
+      if (t.maxed) { ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.stroke(); }
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
+      for (var u = 0; u < t.level; u++) ctx.fillText('★', -12 + u * 12, 26);
+      ctx.restore(); return;
+    }
     ctx.save(); ctx.translate(t.x, t.y);
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = '#3a4356'; ctx.beginPath(); ctx.arc(0, 4, 16, 0, TAU); ctx.fill();
@@ -499,7 +591,7 @@
   function draw(st) {
     var ctx = st.ctx;
     ctx.save();
-    if (st.shake > 0) ctx.translate((Math.random() - 0.5) * st.shake, (Math.random() - 0.5) * st.shake);
+    if (st.shake > 0 && st.shakeOn) ctx.translate((Math.random() - 0.5) * st.shake, (Math.random() - 0.5) * st.shake);
     ctx.drawImage(st.bg, 0, 0);
     // placement ghost + range ring
     if (st.placing && st.mouse.x >= 0) {
@@ -513,11 +605,14 @@
     if (st.selected) { var sel = st.selected; ctx.strokeStyle = '#00f6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.range || 150, 0, TAU); ctx.stroke(); ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.arc(sel.x, sel.y, 20, 0, TAU); ctx.stroke(); }
     for (var i = 0; i < st.balloons.length; i++) drawBalloon(ctx, st.balloons[i], st.time);
     for (i = 0; i < st.towers.length; i++) drawTower(ctx, st.towers[i], st.time);
+    for (i = 0; i < st.spikes.length; i++) { var spk = st.spikes[i]; ctx.fillStyle = '#c9ced6'; ctx.beginPath(); ctx.moveTo(spk.x, spk.y - 6); ctx.lineTo(spk.x - 6, spk.y + 5); ctx.lineTo(spk.x + 6, spk.y + 5); ctx.closePath(); ctx.fill(); }
     if (st.heroPlaced && st.hero) {
       var h = st.hero;
       ctx.save(); ctx.translate(h.x, h.y);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(2, 12, 18, 6, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = h.color || '#ffd166'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.fill();
+      var hspr = SPRITES[HERO_SPRITES[h.defId]];
+      if (spriteReady(hspr)) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.clip(); ctx.drawImage(hspr, -15, -17, 30, 34); ctx.restore(); }
+      else { ctx.fillStyle = h.color || '#ffd166'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.fill(); }
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.stroke();
       ctx.fillStyle = '#111'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.fillText('★', 0, 5);
       ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.fillText('Lv ' + (h.level || 1), 0, 30);
@@ -543,6 +638,7 @@
       ctx.fillStyle = '#9fb4d8'; ctx.font = '14px Arial';
       ctx.fillText('Press R to restart, or switch games in the sidebar.', W / 2, H / 2 + 52);
     }
+    if (st.paused) { ctx.fillStyle = 'rgba(5,8,20,.6)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.font = 'bold 36px Arial'; ctx.textAlign = 'center'; ctx.fillText('PAUSED', W / 2, H / 2); ctx.font = '16px Arial'; ctx.fillText('Press P to resume', W / 2, H / 2 + 30); }
     ctx.restore();
   }
   /* ---- Input + lifecycle ---- */
@@ -552,7 +648,8 @@
     var dt = 0.016;
     if (st.lastT) dt = Math.min(0.05, Math.max(0, (now - st.lastT) / 1000));
     st.lastT = now;
-    if (st.running && !st.won && !st.lost) {
+    st._fpsN++; st._fpsT += dt; if (st._fpsT >= 0.5) { st.fps = Math.round(st._fpsN / st._fpsT); st._fpsN = 0; st._fpsT = 0; }
+    if (st.running && !st.paused && !st.won && !st.lost) {
       for (var s = 0; s < st.speed; s++) update(st, dt);
     }
     draw(st);
@@ -568,7 +665,7 @@
     if (distToPath(x, y) <= 34) { if (st.opts.onToast) st.opts.onToast('Too close to the path.', 'warn'); return false; }
     for (var i = 0; i < st.towers.length; i++) if (dist(x, y, st.towers[i].x, st.towers[i].y) < 30) { if (st.opts.onToast) st.opts.onToast('Too close to another tower.', 'warn'); return false; }
     st.gold -= def.cost;
-    st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, level: 1 });
+    st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, level: 1, canSeeCamo: !!def.camo, maxed: false });
     st.audio.place(); st.placing = null; emitHud(st);
     return true;
   }
@@ -586,6 +683,7 @@
     viewport.appendChild(canvas);
     st.canvas = canvas; st.ctx = canvas.getContext('2d');
     st.bg = paintBackground();
+    loadSprites(function () { st.bg = paintBackground(); });
     if (opts.hero) { st.hero = opts.hero; }
     if (opts.bus) opts.bus.emit('game:start', 'cosmos-btd', opts.hero ? [opts.hero.id] : []);
     var onMove = function (ev) { var pos = canvasPos(st, ev); st.mouse = pos; };
@@ -609,12 +707,15 @@
       if (ev.key === ' ') { ev.preventDefault(); if (!st.waveActive && !st.won && !st.lost) startWave(st); }
       else if (ev.key === 'Escape') { st.placing = null; st.selected = null; emitHud(st); }
       else if (ev.key === 'r' || ev.key === 'R') { reset(st); }
-      else if (ev.key >= '1' && ev.key <= '5') { var kinds = Object.keys(TOWER_DEFS); setPlacing(st, kinds[Number(ev.key) - 1]); }
+      else if (ev.key === 'p' || ev.key === 'P') { st.paused = !st.paused; emitHud(st); }
+      else if (ev.key >= '1' && ev.key <= '7') { var kinds = Object.keys(TOWER_DEFS); setPlacing(st, kinds[Number(ev.key) - 1]); }
     };
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('click', onClick);
+    var onTouch = function (ev) { if (ev.touches && ev.touches[0]) { if (ev.preventDefault) ev.preventDefault(); var tt = ev.touches[0]; onClick({ clientX: tt.clientX, clientY: tt.clientY }); } };
+    canvas.addEventListener('touchstart', onTouch);
     document.addEventListener('keydown', onKey);
-    st._listeners = { onMove: onMove, onClick: onClick, onKey: onKey };
+    st._listeners = { onMove: onMove, onClick: onClick, onKey: onKey, onTouch: onTouch };
     st.running = true; st.lastT = 0;
     st.rafId = (typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(function (t) { loop(st, t); }) : setTimeout(function () { loop(st, Date.now()); }, 16));
     emitHud(st);
@@ -629,10 +730,15 @@
       startWave: function () { startWave(st); },
       pause: function () { st.running = false; emitHud(st); },
       resume: function () { st.running = true; emitHud(st); },
-      upgradeSelected: function () { upgradeSelected(st); },
-      sellSelected: function () { sellSelected(st); },
-      heroAbility: function () { heroAbility(st); },
-      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, towers: st.towers.length, won: st.won, lost: st.lost, sessionId: st.sessionId }; },
+      setPaused: function (v) { st.paused = !!v; emitHud(st); },
+      setEndless: function (v) { st.endless = !!v; emitHud(st); },
+      setChallenge: function (v) { st.challenge = !!v; if (st.challenge && st.wave === 0 && !st.waveActive) { st.gold = 100; st.lives = 20; } emitHud(st); },
+      setQuality: function (q) { st.quality = q === 'low' ? 'low' : 'high'; },
+      setVolume: function (v) { if (st.audio && st.audio.setVolume) st.audio.setVolume(v); },
+      upgradeSelected: function () { return upgradeSelected(st); },
+      sellSelected: function () { return sellSelected(st); },
+      heroAbility: function () { return heroAbility(st); },
+      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, sessionId: st.sessionId }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -645,10 +751,12 @@
     st.selected = null; emitHud(st);
   }
   function upgradeSelected(st) {
-    var t = st.selected; if (!t || t.level >= 4) return false;
+    var t = st.selected; if (!t || t.level >= 5) return false;
     var cost = 80 + t.level * 60;
     if (st.gold < cost) { if (st.opts.onToast) st.opts.onToast('Upgrade costs ' + cost + 'g.', 'warn'); return false; }
-    st.gold -= cost; t.level++; t.dmg += 1; t.range += 10; t.rate = Math.max(0.25, t.rate * 0.9);
+    st.gold -= cost; t.level++;
+    if (t.level >= 5) { t.dmg += 2; t.range += 15; t.rate = Math.max(0.22, t.rate * 0.85); t.maxed = true; }
+    else { t.dmg += 1; t.range += 10; t.rate = Math.max(0.25, t.rate * 0.9); }
     st.audio.coin(); emitHud(st); return true;
   }
   function sellSelected(st) {
@@ -672,8 +780,8 @@
   }
   function reset(st) {
     var keep = { gold: 650, lives: 100, wave: 0, score: 0, pops: 0, heroXp: 0 };
-    st.gold = keep.gold; st.lives = keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
-    st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = [];
+    st.gold = st.challenge ? 100 : keep.gold; st.lives = st.challenge ? 20 : keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
+    st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = []; st.spikes = []; st.paused = false;
     st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.placing = null;
     emitHud(st);
   }
@@ -681,13 +789,13 @@
     st.destroyed = true; st.running = false;
     if (typeof cancelAnimationFrame !== 'undefined') { try { cancelAnimationFrame(st.rafId); } catch (e) {} }
     else { try { clearTimeout(st.rafId); } catch (e) {} }
-    if (st.canvas && st._listeners) { st.canvas.removeEventListener('mousemove', st._listeners.onMove); st.canvas.removeEventListener('click', st._listeners.onClick); }
+    if (st.canvas && st._listeners) { st.canvas.removeEventListener('mousemove', st._listeners.onMove); st.canvas.removeEventListener('click', st._listeners.onClick); st.canvas.removeEventListener('touchstart', st._listeners.onTouch); }
     if (st._listeners) document.removeEventListener('keydown', st._listeners.onKey);
     if (st.audio) st.audio.close();
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '1.0.0', description: 'Bloons-style tower defense: 50 waves, 5 towers, heroes, targeting, 1x-3x speed.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.0.0', description: 'Bloons-style tower defense: 50 waves + endless, 7 towers, camo/fortified/regen enemies, heroes, image sprites, targeting, 1x-3x speed.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
   global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState };
 })(typeof window !== 'undefined' ? window : globalThis);
