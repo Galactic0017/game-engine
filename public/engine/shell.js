@@ -18,10 +18,10 @@
     setTimeout(function () { el.remove(); }, 6000);
   }
   ctx.toast = toast; ctx.esc = esc; ctx.shortAddr = shortAddr;
-  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high' }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high' }; } }
+  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high', postfx: true, dof: true }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high', postfx: true, dof: true }; } }
   ctx.settings = loadSettings();
   function saveSettings() { try { localStorage.setItem('game-settings', JSON.stringify(ctx.settings)); } catch (e) {} }
-  function applySettings(handle) { if (!handle) return; if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); }
+  function applySettings(handle) { if (!handle) return; if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); if (handle.setPostFx) handle.setPostFx(ctx.settings.postfx !== false); if (handle.setDof) handle.setDof(ctx.settings.dof !== false); }
   ctx.applySettings = applySettings;
   async function api(path, method, body) {
     var res = await fetch(path, { method: method || 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
@@ -109,8 +109,12 @@
   function renderSettingsPanel() {
     var el = document.getElementById('settingsBox'); if (!el) return;
     el.innerHTML = '<label>Volume</label><input id="setVol" type="range" min="0" max="1" step="0.1" value="' + ctx.settings.volume + '">'
-      + '<label>Graphics quality</label><select id="setQuality"><option value="high">High</option><option value="low">Low (faster)</option></select>';
+      + '<label>Graphics quality</label><select id="setQuality"><option value="high">High</option><option value="low">Low (faster)</option></select>'
+      + '<label><input id="setPostFx" type="checkbox" ' + (ctx.settings.postfx !== false ? 'checked' : '') + '> Post-processing (bloom / lighting / vignette)</label>'
+      + '<label><input id="setDof" type="checkbox" ' + (ctx.settings.dof !== false ? 'checked' : '') + '> Cinematic tilt-shift bands</label>';
     el.querySelector('#setQuality').value = ctx.settings.quality;
+    el.querySelector('#setPostFx').addEventListener('change', function (ev) { ctx.settings.postfx = ev.target.checked; saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
+    el.querySelector('#setDof').addEventListener('change', function (ev) { ctx.settings.dof = ev.target.checked; saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
     el.querySelector('#setVol').addEventListener('input', function (ev) { ctx.settings.volume = Number(ev.target.value); saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
     el.querySelector('#setQuality').addEventListener('change', function (ev) { ctx.settings.quality = ev.target.value; saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
   }
