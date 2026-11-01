@@ -116,7 +116,7 @@
     var rows;
     if (leaderGame) { try { var r = await api('/api/leaderboard?game=' + leaderGame); rows = r.leaderboard || []; } catch (e) { rows = []; } }
     else rows = (ctx.state && ctx.state.leaderboard) || [];
-    el.innerHTML = '<p class="small"><button data-lb="" class="ghost">All</button> <button data-lb="cosmos-btd" class="ghost">BTD</button></p>'
+    el.innerHTML = '<p class="small"><button data-lb="" class="ghost">All</button> <button data-lb="cosmos-btd" class="ghost">BTD</button> <button data-lb="space-shooter" class="ghost">Shooter</button></p>'
       + (rows.length ? rows.slice(0, 5).map(function (r, i) { return '<p class="small">' + (i + 1) + '. ' + esc(r.name || shortAddr(r.address)) + ' — ' + r.bestScore + ' pts · Lv ' + r.level + '</p>'; }).join('') : '<p class="muted small">No scores yet.</p>');
     el.querySelectorAll('[data-lb]').forEach(function (btn) { btn.addEventListener('click', function () { leaderGame = btn.getAttribute('data-lb'); renderLeaderMini(); }); });
   }
@@ -510,6 +510,22 @@
     document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
     document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); } });
+    /* Batch 10: record a finished Space Shooter run on the server
+     * shooter leaderboard. Only the game-over emit (final:true) counts;
+     * the destroy() emit has no final flag, so leaving a game or
+     * switching games never submits. Dedupe by address+score+wave+kills
+     * in case the same run emits twice. */
+    var _shooterSubmitted = {};
+    bus.on('game:ended', function (gameId, payload) {
+      if (gameId !== 'space-shooter' || !payload || !payload.final) return;
+      if (!ctx.player) return;
+      var key = ctx.player.address + ':' + payload.score + ':' + payload.wave + ':' + (payload.kills || 0);
+      if (_shooterSubmitted[key]) return;
+      _shooterSubmitted[key] = true;
+      api('/api/progress', 'POST', { address: ctx.player.address, game: 'space-shooter', score: payload.score, waveReached: payload.wave }).then(function (r) {
+        if (r.player) { ctx.player = r.player; toast('Shooter score saved: +' + r.xpGain + ' XP, +' + r.creditGain + ' credits.', 'ok'); refreshState(); }
+      }).catch(function () { /* best-effort; the local score stands */ });
+    });
     bus.on('wallet:connected', function () { renderWallet(); });
     bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
     bus.on('wallet:balance', function () { renderWallet(); });
