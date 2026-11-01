@@ -161,6 +161,11 @@ Limits: flash/recoil + leak edge + end-screen panel are canvas draw code, harnes
 - Tests: server 25/25, BTD harness, shooter pass; serve 200s incl. OG tags + image.
 - Limits: launcher/modal/rail rendering code-reviewed + serve-checked (no browser screenshot/click check); wallet harness covers provider choice, not a real wallet send.
 
+## Keplr-only — DONE 2026-11-01 — v3.8.1 (1 feature, 86 total)
+- [x] Other wallet option removed everywhere; Keplr only (button, detection, signing, wording, stored sessions).
+- Tests: server 25/25, BTD harness, shooter pass; wallet harness Keplr-only.
+- Limits: wallet harness covers provider detection, not a real wallet send.
+
 ## Batch 10 — Space Shooter depth (was Batch 6)
 - [ ] Power-ups: shield, rapid fire, spread shot, dropping from drones.
 - [ ] Boss drone every 5 waves with a health bar.
@@ -239,3 +244,5 @@ Limits: flash/recoil + leak edge + end-screen panel are canvas draw code, harnes
 - 2026-11-01 15:29 EST: Batch 9 pushed (browser task, saved GitHub login, no challenge): 9 files, 9 commits e230fef, 53abad2, ed5772c, 2c79600, 305e67e, 6b791bb, e2e53a5, bd3d5c4, 4e3bb88 (HEAD, 82 commits total). GitHub server.js + features.json verified 3.7.0 on main. Live /api/config verification pending after auto-deploy.
 - 2026-11-01 15:31 EST: VERIFIED LIVE — fresh live-browser reload: /api/config version 3.7.0 (real CEO address, 5% fee, 30-min orders), /api/health version 3.7.0 at 2026-11-01T20:31:12Z. Batch 9 shipped.
 - 2026-11-01 15:32 EST: LEVEL UP redesign built locally (v3.8.0): health/config 200 at run start (live 3.7.0). Tests: server 25/25, BTD harness, shooter pass. Push via browser task; verify /api/config shows 3.8.0.
+- 2026-11-01: Keplr-only built locally (v3.8.1) after the v3.8.0 push landed. Tests: server 25/25, BTD harness, shooter pass, wallet harness. Push via browser task; verify /api/config shows 3.8.1.
+- 2026-11-01 15:47 EST: VERIFIED LIVE — v3.8.0 push 16 files / 16 commits (HEAD 9a607c0, 98 commits total). Fresh curl: /api/config version 3.8.0 (real CEO address, mode demo via Vercel env), /api/health 200, homepage 200. Batch v3.8.0 shipped.
