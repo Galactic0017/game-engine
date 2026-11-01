@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
   var authed = false;
-  var cache = { sales: [], ledger: null, users: null, flags: [], settings: null, audit: [], state: null };
+  var cache = { sales: [], rentals: [], ledger: null, users: null, flags: [], settings: null, audit: [], state: null };
   var tickTimer = null, refreshTimer = null, watcherStatus = null, activeTab = 'orders';
   function fmtLeft(sec) { if (sec == null || sec <= 0) return '0:00'; var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + String(s).padStart(2, '0'); }
   function explorer(ctx, txid) { return '<a href="' + ctx.config.explorerTxUrl + txid + '" target="_blank" rel="noopener">Explorer ↗</a>'; }
@@ -22,7 +22,7 @@
       try {
         if (!ctx.wallet.address) throw new Error('Connect your wallet first (top right).');
         var r = await ctx.ceoGet('/api/admin/pending');
-        cache.sales = r.sales || []; cache.flags = r.flags || []; cache.settings = r.settings || null;
+        cache.sales = r.sales || []; cache.rentals = r.rentals || []; cache.flags = r.flags || []; cache.settings = r.settings || null;
         authed = true; ctx.toast('CEO signed in.', 'ok');
         gateEl.innerHTML = '<p class="ok">Signed in as CEO: <code>' + ctx.esc(ctx.wallet.address) + '</code></p><button id="ceoReload">↻ Reload panel</button>';
         panelEl.hidden = false; renderPanel(panelEl, ctx);
@@ -58,7 +58,7 @@
     else if (activeTab === 'announce') { renderAnnounce(body, ctx); }
     else if (activeTab === 'audit') { await refreshAudit(ctx); renderAudit(body, ctx); }
   }
-  async function refreshOrders(ctx) { try { var r = await ctx.ceoGet('/api/admin/pending'); cache.sales = r.sales || []; cache.flags = r.flags || []; cache.settings = r.settings || null; } catch (e) { ctx.toast(e.message, 'err'); } }
+  async function refreshOrders(ctx) { try { var r = await ctx.ceoGet('/api/admin/pending'); cache.sales = r.sales || []; cache.rentals = r.rentals || []; cache.flags = r.flags || []; cache.settings = r.settings || null; } catch (e) { ctx.toast(e.message, 'err'); } }
   async function refreshLedger(ctx) { try { cache.ledger = await ctx.ceoGet('/api/admin/ledger'); } catch (e) { ctx.toast(e.message, 'err'); } }
   async function refreshUsers(ctx) { try { cache.users = await ctx.ceoGet('/api/admin/users'); cache.state = await ctx.api('/api/state'); } catch (e) { ctx.toast(e.message, 'err'); } }
   async function refreshFlags(ctx) { try { var r = await ctx.ceoGet('/api/admin/flags'); cache.flags = r.flags || []; } catch (e) { ctx.toast(e.message, 'err'); } }
@@ -102,7 +102,26 @@
           + '<button data-reject="' + s.id + '" class="danger">Reject order</button>'
           + '<button data-banbuyer="' + s.buyerAddress + '" class="ghost">Ban buyer</button>'
           + '</div><p class="small muted" data-verify-result></p></div>';
-      }).join('') : '<p class="muted">No pending orders. New orders appear here with a live countdown.</p>');
+      }).join('') : '<p class="muted">No pending orders. New orders appear here with a live countdown.</p>'
+      + '<h4 style="margin-top:18px">Pending rentals — loans start here, hero returns automatically</h4>'
+      + ((cache.rentals || []).length ? (cache.rentals || []).map(function (r) {
+        var payout = r.sellerPayout || { amount: r.sellerAmount, to: r.ownerAddress, status: 'pending' };
+        return '<div class="card" style="margin-bottom:12px" data-rental="' + r.id + '">'
+          + '<h4>' + ctx.esc(r.heroName) + ' — rental ' + r.priceAtom + ' ATOM / ' + r.days + ' day' + (r.days > 1 ? 's' : '') + ' <span class="pill pending">' + r.status + '</span></h4>'
+          + '<p class="small">Rental <code>' + ctx.esc(r.id) + '</code><br>Renter <code>' + ctx.esc(r.renterAddress) + '</code><br>Owner <code>' + ctx.esc(r.ownerAddress) + '</code> gets <strong>' + r.sellerAmount + ' ATOM</strong> · CEO fee <strong>' + r.ceoFee + ' ATOM</strong><br>Renter TX: <code>' + ctx.esc(r.txid) + '</code> ' + explorer(ctx, r.txid) + '</p>'
+          + '<p>Closes in <span class="timer" data-expires="' + (r.secondsLeft || 0) + '" data-now="' + Date.now() + '">' + fmtLeft(r.secondsLeft || 0) + '</span></p>'
+          + '<p class="small">Owner payout: <span class="pill ' + (payout.status === 'paid' ? 'closed' : 'pending') + '">' + payout.status + '</span>' + (payout.txid ? ' <code>' + ctx.esc(payout.txid) + '</code>' : '') + '</p>'
+          + '<div class="steps" data-steps><span class="step" data-step="verify">1 Verify</span><span class="step" data-step="send">2 Send owner</span><span class="step" data-step="move">3 Start loan</span></div>'
+          + '<div class="checkRow"><input type="checkbox" data-check="amount" id="ck-ra-' + r.id + '"><label for="ck-ra-' + r.id + '" style="margin:0">Amount = ' + r.priceAtom + ' ATOM to CEO address</label></div>'
+          + '<div class="checkRow"><input type="checkbox" data-check="ceo" id="ck-rc-' + r.id + '"><label for="ck-rc-' + r.id + '" style="margin:0">Recipient is CEO address, sender is renter</label></div>'
+          + '<div class="checkRow"><input type="checkbox" data-check="memo" id="ck-rm-' + r.id + '"><label for="ck-rm-' + r.id + '" style="margin:0">Memo = rental ID</label></div>'
+          + '<div class="checkRow"><input type="checkbox" data-check="explorer" id="ck-re-' + r.id + '"><label for="ck-re-' + r.id + '" style="margin:0">Checked on explorer, TX succeeded</label></div>'
+          + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
+          + '<button class="primary" data-execute-rental="' + r.id + '">⚡ One-click: verify + send + start loan</button>'
+          + '<button data-verify-rental="' + r.id + '">Verify on-chain</button>'
+          + '<button data-payout-rental="' + r.id + '" class="ghost">Record payout TXID</button>'
+          + '</div><p class="small muted" data-verify-result></p></div>';
+      }).join('') : '<p class="muted">No pending rentals.</p>'));
     var saveAuto = body.querySelector('#ceoSaveAuto');
     if (saveAuto) saveAuto.addEventListener('click', async function () {
       try { await ctx.ceoFetch('/api/admin/settings', { autoVerifyEnabled: body.querySelector('#ceoAutoVerify').checked }); ctx.toast('Auto-verify setting saved.', 'ok'); } catch (e) { ctx.toast(e.message, 'err'); }
@@ -113,6 +132,9 @@
     body.querySelectorAll('[data-execute]').forEach(function (b) { b.addEventListener('click', async function () { await executeOrder(b.getAttribute('data-execute'), body, ctx); }); });
     body.querySelectorAll('[data-payout]').forEach(function (b) { b.addEventListener('click', async function () { await recordPayout(b.getAttribute('data-payout'), ctx); }); });
     body.querySelectorAll('[data-banbuyer]').forEach(function (b) { b.addEventListener('click', async function () { await banAddress(b.getAttribute('data-banbuyer'), ctx); }); });
+    body.querySelectorAll('[data-verify-rental]').forEach(function (b) { b.addEventListener('click', async function () { await verifyRental(b.getAttribute('data-verify-rental'), body, ctx); }); });
+    body.querySelectorAll('[data-execute-rental]').forEach(function (b) { b.addEventListener('click', async function () { await executeRental(b.getAttribute('data-execute-rental'), body, ctx); }); });
+    body.querySelectorAll('[data-payout-rental]').forEach(function (b) { b.addEventListener('click', async function () { await recordRentalPayout(b.getAttribute('data-payout-rental'), ctx); }); });
   }
   function checksTicked(card) {
     var q = function (n) { var el = card.querySelector('[data-check="' + n + '"]'); return el && el.checked; };
@@ -192,6 +214,60 @@
       setStep(card, 'move', 'done');
       ctx.toast('✓ Done: ' + r.note, 'ok');
       if (window.engineBus) window.engineBus.emit('ceo:order_approved', saleId, sale.txid);
+      await refreshOrders(ctx); renderOrders(body, ctx);
+      await ctx.refreshState();
+    } catch (e) { ctx.toast('Execute failed: ' + e.message + (payoutTxid ? ' Payout TX ' + payoutTxid + ' was already sent — record it with "Record payout TXID" after checking.' : ''), 'err'); setStep(card, 'move', 'fail'); }
+  }
+  async function verifyRental(rentalId, body, ctx) {
+    var card = body.querySelector('[data-rental="' + rentalId + '"]');
+    try {
+      var r = await ctx.ceoFetch('/api/admin/rentals/verify', { rentalId: rentalId });
+      var out = card.querySelector('[data-verify-result]');
+      out.innerHTML = (r.verified ? '<span class="ok">✓ Verified on-chain.</span> ' : '<span class="bad">✗ Not verified.</span> ') + r.checks.map(function (c) { return (c.ok ? '✓' : '✗') + ' ' + ctx.esc(c.name); }).join(' · ');
+      if (r.verified) setStep(card, 'verify', 'done'); else setStep(card, 'verify', 'fail');
+    } catch (e) { ctx.toast(e.message, 'err'); }
+  }
+  async function recordRentalPayout(rentalId, ctx) {
+    var txid = prompt('Paste the owner payout TX hash (64 hex):');
+    if (!txid) return;
+    try { await ctx.ceoFetch('/api/admin/rentals/record-payout', { rentalId: rentalId, payoutTxid: txid.trim() }); ctx.toast('Rental payout recorded.', 'ok'); await refreshOrders(ctx); var b = document.getElementById('ceoTabBody'); if (b) renderOrders(b, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
+  }
+  async function executeRental(rentalId, body, ctx) {
+    var rental = (cache.rentals || []).find(function (r) { return r.id === rentalId; });
+    if (!rental) return ctx.toast('Rental not found.', 'err');
+    var card = body.querySelector('[data-rental="' + rentalId + '"]');
+    setStep(card, 'verify', 'busy');
+    var autoVerify = false;
+    try {
+      var v = await ctx.ceoFetch('/api/admin/rentals/verify', { rentalId: rentalId });
+      if (v.verified) { autoVerify = true; setStep(card, 'verify', 'done'); }
+      else {
+        setStep(card, 'verify', 'fail');
+        var c = checksTicked(card);
+        if (!(c.checkedAmount && c.checkedCeo && c.checkedMemo && c.checkedExplorer)) { ctx.toast('On-chain check could not confirm this TX. Tick all 4 manual checks (after checking the explorer yourself) to start the loan manually.', 'warn'); return; }
+        if (!confirm('On-chain auto-verify did NOT confirm this TX. Start the loan manually from your own explorer checks?')) return;
+        setStep(card, 'verify', 'done');
+      }
+    } catch (e) { ctx.toast('Verify step failed: ' + e.message, 'err'); setStep(card, 'verify', 'fail'); return; }
+    var payoutTxid = null;
+    var payout = rental.sellerPayout || { status: 'pending' };
+    if (payout.status !== 'paid') {
+      if (ctx.wallet.address !== ctx.config.ceoAddress) { ctx.toast('Payout must be sent from the CEO wallet. Connect the CEO address.', 'err'); return; }
+      if (!ctx.wallet.address) { ctx.toast('Real payout needs a real wallet.', 'err'); return; }
+      setStep(card, 'send', 'busy');
+      var ok = confirm('Send owner payout: ' + rental.sellerAmount + ' ATOM to ' + rental.ownerAddress + '?\nMemo: Rental payout ' + rental.id + '\n\nYou will review this in your wallet before signing.');
+      if (!ok) { setStep(card, 'send', ''); return; }
+      try {
+        var sent = await ctx.wallet.sendAtom({ toAddress: rental.ownerAddress, amountAtom: rental.sellerAmount, memo: 'Rental payout ' + rental.id });
+        payoutTxid = sent.txhash; setStep(card, 'send', 'done');
+      } catch (e) { ctx.toast('Payout send failed: ' + e.message + ' Rental left pending — nothing started.', 'err'); setStep(card, 'send', 'fail'); return; }
+    } else setStep(card, 'send', 'done');
+    setStep(card, 'move', 'busy');
+    try {
+      var c2 = checksTicked(card);
+      var r = await ctx.ceoFetch('/api/admin/rentals/execute', Object.assign({ rentalId: rentalId, autoVerify: autoVerify, payoutTxid: payoutTxid }, c2));
+      setStep(card, 'move', 'done');
+      ctx.toast('✓ Done: ' + r.note, 'ok');
       await refreshOrders(ctx); renderOrders(body, ctx);
       await ctx.refreshState();
     } catch (e) { ctx.toast('Execute failed: ' + e.message + (payoutTxid ? ' Payout TX ' + payoutTxid + ' was already sent — record it with "Record payout TXID" after checking.' : ''), 'err'); setStep(card, 'move', 'fail'); }
