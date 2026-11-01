@@ -142,3 +142,40 @@
 
   global.EngineHost = EngineHost;
 })(typeof window !== 'undefined' ? window : globalThis);
+
+/* Batch 15: lazy game-module loading — GameScriptLoader.
+ *
+ * Game scripts are no longer <script> tags in index.html. The shell
+ * registers one load() per game that injects its script on first
+ * selection; the promise is cached per src so switching back never
+ * re-downloads, and if the module global is already present no tag
+ * is injected at all. A failed load rejects and clears the cache
+ * entry, so retrying re-injects the tag instead of returning a dead
+ * promise. The hub therefore downloads only the selected game's code.
+ */
+(function (global) {
+  'use strict';
+  var pending = {};
+  function load(src, globalName) {
+    if (global[globalName]) return Promise.resolve(global[globalName]);
+    if (pending[src]) return pending[src];
+    var p = new Promise(function (resolve, reject) {
+      if (typeof document === 'undefined' || !document.createElement || !document.head) {
+        reject(new Error('GameScriptLoader: no DOM to load ' + src));
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = src; s.async = true;
+      s.onload = function () {
+        var mod = global[globalName];
+        if (mod) resolve(mod);
+        else reject(new Error('Game failed to register: ' + src + ' did not define ' + globalName));
+      };
+      s.onerror = function () { reject(new Error('Failed to load game script: ' + src)); };
+      document.head.appendChild(s);
+    });
+    pending[src] = p.catch(function (e) { delete pending[src]; throw e; });
+    return pending[src];
+  }
+  global.GameScriptLoader = { load: load, _pending: pending };
+})(typeof window !== 'undefined' ? window : globalThis);
