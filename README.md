@@ -106,6 +106,14 @@ payout sent, order closes.
 - Live serve check: `/`, `/api/config`, `/api/state`, hub CSS/JS and
   game files all return 200; config shows the real CEO address.
 
+## v3.1.0 — 2026-11-01 (11 more, 45 tracked features)
+
+Pillars 1+2: bloom glow pass, dynamic 2D lighting, vignette + danger
+pulse, tilt-shift DoF bands, animated water shader, particle engine,
+contextual shake; ECS + fixed 60Hz timestep + AssetManager + spatial-hash
+stats. Settings gained PostFX / tilt-shift toggles. Tests: server 25/25,
+BTD 27/27, shooter pass. Normal maps + GPU particles deferred (WebGL).
+
 ## v3.0.0 — 2026-11-01 (34 tracked features)
 
 - Cosmos BTD: Tesla Coil + Spike Factory towers, Camo/Fortified/Regen
