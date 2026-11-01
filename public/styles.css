@@ -26,6 +26,11 @@ label{display:block;margin:8px 0}.hint{color:#b8c0e8}
 .heroCard{border-radius:18px;padding:14px;background:linear-gradient(160deg,#1b2352,#0d1233);border:1px solid #334;animation:floaty 5s ease-in-out infinite;transition:transform .2s}
 .heroCard:hover{transform:translateY(-4px) scale(1.02);border-color:var(--gold)}
 .heroCard svg{width:100%;height:150px;display:block;border-radius:12px;background:radial-gradient(circle at 50% 35%,#2b3a8f,#070b22)}
+.heroImg{width:100%;height:190px;object-fit:cover;object-position:top center;display:block;border-radius:12px;background:#1a2038}
+.heroBanner{width:100%;height:150px;object-fit:cover;display:block;border-radius:12px;margin-bottom:10px}
+.towerBtn{display:inline-flex;align-items:center;gap:8px}
+.towerBtn img{width:34px;height:34px;object-fit:contain}
+.towerBtn span{white-space:nowrap}
 .rarity{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
 .statbar{height:8px;background:#222a55;border-radius:99px;overflow:hidden;margin:4px 0}
 .statbar i{display:block;height:100%;background:linear-gradient(90deg,#7bdff2,#ffd166)}
