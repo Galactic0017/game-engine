@@ -106,6 +106,25 @@ payout sent, order closes.
 - Live serve check: `/`, `/api/config`, `/api/state`, hub CSS/JS and
   game files all return 200; config shows the real CEO address.
 
+## v3.0.0 — 2026-11-01 (34 tracked features)
+
+- Cosmos BTD: Tesla Coil + Spike Factory towers, Camo/Fortified/Regen
+  enemies, endless mode, pause, in-run hero leveling, image sprites
+  (battlefield photo, monster/tower/hero art) with procedural fallback,
+  damage numbers, Lv 5 MAX upgrades, wave-clear interest, touch support,
+  FPS counter + quality setting, boss shields (wave 30+), challenge mode.
+- Platform: daily quests, 12 achievements, CEO announcements, player
+  stats (best wave, total pops, per-game bests), per-game leaderboard,
+  `/api/health`, feature tracker at `/features.json` + What's New view.
+- Games: Space Shooter added (4th playable game).
+- Hub UI: announcements banner, profile/quests/achievements sidebar,
+  marketplace search/filter/sort, settings panel, leaderboard tabs,
+  action-bar controls (pause/endless/challenge/shortcuts), CEO Announce tab.
+- Tests: server flow 25/25, BTD harness 18/18, Space Shooter harness
+  all checks pass. See `FEATURES.md` for the per-feature registry and
+  `IMPROVEMENT_BACKLOG.md` for the next batches the auto-improve loop
+  works through every 10 minutes.
+
 ## NOT tested
 
 - Real Keplr/Leap send (`sendAtom`) with a real wallet — the code is
