@@ -18,11 +18,38 @@
     setTimeout(function () { el.remove(); }, 6000);
   }
   ctx.toast = toast; ctx.esc = esc; ctx.shortAddr = shortAddr;
-  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high', postfx: true, dof: true }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high', postfx: true, dof: true }; } }
+  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true }; } }
   ctx.settings = loadSettings();
   function saveSettings() { try { localStorage.setItem('game-settings', JSON.stringify(ctx.settings)); } catch (e) {} }
-  function applySettings(handle) { if (!handle) return; if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); if (handle.setPostFx) handle.setPostFx(ctx.settings.postfx !== false); if (handle.setDof) handle.setDof(ctx.settings.dof !== false); }
+  /* Reactive UI prefs: glass theme on/off + dynamic font scaling, applied
+   * live to the whole hub (CSS vars), independent of the loaded game. */
+  function applyUiPrefs() {
+    if (typeof document === 'undefined') return;
+    document.documentElement.style.setProperty('--ui-scale', String(ctx.settings.uiScale || 1));
+    document.body.setAttribute('data-glass', ctx.settings.glass === false ? 'off' : 'on');
+  }
+  ctx.applyUiPrefs = applyUiPrefs;
+  function applySettings(handle) { if (!handle) { applyUiPrefs(); return; } if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); if (handle.setPostFx) handle.setPostFx(ctx.settings.postfx !== false); if (handle.setDof) handle.setDof(ctx.settings.dof !== false); if (handle.setFpsTarget) handle.setFpsTarget(ctx.settings.fpsTarget); if (handle.setParticleDensity) handle.setParticleDensity(ctx.settings.particleDensity); if (handle.setMotionBlur) handle.setMotionBlur(ctx.settings.motionBlur); if (handle.setDisplayScale) handle.setDisplayScale(ctx.settings.displayScale); applyUiPrefs(); }
   ctx.applySettings = applySettings;
+  /* Hover/click sound feedback: one lazy WebAudio tick, throttled, silent
+   * when volume is 0 or UI sounds are off. Never throws, never autoplays. */
+  var _uiAC = null, _lastClickTick = 0, _lastHoverTick = 0;
+  function uiTick(kind) {
+    if (ctx.settings.uiSounds === false || !ctx.settings.volume) return;
+    var now = Date.now();
+    if (kind === 'hover') { if (now - _lastHoverTick < 180) return; _lastHoverTick = now; }
+    else { if (now - _lastClickTick < 60) return; _lastClickTick = now; }
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      if (!_uiAC) _uiAC = new AC();
+      if (_uiAC.state === 'suspended') _uiAC.resume();
+      var t = _uiAC.currentTime, o = _uiAC.createOscillator(), g = _uiAC.createGain();
+      o.type = 'sine'; o.frequency.value = kind === 'hover' ? 1200 : 880;
+      g.gain.setValueAtTime(0.03 * (ctx.settings.volume || 1), t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      o.connect(g); g.connect(_uiAC.destination); o.start(t); o.stop(t + 0.06);
+    } catch (e) { /* sound is decoration; never break the UI */ }
+  }
+  ctx.uiTick = uiTick;
   async function api(path, method, body) {
     var res = await fetch(path, { method: method || 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
     var json = null; try { json = await res.json(); } catch (e) {}
@@ -106,17 +133,74 @@
     var ab = document.getElementById('achBox');
     if (ab) { try { var a = await api('/api/achievements?address=' + encodeURIComponent(p.address)); ab.innerHTML = '<div class="achGrid">' + a.achievements.map(function (x) { return '<div class="ach ' + (x.unlocked ? 'got' : 'locked') + '" title="' + esc(x.desc) + '">' + (x.unlocked ? '🏆' : '🔒') + ' ' + esc(x.name) + '</div>'; }).join('') + '</div>'; } catch (e) {} }
   }
-  function renderSettingsPanel() {
-    var el = document.getElementById('settingsBox'); if (!el) return;
-    el.innerHTML = '<label>Volume</label><input id="setVol" type="range" min="0" max="1" step="0.1" value="' + ctx.settings.volume + '">'
+  function settingsFormHtml() {
+    return '<label>Master audio</label><input id="setVol" type="range" min="0" max="1" step="0.1" value="' + ctx.settings.volume + '">'
       + '<label>Graphics quality</label><select id="setQuality"><option value="high">High</option><option value="low">Low (faster)</option></select>'
-      + '<label><input id="setPostFx" type="checkbox" ' + (ctx.settings.postfx !== false ? 'checked' : '') + '> Post-processing (bloom / lighting / vignette)</label>'
-      + '<label><input id="setDof" type="checkbox" ' + (ctx.settings.dof !== false ? 'checked' : '') + '> Cinematic tilt-shift bands</label>';
-    el.querySelector('#setQuality').value = ctx.settings.quality;
-    el.querySelector('#setPostFx').addEventListener('change', function (ev) { ctx.settings.postfx = ev.target.checked; saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
-    el.querySelector('#setDof').addEventListener('change', function (ev) { ctx.settings.dof = ev.target.checked; saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
-    el.querySelector('#setVol').addEventListener('input', function (ev) { ctx.settings.volume = Number(ev.target.value); saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
-    el.querySelector('#setQuality').addEventListener('change', function (ev) { ctx.settings.quality = ev.target.value; saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
+      + '<label>FPS target</label><select id="setFps"><option value="30">30</option><option value="60">60</option><option value="120">120 (display-limited)</option></select>'
+      + '<label>Particle density</label><select id="setParticles"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select>'
+      + '<label>Display scaling (Retina/HiDPI)</label><select id="setDisplay"><option value="auto">Auto (device pixel ratio)</option><option value="1">1x</option><option value="1.5">1.5x</option><option value="2">2x</option></select>'
+      + '<label>UI text scale</label><select id="setUiScale"><option value="0.9">Small (0.9x)</option><option value="1">Normal (1x)</option><option value="1.15">Large (1.15x)</option></select>'
+      + '<label class="checkRow"><input id="setMotionBlur" type="checkbox" ' + (ctx.settings.motionBlur ? 'checked' : '') + '> Motion blur (projectile streaks / beam glow)</label>'
+      + '<label class="checkRow"><input id="setPostFx" type="checkbox" ' + (ctx.settings.postfx !== false ? 'checked' : '') + '> Post-processing (bloom / lighting / vignette)</label>'
+      + '<label class="checkRow"><input id="setDof" type="checkbox" ' + (ctx.settings.dof !== false ? 'checked' : '') + '> Cinematic tilt-shift bands</label>'
+      + '<label class="checkRow"><input id="setGlass" type="checkbox" ' + (ctx.settings.glass !== false ? 'checked' : '') + '> Glassmorphism theme (translucent panels, blur, glowing borders)</label>'
+      + '<label class="checkRow"><input id="setUiSounds" type="checkbox" ' + (ctx.settings.uiSounds !== false ? 'checked' : '') + '> UI hover / click sounds</label>';
+  }
+  function wireSettingsControls(root) {
+    var q = function (sel) { return root.querySelector(sel); };
+    var handle = function () { return ctx.host.current && ctx.host.current.handle; };
+    var s = q('#setQuality'); if (s) { s.value = ctx.settings.quality; s.addEventListener('change', function () { ctx.settings.quality = s.value; saveSettings(); applySettings(handle()); }); }
+    var f = q('#setFps'); if (f) { f.value = String(ctx.settings.fpsTarget || 60); f.addEventListener('change', function () { ctx.settings.fpsTarget = Number(f.value); saveSettings(); applySettings(handle()); }); }
+    var p = q('#setParticles'); if (p) { p.value = ctx.settings.particleDensity || 'high'; p.addEventListener('change', function () { ctx.settings.particleDensity = p.value; saveSettings(); applySettings(handle()); }); }
+    var d = q('#setDisplay'); if (d) { d.value = ctx.settings.displayScale || 'auto'; d.addEventListener('change', function () { ctx.settings.displayScale = d.value; saveSettings(); applySettings(handle()); }); }
+    var u = q('#setUiScale'); if (u) { u.value = String(ctx.settings.uiScale || 1); u.addEventListener('change', function () { ctx.settings.uiScale = Number(u.value); saveSettings(); applyUiPrefs(); }); }
+    var v = q('#setVol'); if (v) v.addEventListener('input', function () { ctx.settings.volume = Number(v.value); saveSettings(); applySettings(handle()); });
+    [['#setPostFx', 'postfx'], ['#setDof', 'dof'], ['#setMotionBlur', 'motionBlur'], ['#setGlass', 'glass'], ['#setUiSounds', 'uiSounds']].forEach(function (pair) {
+      var el = q(pair[0]); if (!el) return;
+      el.addEventListener('change', function (ev) { ctx.settings[pair[1]] = ev.target.checked; saveSettings(); applySettings(handle()); });
+    });
+  }
+  function openSettings() { renderSettingsPanel(); var m = document.getElementById('settingsModal'); if (m) m.hidden = false; }
+  function closeSettings() { var m = document.getElementById('settingsModal'); if (m) m.hidden = true; }
+  function renderSettingsPanel() {
+    var modal = document.getElementById('settingsModalBody');
+    if (modal) { modal.innerHTML = settingsFormHtml(); wireSettingsControls(modal); }
+    var el = document.getElementById('settingsBox');
+    if (el) el.innerHTML = '<button id="btnOpenSettings" class="primary">⚙ Open settings</button><p class="small muted">FPS target, motion blur, particle density, display scaling, glass theme, UI scale &amp; UI sounds.</p>';
+    var openBtn = document.getElementById('btnOpenSettings'); if (openBtn) openBtn.onclick = openSettings;
+    var topBtn = document.getElementById('btnSettings'); if (topBtn) topBtn.onclick = openSettings;
+    var closeBtn = document.getElementById('btnCloseSettings'); if (closeBtn) closeBtn.onclick = closeSettings;
+    var overlay = document.getElementById('settingsModal'); if (overlay) overlay.onclick = function (ev) { if (ev.target === overlay) closeSettings(); };
+    applyUiPrefs();
+  }
+  /* Inspection stat card: hover/select a BTD tower to see animated stat
+   * bars, the upgrade tree step, sell refund, and a tactical
+   * effectiveness chart. Re-rendered only when the payload changes so
+   * the CSS bar transitions actually animate. */
+  var _inspectKey = '';
+  function renderInspectCard() {
+    var card = document.getElementById('inspectCard'); if (!card) return;
+    var hud = ctx.hud || {};
+    var ins = ctx.currentGame === 'cosmos-btd' ? hud.inspect : null;
+    if (!ins) { if (!card.hidden || card.innerHTML) { card.hidden = true; card.innerHTML = ''; _inspectKey = ''; } return; }
+    var key = JSON.stringify(ins);
+    if (key === _inspectKey && !card.hidden) return;
+    _inspectKey = key;
+    var eff = ins.effectiveness || {};
+    var bar = function (label, val, max, color) {
+      return '<div class="effRow"><span>' + esc(label) + '</span><div class="statBar"><div style="width:' + Math.round(100 * Math.max(0, Math.min(max, val)) / max) + '%;' + (color ? 'background:' + color + ';' : '') + '"></div></div><span>' + val + '</span></div>';
+    };
+    card.hidden = false;
+    card.innerHTML = '<h3>🔍 ' + esc(ins.name) + ' — Lv ' + ins.level + (ins.maxed ? ' (MAX)' : '') + '</h3>'
+      + bar('Damage', ins.dmg, 10, '#ff6b35')
+      + bar('Range', ins.range, 350, '#00f6ff')
+      + bar('Shots/sec', (1 / Math.max(0.22, ins.rate)).toFixed(1), 5, '#ffd166')
+      + '<p class="small"><strong>Upgrade tree:</strong> ' + (ins.upgradeCost ? ins.upgradeCost + 'g → Lv ' + (ins.level + 1) + ' (dmg ' + ins.nextDmg + ', range ' + ins.nextRange + ')' : 'MAX — fully upgraded') + ' · Sell refund ' + ins.sellRefund + 'g · Cost ' + ins.cost + 'g</p>'
+      + '<p class="small"><strong>Tactical effectiveness</strong></p>'
+      + bar('vs Fast', eff.fast || 0, 100, '#3ddc5f')
+      + bar('vs Armored', eff.armored || 0, 100, '#c9ced6')
+      + bar('vs Camo', eff.camo || 0, 100, '#1f2937')
+      + bar('vs Boss', eff.boss || 0, 100, '#ff5a5a');
   }
   async function renderFeatures() {
     var el = document.getElementById('updatesList'); if (!el) return;
@@ -206,6 +290,7 @@
     } catch (e) { /* wave already counted locally; server sync is best-effort */ }
   }
   function renderActionBar() {
+    renderInspectCard();
     var bar = document.getElementById('actionBar');
     if (ctx.currentGame !== 'cosmos-btd') { bar.innerHTML = '<span class="muted small">This game has its own controls inside the panel above.</span>'; return; }
     var hud = ctx.hud || {};
@@ -262,6 +347,9 @@
     ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', status: 'playable', load: async function () { return window.AtomClicker; } });
     if (window.SpaceShooter) ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', status: 'playable', load: async function () { return window.SpaceShooter; } });
     renderGameList(); renderWallet(); renderSettingsPanel();
+    document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
+    document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeSettings(); });
     bus.on('wallet:connected', function () { renderWallet(); });
     bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
     bus.on('wallet:balance', function () { renderWallet(); });
