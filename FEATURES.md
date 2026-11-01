@@ -4,6 +4,14 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.9.0 — 2026-11-01 — 5 features (91 total)
+
+| Area | Features |
+|---|---|
+| Space Shooter (5) | Power-ups (shield / rapid / spread / life drops), Boss drone every 5 waves with health bar, Combo multiplier up to x3, Touch controls (virtual joystick + FIRE button), Shooter leaderboard (per-game server bests + Top Players Shooter filter) |
+
+Honest limits: power-up/boss/combo/touch visuals are canvas draw code, harness-verified via state/HUD helpers only (no browser screenshot or real-device touch check); shooter score submission uses the legacy /api/progress endpoint (not the hashed secure path, which stays BTD-only); the shell's Shooter leaderboard filter and game-over submission are code-reviewed only (no browser/DOM harness for the shell).
+
 ## v3.8.1 — 2026-11-01 — 1 feature (86 total)
 
 | Area | Features |
