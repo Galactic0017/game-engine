@@ -71,9 +71,13 @@ let FEE_PERCENT = parseFloat(process.env.FEE_PERCENT || '5');
 if (!isFinite(FEE_PERCENT)) FEE_PERCENT = 5;
 FEE_PERCENT = Math.min(7, Math.max(4, FEE_PERCENT));
 const CEO_ADDRESS = process.env.CEO_ADDRESS || 'cosmos1cccccccccccccccccccccccccccccccccccccc';
+const IS_VERCEL = !!process.env.VERCEL;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
-fs.mkdirSync(DATA_DIR, { recursive: true });
+// Vercel serverless functions run on a read-only filesystem: creating a
+// data folder crashes the whole function (500). On Vercel, storage is
+// in-memory only (see load()/save()), so skip the folder entirely there.
+if (!IS_VERCEL) { try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {} }
 const HERO_DEFS = [
   { id: 'astra', name: 'Astra, Validator Prime', rarity: 'Legendary', basePower: 45, ability: 'Nova Burst: big area damage', color: '#ffd166', unlockLevel: 15, tagline: 'The last validator of the fallen chain.' },
   { id: 'lyra', name: 'Lyra, Ion Warden', rarity: 'Epic', basePower: 32, ability: 'Ion Slow: slows enemies in range', color: '#7bdff2', unlockLevel: 12, tagline: 'She holds the ion gate alone.' },
@@ -88,7 +92,6 @@ function isAddress(a) { return typeof a === 'string' && /^cosmos1[0-9a-z]{38,45}
 function isTxid(t) { return typeof t === 'string' && /^[0-9a-fA-F]{64}$/.test(t); }
 function round6(n) { return Math.round(n * 1e6) / 1e6; }
 function levelForXp(xp) { return Math.min(20, 1 + Math.floor((xp || 0) / 400)); }
-const IS_VERCEL = !!process.env.VERCEL;
 function load() { if (IS_VERCEL) return { players: {}, heroes: [], listings: [], sales: [], usedTxids: [], duels: [] }; try { const d = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); if (d && Array.isArray(d.heroes)) { d.duels = d.duels || []; d.usedTxids = d.usedTxids || []; return d; } } catch {} return { players: {}, heroes: [], listings: [], sales: [], usedTxids: [], duels: [] }; }
 function save(db) { if (IS_VERCEL) return; fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); }
 let db = load();
