@@ -455,9 +455,63 @@
    "id": "equipped-hero-glow",
    "tested": "shell renderHeroes adds .equipped class + glow CSS for the equipped hero only; DOM/CSS code-reviewed, no browser screenshot check",
    "title": "Hero portrait glow — the equipped hero's portrait glows gold in the sidebar"
+  },
+  {
+   "category": "Hub UI",
+   "id": "levelup-launcher-layout",
+   "tested": "serve check: layout renders with launcher grid + rails; responsive breakpoints code-reviewed, no browser screenshot check",
+   "title": "LEVEL UP 3-column launcher layout — left nav rail, center stage with search, right profile/players rail; collapses to one column on small screens"
+  },
+  {
+   "category": "Hub UI",
+   "id": "featured-game-hero",
+   "tested": "serve check: featured banner markup + battlefield image 200; no price claims in markup",
+   "title": "Featured game hero banner — Cosmos BTD battlefield art, tags, description, Play + About buttons; no fake price or discount"
+  },
+  {
+   "category": "Hub UI",
+   "id": "game-cards-info-window",
+   "tested": "serve check: picker modal markup present; card/info wiring code-reviewed, no browser click check",
+   "title": "Game cards + info window — every game gets a card (image, description, status) and an info modal; Play loads the game, Esc/backdrop/Close dismiss"
+  },
+  {
+   "category": "Hub UI",
+   "id": "recently-played",
+   "tested": "code-reviewed: localStorage round-trip in shell; empty state shown with no history",
+   "title": "Recently Played rail — last 5 games played, stored in this browser only, with the date played; honest empty state when none"
+  },
+  {
+   "category": "Hub UI",
+   "id": "game-search",
+   "tested": "code-reviewed: filter function hides non-matching cards; no server call",
+   "title": "Find Games search — filters the game cards live by name/description as you type"
+  },
+  {
+   "category": "Hub UI",
+   "id": "wallet-provider-choice",
+   "tested": "wallet harness: both installed picks Leap without touching Keplr; Leap-only defaults to Leap; sticky signing reuses Leap after Keplr appears",
+   "title": "Wallet provider choice — separate Keplr and Leap buttons, disabled with a tooltip when an extension is missing; chosen provider is captured and reused for every signature"
+  },
+  {
+   "category": "Hub UI",
+   "id": "no-demo-real-players",
+   "tested": "grep: no demo surfaces in index/shell/wallet/server; server test still 25/25",
+   "title": "No demo mode — demo address button, demo hero flow and demo-only wording removed; hero claims use /api/heroes/claim and MODE defaults to live"
+  },
+  {
+   "category": "CEO Panel",
+   "id": "ceo-side-tabs",
+   "tested": "code-reviewed: ceoLayout markup + CSS; tab logic untouched",
+   "title": "CEO panel side tabs — Orders/Ledger/Users/Flags/Settings/Announce/Audit as a vertical side rail, collapsing to horizontal tabs on narrow screens"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "space-atom-look",
+   "tested": "harness: background renders in vm stub; orb/leak coordinates code-reviewed, no browser screenshot check",
+   "title": "Space ATOM look — energy lane ending at a drawn ATOM orb, violet/navy space gradient, starfield, crystal spires, nebula pool; leak effects at the orb"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.7.0"
+ "version": "3.8.0"
 }
