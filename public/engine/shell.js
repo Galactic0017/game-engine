@@ -337,12 +337,78 @@
     document.getElementById('abChallenge').addEventListener('click', function () { if (handle && handle.setChallenge) { handle.setChallenge(!hud.challenge); toast(!hud.challenge ? 'Challenge mode: 100 gold, 20 lives. Applies on restart.' : 'Challenge mode OFF.'); } });
     document.getElementById('abHelp').addEventListener('click', function () { var h = document.getElementById('helpCard'); if (h) h.hidden = !h.hidden; });
   }
+  /* Batch 7 (Pillar 5): Dev Tools view — map editor, mod loader,
+   * debug console. All three work on the live BTD handle only; with
+   * no game loaded they explain that instead of failing. Maps and
+   * mods are plain JSON, stored in localStorage only (never sent). */
+  function btdHandle() { return (ctx.host && ctx.host.current && ctx.host.current.handle) || null; }
+  function renderDevTools() {
+    var box = document.getElementById('devToolsBox'); if (!box) return;
+    var handle = btdHandle();
+    var savedMap = null, savedMod = null;
+    try { savedMap = localStorage.getItem('game-custom-map'); savedMod = localStorage.getItem('game-custom-mod'); } catch (e) {}
+    box.innerHTML = '<h4>🗺 Map editor — Cosmos BTD custom track</h4>'
+      + '<p class="small muted">Edit the control points (Catmull-Rom spline, 960×600 board) and terrain, then Apply. Export copies the current track as JSON. Applying a track rebuilds the path, hazards and branch lane; it does not touch money, heroes or the server.</p>'
+      + '<p class="small">' + (handle ? 'BTD loaded' + (handle.getState && handle.getState().customMap ? ' · custom map: ' + esc(handle.getState().customMap) : ' · default track') : 'Load Cosmos BTD first (Games tab) to edit the live track.') + '</p>'
+      + '<textarea id="devMapJson" rows="6" style="width:100%" placeholder=\'{"name":"My map","controlPoints":[[0,100],[200,100],[300,300],[600,300],[900,500]],"terrain":[{"x":120,"y":420,"kind":"tree"}]}\'></textarea>'
+      + '<p><button id="devMapExport">Export current track</button> <button id="devMapApply" class="primary">Apply map</button> <button id="devMapReset" class="ghost">Reset default track</button> <button id="devMapSave" class="ghost">Save map</button> <button id="devMapLoad" class="ghost">Load saved map</button></p>'
+      + '<p class="small" id="devMapOut">' + (savedMap ? 'A saved map is in this browser.' : 'No saved map in this browser.') + '</p>'
+      + '<h4>🧩 Mod loader — towers, enemies, waves (JSON)</h4>'
+      + '<p class="small muted">Mods add towers/enemies/waves to the running BTD game only. They never move ATOM or touch the server. Invalid mods are rejected with the exact errors.</p>'
+      + '<textarea id="devModJson" rows="6" style="width:100%" placeholder="Paste a mod JSON here…"></textarea>'
+      + '<p><button id="devModExample">Show example mod</button> <button id="devModApply" class="primary">Validate + apply mod</button> <button id="devModSave" class="ghost">Save mod</button> <button id="devModLoad" class="ghost">Load saved mod</button></p>'
+      + '<p class="small" id="devModOut">' + (savedMod ? 'A saved mod is in this browser.' : 'No saved mod in this browser.') + '</p>'
+      + '<h4>🐞 Debug console + performance monitor</h4>'
+      + '<p class="small">Press <b>~</b> anywhere (outside text fields) to toggle the overlay: FPS graph, frame time, entity/particle/grid counts, JS heap when the browser exposes it. Or open it here:</p>'
+      + '<p><button id="devConsoleOpen">Open debug console (~)</button></p>'
+      + '<p class="small" id="devPerfOut">Perf stats appear in the overlay; the shell HUD already shows FPS, particles and grid stats.</p>';
+    var out = function (id, msg, kind) { var el = document.getElementById(id); if (el) { el.textContent = msg; } toast(msg, kind); };
+    document.getElementById('devMapExport').addEventListener('click', function () {
+      var h = btdHandle(); if (!h || !h.getMap) { out('devMapOut', 'Load Cosmos BTD first.', 'warn'); return; }
+      document.getElementById('devMapJson').value = JSON.stringify(h.getMap(), null, 2);
+      out('devMapOut', 'Current track exported to the editor.', 'ok');
+    });
+    document.getElementById('devMapApply').addEventListener('click', function () {
+      var h = btdHandle(); if (!h || !h.applyMap) { out('devMapOut', 'Load Cosmos BTD first.', 'warn'); return; }
+      var parsed; try { parsed = JSON.parse(document.getElementById('devMapJson').value); } catch (e) { out('devMapOut', 'Invalid JSON: ' + e.message, 'err'); return; }
+      var r = h.applyMap(parsed);
+      if (r && r.ok) { out('devMapOut', 'Map applied: ' + (r.map.name || 'custom') + ' · track ' + r.map.trackLength + 'px · spawn ' + r.map.spawn.join(',') + '.', 'ok'); renderDevTools(); }
+      else out('devMapOut', 'Map rejected: ' + ((r && r.errors) || ['unknown error']).join('; '), 'err');
+    });
+    document.getElementById('devMapReset').addEventListener('click', function () {
+      var h = btdHandle(); if (!h || !h.resetMap) { out('devMapOut', 'Load Cosmos BTD first.', 'warn'); return; }
+      h.resetMap(); out('devMapOut', 'Default track restored.', 'ok'); renderDevTools();
+    });
+    document.getElementById('devMapSave').addEventListener('click', function () { try { localStorage.setItem('game-custom-map', document.getElementById('devMapJson').value); out('devMapOut', 'Map saved in this browser.', 'ok'); } catch (e) { out('devMapOut', 'Could not save: ' + e.message, 'err'); } });
+    document.getElementById('devMapLoad').addEventListener('click', function () { try { var v = localStorage.getItem('game-custom-map'); if (v) { document.getElementById('devMapJson').value = v; out('devMapOut', 'Saved map loaded into the editor.', 'ok'); } else out('devMapOut', 'No saved map in this browser.', 'warn'); } catch (e) { out('devMapOut', 'Could not load: ' + e.message, 'err'); } });
+    document.getElementById('devModExample').addEventListener('click', function () {
+      if (window.ModLoader) document.getElementById('devModJson').value = JSON.stringify(window.ModLoader.example(), null, 2);
+    });
+    document.getElementById('devModApply').addEventListener('click', function () {
+      if (!window.ModLoader) { out('devModOut', 'Mod loader unavailable.', 'err'); return; }
+      var parsed = window.ModLoader.parse(document.getElementById('devModJson').value);
+      if (!parsed.ok) { out('devModOut', 'Mod rejected: ' + parsed.errors.join('; '), 'err'); return; }
+      var h = btdHandle(); if (!h) { out('devModOut', 'Mod is valid, but load Cosmos BTD first to apply it.', 'warn'); return; }
+      var r = window.ModLoader.applyToGame(h, parsed.mod);
+      if (!r.ok) { out('devModOut', 'Mod rejected: ' + r.errors.join('; '), 'err'); return; }
+      var a = r.applied;
+      out('devModOut', 'Mod applied: ' + a.towers.length + ' tower(s), ' + a.enemies.length + ' enem(ies), ' + a.waves.length + ' wave(s)' + (a.skipped.length ? ' · skipped ' + a.skipped.length + ': ' + a.skipped.map(function (s) { return s.id + ' (' + s.errors.join('; ') + ')'; }).join('; ') : '') + '.', 'ok');
+      renderActionBar();
+    });
+    document.getElementById('devModSave').addEventListener('click', function () { try { localStorage.setItem('game-custom-mod', document.getElementById('devModJson').value); out('devModOut', 'Mod saved in this browser.', 'ok'); } catch (e) { out('devModOut', 'Could not save: ' + e.message, 'err'); } });
+    document.getElementById('devModLoad').addEventListener('click', function () { try { var v = localStorage.getItem('game-custom-mod'); if (v) { document.getElementById('devModJson').value = v; out('devModOut', 'Saved mod loaded into the editor.', 'ok'); } else out('devModOut', 'No saved mod in this browser.', 'warn'); } catch (e) { out('devModOut', 'Could not load: ' + e.message, 'err'); } });
+    document.getElementById('devConsoleOpen').addEventListener('click', function () {
+      if (window.GameDevTools) { if (!window.GameDevTools.isOpen()) window.GameDevTools.toggle(); out('devPerfOut', 'Debug console open (bottom-left). Press ~ to close.', 'ok'); }
+      else out('devPerfOut', 'Debug console unavailable.', 'err');
+    });
+  }
   function showView(name) {
     document.querySelectorAll('nav.tabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-nav') === name); });
     document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
     document.getElementById('view-' + name).classList.add('active');
     if (name === 'marketplace' && window.MarketplaceUI) window.MarketplaceUI.render(document.getElementById('marketplace'), ctx);
     if (name === 'updates') renderFeatures();
+    if (name === 'devtools') renderDevTools();
     if (name === 'ceo' && window.CeoUI) window.CeoUI.mountGate(document.getElementById('ceoGate'), document.getElementById('ceoPanel'), ctx);
   }
   document.querySelectorAll('nav.tabs button').forEach(function (b) { b.addEventListener('click', function () { showView(b.getAttribute('data-nav')); }); });
