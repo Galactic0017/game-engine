@@ -166,12 +166,15 @@ Limits: flash/recoil + leak edge + end-screen panel are canvas draw code, harnes
 - Tests: server 25/25, BTD harness, shooter pass; wallet harness Keplr-only.
 - Limits: wallet harness covers provider detection, not a real wallet send.
 
-## Batch 10 — Space Shooter depth (was Batch 6)
-- [ ] Power-ups: shield, rapid fire, spread shot, dropping from drones.
-- [ ] Boss drone every 5 waves with a health bar.
-- [ ] Combo multiplier for consecutive kills without taking damage.
-- [ ] Touch controls: virtual joystick + fire button on mobile.
-- [ ] Shooter leaderboard: best score per player on the server.
+## Batch 10 — DONE 2026-11-01 — v3.9.0 (5 features, 91 total)
+Space Shooter depth (was Batch 6)
+- [x] Power-ups: shield (absorbs one hit), rapid fire (6s), spread shot (8s, 3 bullets), extra life — 22% drop from drones, 2 drops from bosses; distinct on-canvas icons (S/R/W/+).
+- [x] Boss drone every 5 waves with a health bar: 20+2/wave HP, 3-bolt fan, 500 pts (combo-multiplied), wave cannot clear while it lives; health bar above the playfield.
+- [x] Combo multiplier for consecutive kills without taking damage: +0.5x per 5 combo, capped x3; a lost life resets it, a shield block preserves it; shown in HUD + top bar + game-over screen.
+- [x] Touch controls: virtual joystick (left half, anchored at touch point) + FIRE button (right half) drawn on the canvas, multi-touch by identifier; listeners removed on destroy.
+- [x] Shooter leaderboard: best score per player on the server — /api/progress accepts game=space-shooter (per-game bests; BTD bestScore/bestWave untouched, unknown game falls back to BTD), shell submits only the final game-over emit (dedupe by address+score+wave+kills), Top Players rail gains a Shooter filter.
+Tests: server 29/29 (25 prior + 4 shooter), BTD 146/146, shooter harness pass incl. Batch 10 checks (combo 275, shield block, 4 power-up kinds, boss kill 750+350 wave-clear, joystick + fire). Serve check pending at push time; live /api/config verification after push.
+Limits: power-up/boss/combo/touch visuals are canvas code, harness-verified via state/HUD only (no browser screenshot or real-device touch check); shooter submission uses legacy /api/progress, not the hashed secure path (BTD-only); shell submission + leaderboard filter are code-reviewed only (no shell DOM harness).
 
 ## Batch 11 — Platform & social (was Batch 7)
 - [ ] Friend challenges: send a duel invite by address, async results.
@@ -246,3 +249,5 @@ Limits: flash/recoil + leak edge + end-screen panel are canvas draw code, harnes
 - 2026-11-01 15:32 EST: LEVEL UP redesign built locally (v3.8.0): health/config 200 at run start (live 3.7.0). Tests: server 25/25, BTD harness, shooter pass. Push via browser task; verify /api/config shows 3.8.0.
 - 2026-11-01: Keplr-only built locally (v3.8.1) after the v3.8.0 push landed. Tests: server 25/25, BTD harness, shooter pass, wallet harness. Push via browser task; verify /api/config shows 3.8.1.
 - 2026-11-01 15:47 EST: VERIFIED LIVE — v3.8.0 push 16 files / 16 commits (HEAD 9a607c0, 98 commits total). Fresh curl: /api/config version 3.8.0 (real CEO address, mode demo via Vercel env), /api/health 200, homepage 200. Batch v3.8.0 shipped.
+- 2026-11-01 15:54 EST: VERIFIED LIVE — v3.8.1 (Keplr only) push 10 files / 10 commits (HEAD dbed350, 108 commits total). Fresh curl: /api/config version 3.8.1 (real CEO address, mode demo via Vercel env), homepage 200, no Leap button in served HTML, no global.leap in served wallet.js. Overlap lock deleted; cron resumes with Batch 10 next.
+- 2026-11-01 16:00 EST: Batch 10 built locally (v3.9.0, Space Shooter depth): health/config 200 at run start (live 3.8.1). Tests: server 29/29, BTD 146/146, shooter pass incl. Batch 10 checks. Push via browser task; verify /api/config shows 3.9.0. NOTE: a separate staged tags/cleanup patch (~/workspace/levelup-patch/patch_tags_cleanup382.py, per MEMORY.md) was NOT applied in this run — it must wait until this run's lock is gone.
