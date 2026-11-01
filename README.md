@@ -27,10 +27,10 @@ Manual TXID + admin approval is trust-based and can be faked, double-spent, or d
 
 ## Run locally
 ```bash
-cp .env.example .env   # set ADMIN_KEY to a long random value
+cp .env.example .env   # set CEO_ADDRESS to the real CEO Cosmos address
 node server.js         # http://localhost:3000
 ```
-Test flow: Connect (demo address) -> My Heroes -> Get demo hero -> List for sale -> copy listing ID -> second demo address -> Buy -> submit a 64-hex TXID + exact price + memo=listing ID -> CEO panel (ADMIN_KEY) -> tick 4 checks -> Approve -> hero owner changes.
+Test flow: Connect (demo address) -> My Heroes -> Get demo hero -> List for sale -> copy listing ID -> second demo address -> Buy -> submit a 64-hex TXID + exact price + memo=listing ID -> CEO panel (connect Keplr with the CEO address, sign with your keys, ADR-36) -> tick 6 checks -> Approve -> hero owner changes.
 
 ## Push to GitHub (your account — I cannot push for you)
 ```bash
@@ -47,7 +47,7 @@ Create the empty repo on github.com first, in your own account. Do not share Git
 ## Deploy on Railway (not Vercel/Render, as requested)
 1. railway.app -> New Project -> Deploy from GitHub repo -> pick `voidfall-cosmos`.
 2. Railway detects the Dockerfile. If it asks for a start command, use `node server.js`.
-3. Variables tab: set `ADMIN_KEY` to a long random secret, `MODE=demo`, `CHAIN_ID=cosmoshub-4`.
+3. Variables tab: set `MODE=demo`, `CHAIN_ID=cosmoshub-4`, `FEE_PERCENT=5`, `CEO_ADDRESS=<real CEO address>`. No ADMIN_KEY is needed in the UI — the CEO panel opens by signing with the CEO wallet. ADMIN_KEY, if set, is only an emergency fallback.
 4. Deploy, open the Railway URL, test the flow above.
 5. Note: `data/db.json` is on the container filesystem and can be lost on redeploy. For production, move storage to Railway Postgres / a volume. That is listed as a TODO in the code comments.
 
