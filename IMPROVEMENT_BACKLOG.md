@@ -80,13 +80,59 @@ shell buttons yet); gear/patrol visuals are labels + movement only;
 weather visuals are HUD label + lightning effects, no rain/snow
 particle layer; hazard detour is a lateral offset, not replanning.
 
-## Batch 7 — Pillar 5: Runtime & Developer Tools
-- [ ] Level / map editor mode: dev tab to draw custom tracks, place
-      terrain, mark spawn points, export maps as clean JSON configs.
-- [ ] Debug console + performance monitor: `~` overlay with FPS graph,
-      frame time (ms), particle counts, memory usage, entity counts.
-- [ ] Modding & config loader: game modules loadable from external JSON
-      schemas — add towers, enemies, waves by editing text files.
+## Track 3 (141–150) — DONE 2026-11-01 — v3.4.0 (9 features, 63 total)
+Mega-list Track 3: Tower Defense Deep Mechanics. Items 143 (branching
+trees) and 144 (hero commander) were already delivered by Batch 6
+(v3.3.0) and are NOT double-counted here; the remaining gaps were
+built on top of Batch 6 in this batch.
+- [x] Multi-lane splitting paths: fork at 45%, rejoin at 85%; every
+      3rd spawn takes the branch lane; placement blocking + ghost
+      respect both lanes; branch gravel drawn in the background.
+- [x] Advanced targeting AI: Closest + Elite-only modes added to
+      First/Last/Strong/Weak; shell select + API whitelist updated.
+- [x] Hero radial cooldowns: circular sweep ring around the hero
+      during the 12s ability recharge; heroCd exposed in HUD.
+- [x] Boss phase shields: 50% health triggers a 3s shield + 2 Pink
+      minions; segmented 5-bar boss health display.
+- [x] Logarithmic endless scaling: waves 50+ gain log layers (cap +6)
+      and speed; bosses +2 layers/wave past 50.
+- [x] Floating combat text: physics arcs (vx drift + gravity) and
+      10% crit rolls (+1 dmg, CRIT label). Coin/damage kinds existed
+      from Pillar 3.
+- [x] Tower synergy buff nodes: Synergy Beacon (200g, key 8), no
+      attack; nearby towers fire 0.80x/0.72x/0.65x by beacon level.
+- [x] Status effect stacking: burn (mortar), poison (tesla), stun
+      (sniper), shred (power-branch hits bypass lead/fortified);
+      burn/poison tick 1 layer/s, stun freezes, colored status dots.
+- [x] Branch + patrol controls in the shell action bar (branch
+      buttons with cost/locked states, hero patrol toggle).
+Tests: server 25/25 (1 failure before features.json bump — resolved),
+BTD 86/86, shooter pass. Limits: lane visuals share main-path art;
+radial ring + status dots canvas-only (no browser screenshot check).
+
+## Batch 7 — DONE 2026-11-01 — v3.5.0 (3 features, 66 total)
+Pillar 5: Runtime & Developer Tools
+- [x] Level / map editor mode: Dev Tools tab to edit the Catmull-Rom
+      control points, place tree/rock/pond terrain, mark spawn/finish
+      (exported), export maps as clean JSON, apply live, reset default.
+      Track rebuild re-samples the spline + hazards + branch lane.
+- [x] Debug console + performance monitor: `~` overlay with 60-frame
+      FPS graph, frame time (avg/max), entity/particle/grid counts,
+      JS heap when exposed, command line (help/fps/stats/entities/
+      mem/version/clear, no eval).
+- [x] Modding & config loader: JSON mods (v1) add towers, enemies and
+      wave compositions to the live BTD game — validated, no code
+      execution, browser-local only; example mod included in the UI.
+Tests: server 25/25, BTD 116/116, shooter pass; serve 200s.
+Limits: editor/mod/overlay DOM wiring is code-reviewed only (no
+browser/DOM harness for the shell); heap shows n/a outside Chrome;
+custom tracks keep the fixed branch-lane shape (fork 45%/rejoin 85%).
+Reconciliation: at this run's start the local copy already reported
+v3.4.0 / 63 features (9 BTD depth features, BTD harness 86 checks)
+while live was v3.3.0 and this backlog stopped at 54 — that v3.4.0
+build was tested locally, never pushed, and never logged. It ships
+with this push under v3.5.0; the 9 features were already listed in
+public/features.json and are real code in btd.js/shell.js.
 
 ## Batch 8 — BTD depth II (was Batch 4)
 - [ ] Mortar target preview: show splash radius ring while placing mortar.
@@ -170,3 +216,6 @@ particle layer; hazard detour is a lateral offset, not replanning.
 - 2026-11-01 ~14:36 EST: Batch 5 pushed (browser task, saved GitHub login, no challenge): 9 files, 5 commits fc0265e, 8a2ed59, a57f5ab, 8cd01eb, 39e71ef (HEAD, 45 commits total). server.js at HEAD shows VERSION 3.2.0. Live /api/config verification pending after auto-deploy.
 - 2026-11-01 14:39 EST: VERIFIED LIVE — text fetches served stale crawls, so a live browser reload was used: /api/config version 3.2.0 (real CEO address, 5% fee, 30-min orders) and /api/health version 3.2.0 at 2026-11-01T19:39:26Z. Batch 5 shipped.
 - 2026-11-01 14:40 EST: Batch 6 built locally (v3.3.0, Pillar 4): server 25/25, BTD 59/59, shooter pass. Health/config 200 at run start (stale crawls showed 3.1.0/3.0.0; live 3.2.0 verified previous run). Push via browser task; verify /api/config shows 3.3.0.
+- 2026-11-01 14:51 EST: VERIFIED LIVE — 6 files pushed (commits 46ec7d5, de3002c, a8cf3b4, 2069f20, 6dd2a0b, e177410; HEAD e177410, 51 commits). Fresh /api/config crawl 19:51 UTC shows version 3.3.0, real CEO address, 5% fee, 30-min orders. Batch 6 shipped. (/api/health still served a stale 19:29 crawl showing 3.1.0; same deployment as config, crawler artifact only.)
+- 2026-11-01 14:52 EST: Batch 7 built locally (v3.5.0, Pillar 5): health/config 200 at run start (config fresh 3.3.0; health stale 3.1.0 crawl). Local copy already at v3.4.0/63 features, unpushed — reconciled above, ships with this push. Tests: server 25/25, BTD 116/116, shooter pass. Push via browser task; verify /api/config shows 3.5.0.
+- 2026-11-01 ~14:53 EST: Track 3 gaps built locally (v3.4.0, 9 features, 63 total): BTD 86/86, server 25/25, shooter pass. Batch 6 verified live 3.3.0 before this push. Push via browser task; verify /api/config shows 3.4.0.
