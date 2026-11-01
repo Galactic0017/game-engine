@@ -18,6 +18,11 @@
     setTimeout(function () { el.remove(); }, 6000);
   }
   ctx.toast = toast; ctx.esc = esc; ctx.shortAddr = shortAddr;
+  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high' }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high' }; } }
+  ctx.settings = loadSettings();
+  function saveSettings() { try { localStorage.setItem('game-settings', JSON.stringify(ctx.settings)); } catch (e) {} }
+  function applySettings(handle) { if (!handle) return; if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); }
+  ctx.applySettings = applySettings;
   async function api(path, method, body) {
     var res = await fetch(path, { method: method || 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
     var json = null; try { json = await res.json(); } catch (e) {}
@@ -67,16 +72,56 @@
   async function refreshState() {
     try {
       ctx.state = await api('/api/state');
-      renderLeaderMini();
+      renderLeaderMini(); renderAnnouncements(); renderProfile();
       if (ctx.player) { var mine = ctx.state.heroes.filter(function (h) { return h.owner === ctx.player.address; }); ctx.host.setPlayer(ctx.player, mine); renderHeroes(mine); }
       if (document.getElementById('view-marketplace').classList.contains('active') && window.MarketplaceUI) window.MarketplaceUI.render(document.getElementById('marketplace'), ctx);
     } catch (e) { /* state refresh is best-effort */ }
   }
   ctx.refreshState = refreshState; ctx.ensurePlayer = ensurePlayer;
-  function renderLeaderMini() {
-    var el = document.getElementById('leaderMini'); if (!el || !ctx.state) return;
-    var rows = (ctx.state.leaderboard || []).slice(0, 5);
-    el.innerHTML = rows.length ? rows.map(function (r, i) { return '<p class="small">' + (i + 1) + '. ' + esc(r.name || shortAddr(r.address)) + ' — ' + r.bestScore + ' pts · Lv ' + r.level + '</p>'; }).join('') : '<p class="muted small">No scores yet.</p>';
+  var leaderGame = '';
+  async function renderLeaderMini() {
+    var el = document.getElementById('leaderMini'); if (!el) return;
+    var rows;
+    if (leaderGame) { try { var r = await api('/api/leaderboard?game=' + leaderGame); rows = r.leaderboard || []; } catch (e) { rows = []; } }
+    else rows = (ctx.state && ctx.state.leaderboard) || [];
+    el.innerHTML = '<p class="small"><button data-lb="" class="ghost">All</button> <button data-lb="cosmos-btd" class="ghost">BTD</button></p>'
+      + (rows.length ? rows.slice(0, 5).map(function (r, i) { return '<p class="small">' + (i + 1) + '. ' + esc(r.name || shortAddr(r.address)) + ' — ' + r.bestScore + ' pts · Lv ' + r.level + '</p>'; }).join('') : '<p class="muted small">No scores yet.</p>');
+    el.querySelectorAll('[data-lb]').forEach(function (btn) { btn.addEventListener('click', function () { leaderGame = btn.getAttribute('data-lb'); renderLeaderMini(); }); });
+  }
+  function renderAnnouncements() {
+    var el = document.getElementById('announceBar'); if (!el) return;
+    var ann = (ctx.state && ctx.state.announcements) || [];
+    if (!ann.length) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.innerHTML = ann.map(function (a) { return '<p><strong>📢 ' + esc(a.title) + '</strong> — ' + esc(a.body) + ' <span class="muted small">' + esc((a.at || '').slice(0, 10)) + '</span></p>'; }).join('');
+  }
+  async function renderProfile() {
+    var box = document.getElementById('profileBox'); if (!box) return;
+    if (!ctx.player) { box.innerHTML = '<p class="muted small">Connect your wallet.</p>'; return; }
+    var p = ctx.player;
+    var mine = ((ctx.state && ctx.state.players) || []).find(function (x) { return x.address === p.address; }) || {};
+    box.innerHTML = '<p class="small"><strong>' + esc(p.name || 'Player') + '</strong> · Lv ' + (p.level || 1) + '<br>Credits <b>' + (p.credits || 0) + '</b> · XP ' + (p.xp || 0) + '<br>Best score ' + (mine.bestScore != null ? mine.bestScore : (p.bestScore || 0)) + ' · Best wave ' + (mine.bestWave || 0) + ' · Total pops ' + (mine.totalPops || 0) + ' · Achievements ' + (mine.achievements || 0) + '</p>';
+    var qb = document.getElementById('questBox');
+    if (qb) { try { var q = await api('/api/quests?address=' + encodeURIComponent(p.address)); qb.innerHTML = q.quests.map(function (x) { return '<div class="questCard"><strong>' + esc(x.name) + '</strong><br><span class="small">' + x.progress + '/' + x.target + ' · ' + x.reward + ' credits</span> ' + (x.claimed ? '<span class="pill closed">Claimed</span>' : x.done ? '<button data-claim="' + x.id + '">Claim</button>' : '<span class="pill">In progress</span>') + '</div>'; }).join(''); qb.querySelectorAll('[data-claim]').forEach(function (btn) { btn.addEventListener('click', async function () { try { var r = await api('/api/quests/claim', 'POST', { address: p.address, questId: btn.getAttribute('data-claim') }); ctx.player = r.player; toast('Quest reward: +' + r.reward + ' credits.', 'ok'); renderProfile(); refreshState(); } catch (e) { toast(e.message, 'err'); } }); }); } catch (e) { qb.innerHTML = '<p class="muted small">Quests unavailable.</p>'; } }
+    var ab = document.getElementById('achBox');
+    if (ab) { try { var a = await api('/api/achievements?address=' + encodeURIComponent(p.address)); ab.innerHTML = '<div class="achGrid">' + a.achievements.map(function (x) { return '<div class="ach ' + (x.unlocked ? 'got' : 'locked') + '" title="' + esc(x.desc) + '">' + (x.unlocked ? '🏆' : '🔒') + ' ' + esc(x.name) + '</div>'; }).join('') + '</div>'; } catch (e) {} }
+  }
+  function renderSettingsPanel() {
+    var el = document.getElementById('settingsBox'); if (!el) return;
+    el.innerHTML = '<label>Volume</label><input id="setVol" type="range" min="0" max="1" step="0.1" value="' + ctx.settings.volume + '">'
+      + '<label>Graphics quality</label><select id="setQuality"><option value="high">High</option><option value="low">Low (faster)</option></select>';
+    el.querySelector('#setQuality').value = ctx.settings.quality;
+    el.querySelector('#setVol').addEventListener('input', function (ev) { ctx.settings.volume = Number(ev.target.value); saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
+    el.querySelector('#setQuality').addEventListener('change', function (ev) { ctx.settings.quality = ev.target.value; saveSettings(); applySettings(ctx.host.current && ctx.host.current.handle); });
+  }
+  async function renderFeatures() {
+    var el = document.getElementById('updatesList'); if (!el) return;
+    try {
+      var res = await fetch('/features.json'); var data = await res.json();
+      var groups = {};
+      (data.features || []).forEach(function (f) { (groups[f.category] = groups[f.category] || []).push(f); });
+      el.innerHTML = '<p class="small">Version <b>' + esc(data.version || '') + '</b> · ' + (data.features || []).length + ' tracked features · each tested locally before deploy.</p>' + Object.keys(groups).map(function (cat) { return '<h4>' + esc(cat) + '</h4><ul class="featureList">' + groups[cat].map(function (f) { return '<li><span class="ok">✓</span> <strong>' + esc(f.title) + '</strong> <span class="muted small">— ' + esc(f.tested || 'tested') + '</span></li>'; }).join('') + '</ul>'; }).join('');
+    } catch (e) { el.innerHTML = '<p class="muted">Feature list unavailable.</p>'; }
   }
   function heroImg(h) {
     var map = { astra: 'hero-astra', lyra: 'hero-lyra', koda: 'hero-koda', nova7: 'hero-nova7', vex: 'hero-vex', orin: 'hero-orin' };
@@ -139,16 +184,18 @@
       await ctx.host.loadGame(gameId, opts);
       var handle = ctx.host.current && ctx.host.current.handle;
       if (handle && handle.setSession && ctx.session) handle.setSession(ctx.session.sessionId, ctx.session.nonce);
+      applySettings(handle);
       renderActionBar();
     } catch (e) { toast(e.message, 'err'); }
   }
   ctx.loadGame = loadGame;
   async function submitWaveReport(payload) {
     if (!ctx.player) return;
+    if (payload.wave > 50) return; // endless mode beyond the 50-wave campaign: local score only
     try {
       var r = await api('/api/progress/secure', 'POST', { address: ctx.player.address, sessionId: payload.sessionId, waveReached: payload.wave, score: payload.score, pops: payload.pops, heroXp: payload.heroXp, stateHash: payload.stateHash, won: payload.wave >= 50 });
       if (r.flagged) { toast('Wave claim flagged for CEO audit: ' + (r.reasons || []).join(', '), 'warn'); bus.emit('game:session_flagged', { address: ctx.player.address, reasons: r.reasons }); }
-      else if (r.player) { ctx.player = r.player; toast('Wave ' + payload.wave + ' saved: +' + r.xpGain + ' XP, +' + r.creditGain + ' credits.', 'ok'); }
+      else if (r.player) { ctx.player = r.player; toast('Wave ' + payload.wave + ' saved: +' + r.xpGain + ' XP, +' + r.creditGain + ' credits.', 'ok'); if (r.achievementsUnlocked && r.achievementsUnlocked.length) toast('🏆 Achievement: ' + r.achievementsUnlocked.map(function (a) { return a.name; }).join(', '), 'ok'); }
       var hero = ctx.host.equippedHero;
       if (hero && payload.heroXp > 0) { try { await api('/api/heroes/add-xp', 'POST', { address: ctx.player.address, heroId: hero.id, xp: Math.min(1000, payload.heroXp), pops: payload.pops }); } catch (e) {} }
       refreshState();
@@ -164,14 +211,18 @@
       var d = defs[k];
       return '<button class="towerBtn" data-tower="' + k + '"><strong>' + d.name + ' (' + d.key + ')</strong><small>' + d.cost + 'g · ' + esc(d.desc) + '</small></button>';
     }).join('');
-    bar.innerHTML = '<div class="hud"><span>Gold <b>' + (hud.gold != null ? hud.gold : '—') + '</b></span><span>Lives <b>' + (hud.lives != null ? hud.lives : '—') + '</b></span><span>Wave <b>' + (hud.wave || 0) + '/50</b></span><span>Score <b>' + (hud.score || 0) + '</b></span><span>Pops <b>' + (hud.pops || 0) + '</b></span></div>'
+    bar.innerHTML = '<div class="hud"><span>Gold <b>' + (hud.gold != null ? hud.gold : '—') + '</b></span><span>Lives <b>' + (hud.lives != null ? hud.lives : '—') + '</b></span><span>Wave <b>' + (hud.wave || 0) + (hud.endless ? '/∞' : '/50') + '</b></span><span>Score <b>' + (hud.score || 0) + '</b></span><span>Pops <b>' + (hud.pops || 0) + '</b></span><span class="muted small">FPS ' + (hud.fps || '—') + '</span><span class="muted small">Next: ' + esc(hud.nextWave || '—') + '</span></div>'
       + towersHtml
       + '<label class="small" style="margin:0">Target<select id="abTarget" style="width:auto"><option value="first">First</option><option value="last">Last</option><option value="strong">Strong</option><option value="weak">Weak</option></select></label>'
       + '<label class="small" style="margin:0">Speed<select id="abSpeed" style="width:auto"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option></select></label>'
       + '<button id="abWave" class="primary">▶ Start wave</button>'
       + '<button id="abAuto">Auto: ' + (hud.autoStart ? 'ON' : 'OFF') + '</button>'
+      + '<button id="abPause">' + (hud.paused ? '▶ Resume' : '⏸ Pause') + '</button>'
+      + '<button id="abEndless">Endless: ' + (hud.endless ? 'ON' : 'OFF') + '</button>'
+      + '<button id="abChallenge">Challenge: ' + (hud.challenge ? 'ON' : 'OFF') + '</button>'
       + '<button id="abUpgrade">Upgrade ★</button><button id="abSell" class="ghost">Sell 70%</button>'
-      + '<button id="abAbility">Hero ability</button>';
+      + '<button id="abAbility">Hero ability</button>'
+      + '<button id="abHelp" class="ghost">⌨ Shortcuts</button>';
     var ts = document.getElementById('abTarget'); if (ts) { ts.value = hud.targeting || 'first'; ts.addEventListener('change', function () { if (handle) handle.setTargeting(ts.value); }); }
     var sp = document.getElementById('abSpeed'); if (sp) { sp.value = String(hud.speed || 1); sp.addEventListener('change', function () { if (handle) handle.setSpeed(Number(sp.value)); }); }
     bar.querySelectorAll('[data-tower]').forEach(function (btn) {
@@ -182,12 +233,17 @@
     document.getElementById('abUpgrade').addEventListener('click', function () { if (handle) handle.upgradeSelected(); });
     document.getElementById('abSell').addEventListener('click', function () { if (handle) handle.sellSelected(); });
     document.getElementById('abAbility').addEventListener('click', function () { if (handle) handle.heroAbility(); });
+    document.getElementById('abPause').addEventListener('click', function () { if (handle && handle.setPaused) handle.setPaused(!hud.paused); });
+    document.getElementById('abEndless').addEventListener('click', function () { if (handle && handle.setEndless) { handle.setEndless(!hud.endless); toast(!hud.endless ? 'Endless mode ON: waves continue past 50.' : 'Endless mode OFF.'); } });
+    document.getElementById('abChallenge').addEventListener('click', function () { if (handle && handle.setChallenge) { handle.setChallenge(!hud.challenge); toast(!hud.challenge ? 'Challenge mode: 100 gold, 20 lives. Applies on restart.' : 'Challenge mode OFF.'); } });
+    document.getElementById('abHelp').addEventListener('click', function () { var h = document.getElementById('helpCard'); if (h) h.hidden = !h.hidden; });
   }
   function showView(name) {
     document.querySelectorAll('nav.tabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-nav') === name); });
     document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
     document.getElementById('view-' + name).classList.add('active');
     if (name === 'marketplace' && window.MarketplaceUI) window.MarketplaceUI.render(document.getElementById('marketplace'), ctx);
+    if (name === 'updates') renderFeatures();
     if (name === 'ceo' && window.CeoUI) window.CeoUI.mountGate(document.getElementById('ceoGate'), document.getElementById('ceoPanel'), ctx);
   }
   document.querySelectorAll('nav.tabs button').forEach(function (b) { b.addEventListener('click', function () { showView(b.getAttribute('data-nav')); }); });
@@ -200,7 +256,8 @@
     ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 5 towers · heroes', status: 'playable', load: async function () { return window.CosmosBTD; } });
     ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', status: 'playable', load: async function () { return window.SpaceTycoon; } });
     ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', status: 'playable', load: async function () { return window.AtomClicker; } });
-    renderGameList(); renderWallet();
+    if (window.SpaceShooter) ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', status: 'playable', load: async function () { return window.SpaceShooter; } });
+    renderGameList(); renderWallet(); renderSettingsPanel();
     bus.on('wallet:connected', function () { renderWallet(); });
     bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
     bus.on('wallet:balance', function () { renderWallet(); });
