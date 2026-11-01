@@ -9,7 +9,61 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const ADMIN_KEY = process.env.ADMIN_KEY || 'change-me-dev-only-use-a-long-random-key';
+const ADMIN_KEY = process.env.ADMIN_KEY || '';
+// CEO auth: Keplr signArbitrary (ADR-36), like Swap — you sign, nothing moves
+// without your keys. No ADMIN_KEY is required in the UI. If ADMIN_KEY is set
+// in the environment it is kept only as an emergency fallback for admin calls.
+const CEO_SESSION_TTL_MS = 5 * 60 * 1000;
+// --- ADR-36 / secp256k1 verification (zero dependencies, Node crypto) ---
+const SECP_P = (1n << 256n) - (1n << 32n) - 977n;
+function modPow(base, exp, mod) { let r = 1n; base %= mod; while (exp > 0n) { if (exp & 1n) r = (r * base) % mod; base = (base * base) % mod; exp >>= 1n; } return r; }
+function bytesToBigInt(bytes) { return BigInt('0x' + Buffer.from(bytes).toString('hex')); }
+function bigIntToBytes(n, len) { let h = n.toString(16).padStart(len * 2, '0'); return Buffer.from(h, 'hex'); }
+function decompressPubkey(pub) {
+  if (pub.length !== 33 || (pub[0] !== 0x02 && pub[0] !== 0x03)) throw new Error('bad pubkey');
+  const x = bytesToBigInt(pub.slice(1));
+  const y2 = (modPow(x, 3n, SECP_P) + 7n) % SECP_P;
+  let y = modPow(y2, (SECP_P + 1n) / 4n, SECP_P);
+  if ((y % 2n === 0n) !== (pub[0] === 0x02)) y = SECP_P - y;
+  if ((y * y) % SECP_P !== y2) throw new Error('bad pubkey point');
+  return { x: bigIntToBytes(x, 32), y: bigIntToBytes(y, 32) };
+}
+const BECH32 = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+function bech32Polymod(values) { const GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]; let chk = 1; for (const v of values) { const b = chk >> 25; chk = ((chk & 0x1ffffff) << 5) ^ v; for (let i = 0; i < 5; i++) if ((b >> i) & 1) chk ^= GEN[i]; } return chk; }
+function bech32HrpExpand(hrp) { const r = []; for (const c of hrp) r.push(c.charCodeAt(0) >> 5); r.push(0); for (const c of hrp) r.push(c.charCodeAt(0) & 31); return r; }
+function convertBits(data, from, to, pad) { let acc = 0, bits = 0; const out = [], maxv = (1 << to) - 1; for (const v of data) { acc = (acc << from) | v; bits += from; while (bits >= to) { bits -= to; out.push((acc >> bits) & maxv); } } if (pad) { if (bits) out.push((acc << (to - bits)) & maxv); } else if (bits >= from || ((acc << (to - bits)) & maxv)) return null; return out; }
+function bech32Encode(hrp, data5) { const values = bech32HrpExpand(hrp).concat(data5); const pm = bech32Polymod(values.concat([0, 0, 0, 0, 0, 0])) ^ 1; const chk = []; for (let i = 0; i < 6; i++) chk.push((pm >> (5 * (5 - i))) & 31); return hrp + '1' + data5.concat(chk).map(i => BECH32[i]).join(''); }
+function addressFromPubkey(pub) { const h1 = crypto.createHash('sha256').update(pub).digest(); const h2 = crypto.createHash('ripemd160').update(h1).digest(); const d5 = convertBits([...h2], 8, 5, true); return bech32Encode('cosmos', d5); }
+function canonicalJson(v) { if (v === null || typeof v !== 'object') return JSON.stringify(v); if (Array.isArray(v)) return '[' + v.map(canonicalJson).join(',') + ']'; return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canonicalJson(v[k])).join(',') + '}'; }
+function rawSigToDer(raw) { if (raw.length !== 64) throw new Error('bad signature length'); const r = raw.slice(0, 32), s = raw.slice(32); const strip = b => { let i = 0; while (i < b.length - 1 && b[i] === 0) i++; return b.slice(i); }; const enc = b => { let x = strip(b); if (x[0] & 0x80) x = Buffer.concat([Buffer.from([0]), x]); return Buffer.concat([Buffer.from([0x02, x.length]), x]); }; const rb = enc(r), sb = enc(s); return Buffer.concat([Buffer.from([0x30, rb.length + sb.length]), rb, sb]); }
+// Verify a Keplr signArbitrary (ADR-36) signature over `message` (plain text).
+// Returns true only if the pubkey derives to `address` and the signature
+// verifies over the ADR-36 amino doc for that message.
+function verifyAdr36(address, message, signatureB64, pubkeyB64) {
+  try {
+    const pub = Buffer.from(pubkeyB64, 'base64'); const sig = Buffer.from(signatureB64, 'base64');
+    if (addressFromPubkey(pub) !== address) return false;
+    const { x, y } = decompressPubkey(pub);
+    const key = crypto.createPublicKey({ key: { kty: 'EC', crv: 'secp256k1', x: x.toString('base64url'), y: y.toString('base64url') }, format: 'jwk' });
+    const doc = { chain_id: '', account_number: '0', sequence: '0', fee: { gas: '0', amount: [] }, memo: '', msgs: [{ type: 'sign/MsgSignData', value: { signer: address, data: Buffer.from(message, 'utf8').toString('base64') } }] };
+    const hash = crypto.createHash('sha256').update(canonicalJson(doc), 'utf8').digest();
+    return crypto.verify(null, hash, key, rawSigToDer(sig));
+  } catch { return false; }
+}
+// A CEO admin request must carry a fresh ADR-36 signature over
+// "<path>\n<canonical body>\n<timestamp>". Timestamp must be within 5 min,
+// so an old signature cannot be replayed forever, and the signature binds
+// the exact action — like Swap, you sign every trade, here every CEO action.
+function isCeoRequest(req, bodyForMessage) {
+  if (ADMIN_KEY && req.headers['x-admin-key'] === ADMIN_KEY) return true;
+  const address = req.headers['x-ceo-address'], sig = req.headers['x-ceo-signature'], pub = req.headers['x-ceo-pubkey'], ts = Number(req.headers['x-ceo-timestamp']);
+  if (!address || !sig || !pub || !isFinite(ts)) return false;
+  if (address !== CEO_ADDRESS) return false;
+  if (Math.abs(Date.now() - ts) > CEO_SESSION_TTL_MS) return false;
+  const u = new URL(req.url, 'http://x');
+  const message = u.pathname + '\n' + canonicalJson(bodyForMessage || {}) + '\n' + String(ts);
+  return verifyAdr36(address, message, sig, pub);
+}
 const MODE = (process.env.MODE || 'demo').toLowerCase();
 const EXPLORER = process.env.EXPLORER_TX_URL || 'https://www.mintscan.io/cosmos/txs/';
 const CHAIN_ID = process.env.CHAIN_ID || 'cosmoshub-4';
@@ -55,10 +109,11 @@ async function handle(req, res) {
   if (req.method === 'POST' && p === '/api/buy') { const b = await readBody(req); const listing = db.listings.find(l=>l.id===b.listingId); if (!listing || listing.status !== 'active') return send(res, 400, { error: 'Listing not active' }); if (!isAddress(b.buyerAddress)) return send(res, 400, { error: 'Buyer Cosmos address required (connected wallet).' }); if (b.buyerAddress === listing.sellerAddress) return send(res, 400, { error: 'Buyer and seller addresses are the same.' }); if (!isTxid(b.txid) || !isTxid(b.txidFee)) return send(res, 400, { error: 'Two TXIDs required: seller send + CEO fee send, each 64 hex characters.' }); const tx = b.txid.toLowerCase(), txF = b.txidFee.toLowerCase(); if (tx === txF) return send(res, 400, { error: 'Seller TXID and fee TXID must be different sends.' }); if (db.usedTxids.includes(tx) || db.usedTxids.includes(txF)) return send(res, 400, { error: 'A TXID was already used for another sale.' }); if (Number(b.amountAtom) !== Number(listing.sellerAmount) || Number(b.feeAmount) !== Number(listing.ceoFee)) return send(res, 400, { error: 'Amounts must match exactly: seller '+listing.sellerAmount+' ATOM + CEO fee '+listing.ceoFee+' ATOM = '+listing.priceAtom+' ATOM total.' }); if (String(b.memo||'').trim() !== listing.id) return send(res, 400, { error: 'Memo must be exactly the listing ID: '+listing.id }); const sale = { id: uid('sale'), listingId: listing.id, heroId: listing.heroId, heroName: listing.heroName, priceAtom: listing.priceAtom, sellerAmount: listing.sellerAmount, ceoFee: listing.ceoFee, feePercent: listing.feePercent, sellerAddress: listing.sellerAddress, ceoAddress: listing.ceoAddress, buyerAddress: b.buyerAddress, txid: tx, txidFee: txF, amountAtom: Number(b.amountAtom), feeAmount: Number(b.feeAmount), memo: listing.id, status: 'pending', explorerUrl: EXPLORER + tx, explorerFeeUrl: EXPLORER + txF, createdAt: new Date().toISOString() }; listing.status = 'reserved'; db.sales.push(sale); db.usedTxids.push(tx, txF); save(db); return send(res, 200, { sale, note: 'Pending admin check of BOTH sends. No hero moved yet.' }); }
   if (req.method === 'POST' && p === '/api/duels') { const b = await readBody(req); if (!db.players[b.challengerAddress] || !db.players[b.rivalAddress]) return send(res, 400, { error: 'Both players must connect wallet first.' }); if (b.challengerAddress===b.rivalAddress) return send(res, 400, { error: 'Cannot duel yourself.' }); const duel = { id: uid('duel'), challenger: b.challengerAddress, rival: b.rivalAddress, rivalBest: db.players[b.rivalAddress].bestScore||0, status: 'pending', createdAt: new Date().toISOString() }; db.duels.push(duel); save(db); return send(res, 200, { duel }); }
   if (req.method === 'POST' && p === '/api/duels/result') { const b = await readBody(req); const duel = db.duels.find(d=>d.id===b.duelId); if (!duel || duel.status!=='pending') return send(res, 400, { error: 'Duel not pending' }); if (duel.challenger!==b.address) return send(res, 403, { error: 'Only the challenger submits the result.' }); const score = Math.max(0, Math.min(100000, Number(b.score)||0)); const won = score > duel.rivalBest; duel.status = won?'challenger_won':'challenger_lost'; duel.score=score; duel.decidedAt=new Date().toISOString(); const pl=db.players[b.address]; pl.gamesPlayed=(pl.gamesPlayed||0)+1; if (score>(pl.bestScore||0)) pl.bestScore=score; if (won){ pl.wins=(pl.wins||0)+1; pl.credits=(pl.credits||0)+150; pl.xp=(pl.xp||0)+100; } else { pl.losses=(pl.losses||0)+1; pl.xp=(pl.xp||0)+20; } save(db); return send(res, 200, { duel, won, rivalBest: duel.rivalBest }); }
-  if (p === '/api/admin/pending') { if (req.headers['x-admin-key'] !== ADMIN_KEY) return send(res, 401, { error: 'Admin key required' }); return send(res, 200, { sales: db.sales.filter(s=>s.status==='pending'), feePercent: FEE_PERCENT, ceoAddress: CEO_ADDRESS }); }
+  if (p === '/api/admin/pending') { if (!isCeoRequest(req, {})) return send(res, 401, { error: 'CEO wallet signature required: connect Keplr with the CEO address and sign.' }); return send(res, 200, { sales: db.sales.filter(s=>s.status==='pending'), feePercent: FEE_PERCENT, ceoAddress: CEO_ADDRESS }); }
   if (req.method === 'POST' && (p === '/api/admin/approve' || p === '/api/admin/reject')) {
-    if (req.headers['x-admin-key'] !== ADMIN_KEY) return send(res, 401, { error: 'Admin key required' });
-    const b = await readBody(req); const sale = db.sales.find(s=>s.id===b.saleId); if (!sale || sale.status !== 'pending') return send(res, 400, { error: 'Sale not pending' });
+    const b = await readBody(req);
+    if (!isCeoRequest(req, b)) return send(res, 401, { error: 'CEO wallet signature required: connect Keplr with the CEO address and sign.' });
+    const sale = db.sales.find(s=>s.id===b.saleId); if (!sale || sale.status !== 'pending') return send(res, 400, { error: 'Sale not pending' });
     const listing = db.listings.find(l=>l.id===sale.listingId); const hero = db.heroes.find(h=>h.id===sale.heroId);
     if (p === '/api/admin/approve') { if (!b.checkedAmount || !b.checkedFee || !b.checkedRecipient || !b.checkedCeo || !b.checkedMemo || !b.checkedExplorer) return send(res, 400, { error: 'Admin must tick all 6 checks: seller amount, CEO fee, seller recipient, CEO recipient, memo, explorer.' }); if (!hero) return send(res, 400, { error: 'Hero missing' }); hero.owner = sale.buyerAddress; sale.status = 'approved'; sale.decidedAt = new Date().toISOString(); if (listing) listing.status = 'closed'; save(db); return send(res, 200, { sale, hero }); }
     sale.status = 'rejected'; sale.reason = String(b.reason||'Rejected by admin').slice(0,200); sale.decidedAt = new Date().toISOString(); if (listing) listing.status = 'active'; save(db); return send(res, 200, { sale });
@@ -72,3 +127,5 @@ const server = http.createServer(handle);
 if (require.main === module) { server.listen(PORT, () => console.log('GAME / Defend ATOM listening on ' + PORT + ' mode=' + MODE + ' chain=' + CHAIN_ID + ' fee=' + FEE_PERCENT + '%')); }
 module.exports = handle;
 module.exports.default = handle;
+module.exports.verifyAdr36 = verifyAdr36;
+module.exports.addressFromPubkey = addressFromPubkey;
