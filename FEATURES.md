@@ -4,6 +4,14 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.10.0 — 2026-11-01 — 4 features (95 total)
+
+| Area | Features |
+|---|---|
+| Platform & social (4) | Friend challenges (duel invites with accept/decline + async results), Seasonal ladder (monthly bests, This month toggle, last-month top 3 + trophy badges), Share card (PNG snapshot of the run canvas + stats banner), Referral code in profile (counted once, no payouts) |
+
+Honest limits: season bests are recorded only from this version on (no backfill of earlier scores); the share card needs an untainted same-origin canvas or it only shows a toast; the Challenges / season-toggle / referral shell UI is code-reviewed only (no browser/DOM harness).
+
 ## v3.9.0 — 2026-11-01 — 5 features (91 total)
 
 | Area | Features |
