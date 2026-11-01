@@ -13,6 +13,7 @@
   <nav class="tabs" aria-label="Main">
     <button data-nav="games" class="active">🎮 Games</button>
     <button data-nav="marketplace">🛒 Marketplace</button>
+    <button data-nav="updates">🆕 Updates</button>
     <button data-nav="ceo">👑 CEO Panel</button>
   </nav>
   <div class="wallet" id="walletWidget">
@@ -24,6 +25,8 @@
   </div>
 </header>
 
+<div id="announceBar" class="banner" hidden></div>
+
 <div class="layout">
   <aside class="sidebar">
     <h3>Games</h3>
@@ -33,6 +36,14 @@
     <div id="heroActions"></div>
     <h3>Leaderboard</h3>
     <div id="leaderMini"></div>
+    <h3>Profile</h3>
+    <div id="profileBox"><p class="muted small">Connect your wallet.</p></div>
+    <h3>Daily Quests</h3>
+    <div id="questBox"></div>
+    <h3>Achievements</h3>
+    <div id="achBox"></div>
+    <h3>Settings</h3>
+    <div id="settingsBox"></div>
     <h3>Links</h3>
     <p class="small"><a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a></p>
     <p class="small muted">Real wallet sends only. No contracts. Buyer sends full price to the CEO address; CEO moves the item, then sends the seller their cut after the fee. Always check the address and memo in your wallet before signing. Test with a tiny amount first.</p>
@@ -42,11 +53,19 @@
     <section class="view active" id="view-games">
       <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>
       <div class="actionbar" id="actionBar"></div>
+      <div class="card" id="helpCard" hidden style="margin-top:12px">
+        <h3>Shortcuts</h3>
+        <p class="small"><b>1–7</b> pick tower · <b>Space</b> start wave · <b>P</b> pause · <b>R</b> restart · <b>Esc</b> cancel placement · <b>Click</b> place / select tower · <b>Touch</b> works on mobile.</p>
+      </div>
       <div class="card" style="margin-top:12px">
         <h3>How to play — Cosmos BTD</h3>
-        <p class="small">Click a tower, then click the board to place it (not on the path). Press <b>1–5</b> to pick towers, <b>Space</b> to start a wave, <b>R</b> to restart. Place your equipped hero by clicking the board. 50 waves — boss every 10. Speed 1x–3x, auto-start, and targeting (First / Last / Strong / Weak) are in the bar above.</p>
+        <p class="small">Click a tower, then click the board to place it (not on the path). Press <b>1–7</b> to pick towers, <b>Space</b> to start a wave, <b>P</b> to pause, <b>R</b> to restart. Place your equipped hero by clicking the board. 50 waves + endless mode — boss every 10. Speed 1x–3x, auto-start, and targeting (First / Last / Strong / Weak) are in the bar above.</p>
         <p class="small muted">Wave reports are hashed and checked server-side (session hash + XP caps). Cheated claims get flagged for CEO audit and earn nothing.</p>
       </div>
+    </section>
+
+    <section class="view" id="view-updates">
+      <div class="card"><h3>What's New — Feature Tracker</h3><div id="updatesList"><p class="muted">Loading…</p></div></div>
     </section>
 
     <section class="view" id="view-marketplace">
@@ -74,6 +93,7 @@
 <script src="games/cosmos-btd/btd.js"></script>
 <script src="games/space-tycoon/tycoon.js"></script>
 <script src="games/atom-clicker/clicker.js"></script>
+<script src="games/space-shooter/shooter.js"></script>
 <script src="engine/marketplace-ui.js"></script>
 <script src="engine/ceo-ui.js"></script>
 <script src="engine/shell.js"></script>
