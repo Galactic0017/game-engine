@@ -1,1 +1,9 @@
-{"canvas":true,"description":"Arcade space shooter: dodge asteroids, blast drones, survive the waves.", "image": "assets/sprites/monster-1.png","entry":"shooter.js","id":"space-shooter","name":"Space Shooter","version":"1.1.0"}
+{
+ "canvas": true,
+ "description": "Arcade space shooter: dodge asteroids, blast drones, survive the waves.",
+ "image": "assets/sprites/monster-1.png",
+ "entry": "shooter.js",
+ "id": "space-shooter",
+ "name": "Space Shooter",
+ "version": "1.2.0"
+}
