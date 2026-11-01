@@ -4,79 +4,79 @@
    "category": "Cosmos BTD",
    "id": "tesla-tower",
    "tested": "harness: placed and fired in live waves; chain code reviewed",
-   "title": "Tesla Coil tower \u2014 chain lightning hits 3 targets, sees camo"
+   "title": "Tesla Coil tower — chain lightning hits 3 targets, sees camo"
   },
   {
    "category": "Cosmos BTD",
    "id": "spike-factory",
    "tested": "harness: 10 live piles spawned in waves",
-   "title": "Spike Factory tower \u2014 drops contact spike piles (8s, 3 pops each)"
+   "title": "Spike Factory tower — drops contact spike piles (8s, 3 pops each)"
   },
   {
    "category": "Cosmos BTD",
    "id": "camo-enemies",
    "tested": "harness: Camo in wave-8 preview; targeting filter code-reviewed",
-   "title": "Camo balloons \u2014 only Sniper, Tesla and hero can target them"
+   "title": "Camo balloons — only Sniper, Tesla and hero can target them"
   },
   {
    "category": "Cosmos BTD",
    "id": "fortified-enemies",
    "tested": "composition from wave 14; damage rule code-reviewed",
-   "title": "Fortified balloons \u2014 half damage except cannon/mortar splash"
+   "title": "Fortified balloons — half damage except cannon/mortar splash"
   },
   {
    "category": "Cosmos BTD",
    "id": "regen-enemies",
    "tested": "composition from wave 10; regrow logic code-reviewed",
-   "title": "Regen balloons \u2014 regrow 1 layer every 2s up to max"
+   "title": "Regen balloons — regrow 1 layer every 2s up to max"
   },
   {
    "category": "Cosmos BTD",
    "id": "endless-mode",
    "tested": "flag + wave-51 guard code-reviewed; full 50-wave run not harness-tested",
-   "title": "Endless mode \u2014 waves continue past 50 with scaling"
+   "title": "Endless mode — waves continue past 50 with scaling"
   },
   {
    "category": "Cosmos BTD",
    "id": "pause",
    "tested": "harness: setPaused freezes updates",
-   "title": "Pause \u2014 P key + Pause/Resume button, overlay shown"
+   "title": "Pause — P key + Pause/Resume button, overlay shown"
   },
   {
    "category": "Cosmos BTD",
    "id": "hero-leveling",
    "tested": "code-reviewed; needs browser play with equipped hero",
-   "title": "Hero levels up inside a run \u2014 100 hero XP = +1 level"
+   "title": "Hero levels up inside a run — 100 hero XP = +1 level"
   },
   {
    "category": "Cosmos BTD",
    "id": "sprite-rendering",
    "tested": "alpha check + harness fallback (no Image in VM)",
-   "title": "Real image sprites \u2014 battlefield photo, monster/tower/hero art with procedural fallback"
+   "title": "Real image sprites — battlefield photo, monster/tower/hero art with procedural fallback"
   },
   {
    "category": "Cosmos BTD",
    "id": "damage-numbers",
    "tested": "code-reviewed; floater cap 24",
-   "title": "Damage numbers \u2014 floating text for hits of 3+ damage"
+   "title": "Damage numbers — floating text for hits of 3+ damage"
   },
   {
    "category": "Cosmos BTD",
    "id": "max-upgrade",
    "tested": "harness: upgrade to 5, maxed flag",
-   "title": "Tower level 5 MAX upgrade \u2014 +2 dmg, +15 range, gold ring"
+   "title": "Tower level 5 MAX upgrade — +2 dmg, +15 range, gold ring"
   },
   {
    "category": "Cosmos BTD",
    "id": "wave-interest",
    "tested": "code-reviewed; wave-clear bonus formula",
-   "title": "Wave-clear interest \u2014 +5% of gold (max +50) every wave"
+   "title": "Wave-clear interest — +5% of gold (max +50) every wave"
   },
   {
    "category": "Cosmos BTD",
    "id": "touch-support",
    "tested": "touchstart listener registered + removed on destroy in harness",
-   "title": "Touch support \u2014 tap to place/select on mobile"
+   "title": "Touch support — tap to place/select on mobile"
   },
   {
    "category": "Cosmos BTD",
@@ -88,67 +88,67 @@
    "category": "Cosmos BTD",
    "id": "boss-shield",
    "tested": "logic guard code-reviewed; wave 30 not reached in harness",
-   "title": "Boss shield \u2014 bosses from wave 30 are immune for 5s, shield ring shown"
+   "title": "Boss shield — bosses from wave 30 are immune for 5s, shield ring shown"
   },
   {
    "category": "Cosmos BTD",
    "id": "challenge-mode",
    "tested": "toggle callable without errors; start values apply pre-wave (code-reviewed)",
-   "title": "Challenge mode \u2014 start with 100 gold, 20 lives"
+   "title": "Challenge mode — start with 100 gold, 20 lives"
   },
   {
    "category": "Platform",
    "id": "daily-quests",
    "tested": "server test: progress + claim + double-claim rejected",
-   "title": "Daily quests \u2014 pop 150, clear wave 10, win a duel; claim credit rewards"
+   "title": "Daily quests — pop 150, clear wave 10, win a duel; claim credit rewards"
   },
   {
    "category": "Platform",
    "id": "achievements",
    "tested": "server test: first-wave + wave-10 unlock",
-   "title": "12 achievements \u2014 waves, pops, duels, trading, levels; credit rewards on unlock"
+   "title": "12 achievements — waves, pops, duels, trading, levels; credit rewards on unlock"
   },
   {
    "category": "Platform",
    "id": "announcements",
    "tested": "server test: announce endpoint stores + serves",
-   "title": "CEO announcements \u2014 banner at the top of the hub, post from CEO panel"
+   "title": "CEO announcements — banner at the top of the hub, post from CEO panel"
   },
   {
    "category": "Platform",
    "id": "player-stats",
    "tested": "server test: secure progress updates stats",
-   "title": "Player stats \u2014 best wave, total pops, total waves, per-game bests"
+   "title": "Player stats — best wave, total pops, total waves, per-game bests"
   },
   {
    "category": "Platform",
    "id": "per-game-leaderboard",
    "tested": "server test: ?game=cosmos-btd sorts by BTD best",
-   "title": "Leaderboard per game \u2014 All / BTD tabs in the sidebar"
+   "title": "Leaderboard per game — All / BTD tabs in the sidebar"
   },
   {
    "category": "Platform",
    "id": "health-endpoint",
    "tested": "server test: 200 + version",
-   "title": "Health endpoint \u2014 GET /api/health for the auto-check loop"
+   "title": "Health endpoint — GET /api/health for the auto-check loop"
   },
   {
    "category": "Platform",
    "id": "version-3",
    "tested": "server test: config version field",
-   "title": "Version 3.0.0 reported in /api/config"
+   "title": "Version reported in /api/config (currently 3.1.0)"
   },
   {
    "category": "Games",
    "id": "space-shooter",
    "tested": "subagent harness: move, fire, pause, game over, restart, destroy all passed",
-   "title": "Space Shooter \u2014 4th playable game (asteroids + drones)"
+   "title": "Space Shooter — 4th playable game (asteroids + drones)"
   },
   {
    "category": "Hub UI",
    "id": "updates-tracker",
    "tested": "served 200, JSON valid",
-   "title": "What's New panel \u2014 every tracked feature listed with its test status"
+   "title": "What's New panel — every tracked feature listed with its test status"
   },
   {
    "category": "Hub UI",
@@ -166,46 +166,112 @@
    "category": "Hub UI",
    "id": "settings-panel",
    "tested": "syntax + serve check",
-   "title": "Settings panel \u2014 volume slider + graphics quality, saved in browser"
+   "title": "Settings panel — volume slider + graphics quality, saved in browser"
   },
   {
    "category": "Hub UI",
    "id": "profile-panel",
    "tested": "syntax + serve check",
-   "title": "Profile panel \u2014 level, credits, XP, best score/wave, pops, achievements count"
+   "title": "Profile panel — level, credits, XP, best score/wave, pops, achievements count"
   },
   {
    "category": "Hub UI",
    "id": "quest-ui",
    "tested": "syntax + serve check",
-   "title": "Daily quests UI \u2014 progress bars + Claim buttons in the sidebar"
+   "title": "Daily quests UI — progress bars + Claim buttons in the sidebar"
   },
   {
    "category": "Hub UI",
    "id": "achievements-ui",
    "tested": "syntax + serve check",
-   "title": "Achievements grid \u2014 unlocked/locked badges with descriptions"
+   "title": "Achievements grid — unlocked/locked badges with descriptions"
   },
   {
    "category": "Hub UI",
    "id": "action-bar-controls",
    "tested": "syntax + serve check",
-   "title": "Action bar \u2014 Pause, Endless, Challenge, Shortcuts buttons + FPS + next-wave preview"
+   "title": "Action bar — Pause, Endless, Challenge, Shortcuts buttons + FPS + next-wave preview"
   },
   {
    "category": "CEO Panel",
    "id": "ceo-announce-tab",
    "tested": "syntax + serve check",
-   "title": "CEO panel Announce tab \u2014 post banner announcements (ADR-36 signed)"
+   "title": "CEO panel Announce tab — post banner announcements (ADR-36 signed)"
   },
   {
    "category": "Operations",
    "id": "auto-improve-loop",
    "tested": "cron game-auto-improve created 2026-11-01, first run ~14:19 EST",
-   "title": "Auto-improve loop \u2014 every 10 minutes: health check, next backlog batch, test, push, auto-deploy"
+   "title": "Auto-improve loop — every 10 minutes: health check, next backlog batch, test, push, auto-deploy"
+  },
+  {
+   "category": "Engine Visuals",
+   "id": "bloom-glow-pass",
+   "tested": "BTD harness 27/27 incl. postfx/dof toggle drive, no crash",
+   "title": "Bloom & glow pass — beams, lights and shockwave rings bleed through a half-res glow buffer composited with 'lighter'"
+  },
+  {
+   "category": "Engine Visuals",
+   "id": "dynamic-lighting",
+   "tested": "BTD harness 27/27 incl. postfx/dof toggle drive, no crash",
+   "title": "Dynamic 2D lighting — darkness overlay with light holes punched at muzzle flashes, explosions, tesla arcs and the hero aura"
+  },
+  {
+   "category": "Engine Visuals",
+   "id": "vignette-danger-pulse",
+   "tested": "BTD harness 27/27; danger pulse code-reviewed (lives<=20 state not harness-driven)",
+   "title": "Vignette + red danger pulse when lives drop to 20 or below"
+  },
+  {
+   "category": "Engine Visuals",
+   "id": "tilt-shift-dof",
+   "tested": "BTD harness 27/27 incl. dof toggle drive, no crash; visual quality not browser-verified",
+   "title": "Tilt-shift depth bands — top/bottom of the frame drawn from a blurred downscaled copy, with fade blends"
+  },
+  {
+   "category": "Engine Visuals",
+   "id": "water-shader",
+   "tested": "BTD harness 27/27 incl. postfx drive, no crash; visual quality not browser-verified",
+   "title": "Procedural water shader — animated sine shimmer, moving sun gleam and scrolling foam ring on the pond"
+  },
+  {
+   "category": "Engine Visuals",
+   "id": "particle-engine",
+   "tested": "BTD harness 27/27: every particle carries a kind",
+   "title": "Particle engine — pooled spark/smoke/ring/splash kinds with gravity, drag and wind vectors"
+  },
+  {
+   "category": "Engine Visuals",
+   "id": "contextual-shake",
+   "tested": "BTD harness 27/27",
+   "title": "Contextual screen shake — cannon 4, mortar impact 6, leak 8, boss death 7 via addShake()"
+  },
+  {
+   "category": "Engine Core",
+   "id": "ecs-architecture",
+   "tested": "BTD harness 27/27: ECS entities + component tables asserted live",
+   "title": "ECS architecture — entities with component tables (position/health/path/combat/render/lifetime) and Movement/Combat/Projectile/Fx/Spike systems"
+  },
+  {
+   "category": "Engine Core",
+   "id": "fixed-timestep",
+   "tested": "BTD harness 27/27: accumulator + render alpha asserted; 345 pops over 8 waves at 3x speed",
+   "title": "Deterministic fixed 60Hz timestep with accumulator + render interpolation for 60/120/144Hz screens"
+  },
+  {
+   "category": "Engine Core",
+   "id": "asset-manager",
+   "tested": "syntax + serve check; loadSprites replaced by queue with pre-decode + 1 retry (no browser test)",
+   "title": "Asset pipeline manager — central load queue, img.decode() pre-decode, one retry, loaded/failed counts"
+  },
+  {
+   "category": "Engine Core",
+   "id": "grid-stats",
+   "tested": "BTD harness 27/27: 12800 grid queries across 4 cells asserted",
+   "title": "Spatial hash stats — grid cell/query counts in HUD for the future debug overlay"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.0.0"
+ "version": "3.1.0"
 }
