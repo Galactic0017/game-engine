@@ -106,6 +106,33 @@ payout sent, order closes.
 - Live serve check: `/`, `/api/config`, `/api/state`, hub CSS/JS and
   game files all return 200; config shows the real CEO address.
 
+## v3.4.0 — 2026-11-01 (9 more, 63 tracked features)
+
+Track 3 items 141–150 (mega-list), gaps only — branching trees (143)
+and hero commander patrol (144) were already delivered by Batch 6
+(Pillar 4, v3.3.0) and are not double-counted here: multi-lane fork
+path (every 3rd balloon takes a branch lane, rejoins at 85%),
+Closest/Elite targeting, status effects (burn/poison/stun/shred),
+Synergy Beacon tower, boss phase shields + minions, logarithmic
+endless scaling past wave 50, hero radial cooldown ring, FCT physics
+arcs + crit rolls, action-bar branch/patrol controls. Tests: server
+25/25, BTD 86/86, shooter pass.
+
+## v3.3.0 — 2026-11-01 (4 more, 54 tracked features)
+
+Pillar 4: branching tower upgrade trees (Rapid Fire / Heavy Impact,
+3 points, locked path, Lv4 Evolved / Lv5 Ascended), hero commander
+(patrol, +3 XP/kill, ability tiers, weapon/charm gear), hazard zones
+with lateral detours + wave-variant routing, storm/blizzard weather.
+Tests: server 25/25, BTD 59/59, shooter pass.
+
+## v3.2.0 — 2026-11-01 (5 more, 50 tracked features)
+
+Pillar 3: glassmorphism theme engine, floating combat text,
+inspection stat cards, settings (FPS target, particle density,
+motion blur, HiDPI display scale), ECS-table iteration. Tests:
+server 25/25, BTD 34/34, shooter pass.
+
 ## v3.1.0 — 2026-11-01 (11 more, 45 tracked features)
 
 Pillars 1+2: bloom glow pass, dynamic 2D lighting, vignette + danger
