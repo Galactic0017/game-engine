@@ -9,8 +9,14 @@
  * once to an offscreen canvas. The ship moves with Arrow keys / WASD,
  * aims at the mouse, and auto-fires while the mouse or Space is held.
  * Asteroids drift down and split when shot; enemy drones weave and shoot
- * back. Waves get harder; clearing a wave pays a bonus. The equipped
- * hero (if any) boosts fire rate slightly and is otherwise cosmetic.
+ * back. Waves get harder; clearing a wave pays a bonus. Drones drop
+ * power-ups (shield / rapid fire / spread shot / extra life). Every 5th
+ * wave is a boss-drone wave with a health bar. Kills without taking a
+ * hit build a combo multiplier (up to x3). Touch devices get a virtual
+ * joystick (left half) + fire button (right half) drawn on the canvas.
+ * The equipped hero (if any) boosts fire rate slightly and is otherwise
+ * cosmetic. On game over the module emits game:ended with final:true so
+ * the shell can record the score on the server shooter leaderboard.
  *
  * This module never talks to a wallet, a server, or the DOM outside its
  * viewport. All cross-module communication goes through the event bus
@@ -103,11 +109,14 @@
       ship: { x: W / 2, y: H - 70, vx: 0, vy: 0, angle: -Math.PI / 2, r: 16, invuln: 0, thrust: 0 },
       keys: {}, mouse: { x: W / 2, y: H / 2, down: false },
       firing: false, fireCd: 0,
-      bullets: [], bolts: [], asteroids: [], drones: [], powerups: [],
+      bullets: [], bolts: [], asteroids: [], drones: [], bosses: [], powerups: [],
       particles: [], floaters: [], stars: [],
       spawnQueue: [], spawnTimer: 0, betweenWaves: false, waveTimer: 0,
       score: 0, wave: 0, lives: 3, shotsFired: 0, kills: 0,
-      gameOver: false, shake: 0, rapidUntil: 0,
+      gameOver: false, shake: 0, rapidUntil: 0, spreadUntil: 0, shield: false,
+      combo: 0, comboMult: 1, bestCombo: 0,
+      powerupCounts: { shield: 0, rapid: 0, spread: 0, life: 0 },
+      touch: { joyId: null, fireId: null, joyOX: 0, joyOY: 0, dx: 0, dy: 0, seen: false },
       hero: null, sessionId: null, sessionNonce: null,
       audio: makeAudio()
     };
@@ -125,6 +134,33 @@
     if (st.time < st.rapidUntil) base = 0.08;
     if (st.hero) base *= 0.85;
     return base;
+  }
+  /* Combo: +1 per bullet kill; every 5 combo adds +0.5x, capped at x3.
+   * A real hit (life lost) resets it; a shield block preserves it. */
+  function comboMultiplier(combo) { return 1 + Math.min(4, Math.floor(combo / 5)) * 0.5; }
+  function addKillScore(st, base, counted, x, y) {
+    var gain = base;
+    if (counted) {
+      st.combo++;
+      st.bestCombo = Math.max(st.bestCombo, st.combo);
+      st.comboMult = comboMultiplier(st.combo);
+      gain = Math.round(base * st.comboMult);
+    }
+    st.score += gain;
+    floater(st, x, y, '+' + gain + (counted && st.comboMult > 1 ? '  x' + st.comboMult.toFixed(1) : ''), '#ffd166');
+    return gain;
+  }
+  function makePowerup(st, x, y) {
+    var r = Math.random(), kind;
+    if (r < 0.3) kind = 'shield';
+    else if (r < 0.6) kind = 'rapid';
+    else if (r < 0.9) kind = 'spread';
+    else kind = st.lives < 5 ? 'life' : 'rapid';
+    return { kind: kind, x: x, y: y, vy: 60, r: 13, life: 8, dead: false };
+  }
+  function makeBoss(st) {
+    var hp = 20 + st.wave * 2;
+    return { kind: 'boss', x: W / 2, y: 70, baseX: W / 2, r: 44, hp: hp, maxHp: hp, t: 0, vy: 14, fireCd: 1.5, dead: false };
   }
   function makeAsteroid(st, x, y, size) {
     var verts = [], n = 9 + Math.floor(Math.random() * 3);
@@ -157,14 +193,17 @@
       var j = Math.floor(Math.random() * (i + 1)), tmp = st.spawnQueue[i];
       st.spawnQueue[i] = st.spawnQueue[j]; st.spawnQueue[j] = tmp;
     }
+    if (st.wave % 5 === 0) st.spawnQueue.unshift('boss');
     st.spawnTimer = 0.5;
     st.betweenWaves = false;
-    floater(st, W / 2, 60, 'WAVE ' + st.wave, '#00f6ff');
+    floater(st, W / 2, 60, st.wave % 5 === 0 ? 'BOSS WAVE ' + st.wave : 'WAVE ' + st.wave, '#ff5a5a');
     emitHud(st);
   }
   function spawnNext(st) {
     var kind = st.spawnQueue.shift();
-    if (kind === 'drone') {
+    if (kind === 'boss') {
+      st.bosses.push(makeBoss(st));
+    } else if (kind === 'drone') {
       st.drones.push(makeDrone(st, 60 + Math.random() * (W - 120), -30));
     } else {
       var size = Math.random() < 0.45 ? 'large' : Math.random() < 0.7 ? 'medium' : 'small';
@@ -173,6 +212,16 @@
   }
   function damageShip(st) {
     if (st.ship.invuln > 0 || st.gameOver) return;
+    if (st.shield) {
+      st.shield = false;
+      st.ship.invuln = 0.75;
+      spawnParticle(st, st.ship.x, st.ship.y, '#00f6ff', 18, 150);
+      floater(st, st.ship.x, st.ship.y - 30, 'SHIELD BLOCK!', '#00f6ff');
+      st.audio.hit();
+      emitHud(st);
+      return; // shield absorbs the hit; combo is preserved
+    }
+    st.combo = 0; st.comboMult = 1;
     st.lives--;
     st.ship.invuln = 2;
     st.shake = Math.max(st.shake, 10);
@@ -183,16 +232,15 @@
       st.lives = 0; st.gameOver = true;
       spawnParticle(st, st.ship.x, st.ship.y, '#ffd166', 40, 220);
       st.audio.over();
-      if (st.opts.bus) st.opts.bus.emit('game:ended', 'space-shooter', { score: st.score, wave: st.wave });
+      if (st.opts.bus) st.opts.bus.emit('game:ended', 'space-shooter', { score: st.score, wave: st.wave, kills: st.kills, final: true });
     }
     emitHud(st);
   }
   function killAsteroid(st, a, byBullet) {
     a.dead = true;
     st.kills++;
-    var gain = a.size === 'large' ? 20 : a.size === 'medium' ? 30 : 50;
-    st.score += gain;
-    floater(st, a.x, a.y, '+' + gain, '#ffd166');
+    var base = a.size === 'large' ? 20 : a.size === 'medium' ? 30 : 50;
+    addKillScore(st, base, !!byBullet, a.x, a.y);
     spawnParticle(st, a.x, a.y, '#c9a86a', a.size === 'large' ? 18 : 10, 130);
     st.audio.boom();
     if (byBullet) {
@@ -208,13 +256,20 @@
   function killDrone(st, d) {
     d.dead = true;
     st.kills++;
-    st.score += 100;
-    floater(st, d.x, d.y, '+100', '#c792ea');
+    addKillScore(st, 100, true, d.x, d.y);
     spawnParticle(st, d.x, d.y, '#c792ea', 16, 140);
     st.audio.boom();
-    if (Math.random() < 0.15) {
-      st.powerups.push({ x: d.x, y: d.y, vy: 60, r: 13, life: 8, dead: false });
-    }
+    if (Math.random() < 0.22) st.powerups.push(makePowerup(st, d.x, d.y));
+  }
+  function killBoss(st, b) {
+    b.dead = true;
+    st.kills++;
+    addKillScore(st, 500, true, b.x, b.y);
+    floater(st, b.x, b.y - 40, 'BOSS DOWN!', '#ff5a5a');
+    spawnParticle(st, b.x, b.y, '#ff5a5a', 34, 220);
+    st.audio.boom();
+    st.powerups.push(makePowerup(st, b.x - 30, b.y));
+    st.powerups.push(makePowerup(st, b.x + 30, b.y));
   }
   function update(st, dt) {
     st.time += dt;
@@ -227,24 +282,37 @@
       s.y += s.speed * dt;
       if (s.y > H) { s.y = -4; s.x = Math.random() * W; }
     }
-    // ship movement
+    // ship movement: keyboard, or the touch joystick when active
     var ax = 0, ay = 0;
     if (st.keys.left) ax -= 1;
     if (st.keys.right) ax += 1;
     if (st.keys.up) ay -= 1;
     if (st.keys.down) ay += 1;
-    if (ax !== 0 || ay !== 0) {
+    var joyMag = Math.hypot(st.touch.dx, st.touch.dy);
+    if (st.touch.joyId !== null && joyMag > 0.15) {
+      ship.x = clamp(ship.x + (st.touch.dx / Math.max(1, joyMag)) * Math.min(1, joyMag) * 340 * dt, 24, W - 24);
+      ship.y = clamp(ship.y + (st.touch.dy / Math.max(1, joyMag)) * Math.min(1, joyMag) * 340 * dt, 50, H - 28);
+      ship.thrust = 1;
+      if (joyMag > 0.3) ship.angle = Math.atan2(st.touch.dy, st.touch.dx);
+    } else if (ax !== 0 || ay !== 0) {
       var len = Math.hypot(ax, ay);
       ship.x = clamp(ship.x + (ax / len) * 340 * dt, 24, W - 24);
       ship.y = clamp(ship.y + (ay / len) * 340 * dt, 50, H - 28);
       ship.thrust = 1;
-    } else { ship.thrust = 0; }
-    ship.angle = Math.atan2(st.mouse.y - ship.y, st.mouse.x - ship.x);
-    // firing
+      ship.angle = Math.atan2(st.mouse.y - ship.y, st.mouse.x - ship.x);
+    } else {
+      ship.thrust = 0;
+      ship.angle = Math.atan2(st.mouse.y - ship.y, st.mouse.x - ship.x);
+    }
+    // firing (spread shot: 3 bullets while the spread power-up lasts)
     st.fireCd -= dt;
     if (st.firing && st.fireCd <= 0 && !st.gameOver) {
       var bx = ship.x + Math.cos(ship.angle) * 22, by = ship.y + Math.sin(ship.angle) * 22;
-      st.bullets.push({ x: bx, y: by, vx: Math.cos(ship.angle) * 720, vy: Math.sin(ship.angle) * 720, life: 1.1, dead: false });
+      var angles = st.time < st.spreadUntil ? [-0.18, 0, 0.18] : [0];
+      for (var ai = 0; ai < angles.length; ai++) {
+        var fa = ship.angle + angles[ai];
+        st.bullets.push({ x: bx, y: by, vx: Math.cos(fa) * 720, vy: Math.sin(fa) * 720, life: 1.1, dead: false });
+      }
       st.shotsFired++;
       st.fireCd = fireInterval(st);
       st.audio.shoot();
@@ -277,6 +345,17 @@
           st.bullets.splice(i, 1);
           if (d.hp <= 0) killDrone(st, d);
           else spawnParticle(st, b.x, b.y, '#c792ea', 3, 60);
+          break;
+        }
+      }
+      if (st.bullets.indexOf(b) < 0) continue;
+      for (j = 0; j < st.bosses.length; j++) {
+        var bo2 = st.bosses[j];
+        if (!bo2.dead && dist(b.x, b.y, bo2.x, bo2.y) <= bo2.r + 4) {
+          bo2.hp--;
+          st.bullets.splice(i, 1);
+          if (bo2.hp <= 0) killBoss(st, bo2);
+          else spawnParticle(st, b.x, b.y, '#ff5a5a', 3, 60);
           break;
         }
       }
@@ -314,6 +393,26 @@
       }
     }
     st.drones = st.drones.filter(function (d) { return !d.dead; });
+    // boss drones: slow weave across the top, 3-bolt fan, big health pool
+    for (i = st.bosses.length - 1; i >= 0; i--) {
+      var bs = st.bosses[i];
+      bs.t += dt;
+      bs.y = Math.min(H - 160, bs.y + bs.vy * dt);
+      bs.x = bs.baseX + Math.sin(bs.t * 0.9) * (W / 2 - 90);
+      bs.fireCd -= dt;
+      if (bs.fireCd <= 0 && bs.y > 0 && !st.gameOver) {
+        for (var fb = -1; fb <= 1; fb++) {
+          var bang = Math.atan2(ship.y - bs.y, ship.x - bs.x) + fb * 0.28;
+          st.bolts.push({ x: bs.x, y: bs.y + 30, vx: Math.cos(bang) * 280, vy: Math.sin(bang) * 280, life: 3, r: 7, dead: false });
+        }
+        bs.fireCd = Math.max(1.2, 2.2 - st.wave * 0.04);
+        st.audio.shoot();
+      }
+      if (bs.y > H + 60) { st.bosses.splice(i, 1); continue; }
+      // Contact hurts the ship but does not kill the boss.
+      if (!bs.dead && !st.gameOver && dist(bs.x, bs.y, ship.x, ship.y) <= bs.r + ship.r - 4) damageShip(st);
+    }
+    st.bosses = st.bosses.filter(function (b) { return !b.dead; });
     // enemy bolts
     for (i = st.bolts.length - 1; i >= 0; i--) {
       var bo = st.bolts[i];
@@ -324,14 +423,19 @@
         damageShip(st);
       }
     }
-    // powerups
+    // powerups: shield (absorbs one hit), rapid fire, spread shot, extra life
     for (i = st.powerups.length - 1; i >= 0; i--) {
       var p = st.powerups[i];
       p.y += p.vy * dt; p.life -= dt;
       if (p.life <= 0 || p.y > H + 30) { st.powerups.splice(i, 1); continue; }
       if (!st.gameOver && dist(p.x, p.y, ship.x, ship.y) <= p.r + ship.r) {
         st.powerups.splice(i, 1);
-        if (st.lives < 5) { st.lives++; floater(st, ship.x, ship.y - 30, '+1 LIFE', '#3ddc5f'); }
+        var kind = p.kind || 'life';
+        st.powerupCounts[kind] = (st.powerupCounts[kind] || 0) + 1;
+        if (kind === 'shield') { st.shield = true; floater(st, ship.x, ship.y - 30, 'SHIELD UP!', '#00f6ff'); }
+        else if (kind === 'rapid') { st.rapidUntil = st.time + 6; floater(st, ship.x, ship.y - 30, 'RAPID FIRE!', '#00f6ff'); }
+        else if (kind === 'spread') { st.spreadUntil = st.time + 8; floater(st, ship.x, ship.y - 30, 'SPREAD SHOT!', '#ffd166'); }
+        else if (st.lives < 5) { st.lives++; floater(st, ship.x, ship.y - 30, '+1 LIFE', '#3ddc5f'); }
         else { st.rapidUntil = st.time + 6; floater(st, ship.x, ship.y - 30, 'RAPID FIRE!', '#00f6ff'); }
         st.audio.power();
         emitHud(st);
@@ -348,8 +452,8 @@
       fl.life -= dt; fl.vy = (fl.vy == null ? -70 : fl.vy) + 160 * dt; fl.y += fl.vy * dt;
       if (fl.life <= 0) st.floaters.splice(i, 1);
     }
-    // wave clear
-    if (!st.gameOver && !st.betweenWaves && !st.spawnQueue.length && !st.asteroids.length && !st.drones.length) {
+    // wave clear (a live boss holds the wave open)
+    if (!st.gameOver && !st.betweenWaves && !st.spawnQueue.length && !st.asteroids.length && !st.drones.length && !st.bosses.length) {
       var bonus = 100 + st.wave * 50;
       st.score += bonus;
       st.audio.clear();
@@ -369,7 +473,8 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired };
+    var boss = st.bosses[0] || null;
+    return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, shield: st.shield, rapidLeft: Math.max(0, Math.ceil(st.rapidUntil - st.time)), spreadLeft: Math.max(0, Math.ceil(st.spreadUntil - st.time)), boss: boss ? { hp: boss.hp, maxHp: boss.maxHp, wave: st.wave } : null, powerups: st.powerupCounts, touch: st.touch.seen };
   }
 
   /* ---- Drawing ---- */
@@ -393,6 +498,40 @@
       ctx.strokeStyle = st.hero.color || '#ffd166'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(0, 0, 20, 0, TAU); ctx.stroke();
     }
+    // shield bubble
+    if (st.shield) {
+      ctx.strokeStyle = 'rgba(0,246,255,.9)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, 26, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,246,255,.35)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, 0, 30, 0, TAU); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawBoss(ctx, b, time) {
+    ctx.save(); ctx.translate(b.x, b.y);
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(5, 30, 42, 10, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#4a1f2e';
+    ctx.beginPath(); ctx.moveTo(0, -44); ctx.lineTo(40, 0); ctx.lineTo(0, 44); ctx.lineTo(-40, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#ff5a5a'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.strokeStyle = '#c792ea'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-40, 0); ctx.lineTo(40, 0); ctx.stroke();
+    var pulse = 0.6 + 0.4 * Math.sin(time * 5 + b.t);
+    ctx.fillStyle = 'rgba(255,90,90,' + pulse + ')';
+    ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('BOSS', 0, -50);
+    ctx.restore();
+  }
+  var POWERUP_STYLE = { shield: { color: '#00f6ff', label: 'S' }, rapid: { color: '#ffd166', label: 'R' }, spread: { color: '#ff8fab', label: 'W' }, life: { color: '#3ddc5f', label: '+' } };
+  function drawPowerup(ctx, p) {
+    var s = POWERUP_STYLE[p.kind || 'life'] || POWERUP_STYLE.life;
+    ctx.save(); ctx.translate(p.x, p.y);
+    ctx.fillStyle = 'rgba(5,8,20,.8)';
+    ctx.beginPath(); ctx.arc(0, 0, p.r, 0, TAU); ctx.fill();
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, p.r, 0, TAU); ctx.stroke();
+    ctx.fillStyle = s.color; ctx.font = 'bold 15px Arial'; ctx.textAlign = 'center';
+    ctx.fillText(s.label, 0, 5);
     ctx.restore();
   }
   function drawAsteroid(ctx, a) {
@@ -450,13 +589,10 @@
       ctx.beginPath(); ctx.moveTo(st.mouse.x - 12, st.mouse.y); ctx.lineTo(st.mouse.x + 12, st.mouse.y); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(st.mouse.x, st.mouse.y - 12); ctx.lineTo(st.mouse.x, st.mouse.y + 12); ctx.stroke();
     }
-    for (i = 0; i < st.powerups.length; i++) {
-      var p = st.powerups[i];
-      ctx.fillStyle = '#ffd166'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('★', p.x, p.y);
-    }
+    for (i = 0; i < st.powerups.length; i++) drawPowerup(ctx, st.powerups[i]);
     for (i = 0; i < st.asteroids.length; i++) drawAsteroid(ctx, st.asteroids[i]);
     for (i = 0; i < st.drones.length; i++) drawDrone(ctx, st.drones[i], st.time);
+    for (i = 0; i < st.bosses.length; i++) drawBoss(ctx, st.bosses[i], st.time);
     // bullets
     for (i = 0; i < st.bullets.length; i++) {
       var b = st.bullets[i];
@@ -496,7 +632,31 @@
     ctx.fillText('WAVE ' + st.wave, 170, 22);
     ctx.fillStyle = '#ff5a5a';
     ctx.fillText('LIVES ' + '♥'.repeat(Math.max(0, st.lives)), 300, 22);
-    if (st.time < st.rapidUntil) { ctx.fillStyle = '#00f6ff'; ctx.fillText('RAPID FIRE', 470, 22); }
+    if (st.shield) { ctx.fillStyle = '#00f6ff'; ctx.fillText('🛡 SHIELD', 430, 22); }
+    if (st.time < st.rapidUntil) { ctx.fillStyle = '#00f6ff'; ctx.fillText('RAPID', 540, 22); }
+    if (st.time < st.spreadUntil) { ctx.fillStyle = '#ff8fab'; ctx.fillText('SPREAD', 610, 22); }
+    if (st.comboMult > 1) { ctx.fillStyle = '#ffd166'; ctx.fillText('COMBO x' + st.comboMult.toFixed(1) + ' (' + st.combo + ')', 690, 22); }
+    if (st.bosses.length) {
+      var bb = st.bosses[0];
+      ctx.fillStyle = 'rgba(5,8,20,.7)'; ctx.fillRect(W / 2 - 160, 40, 320, 14);
+      ctx.fillStyle = '#ff5a5a'; ctx.fillRect(W / 2 - 160, 40, 320 * Math.max(0, bb.hp / bb.maxHp), 14);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(W / 2 - 160, 40, 320, 14);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('BOSS  ' + bb.hp + '/' + bb.maxHp, W / 2, 51);
+    }
+    // touch controls overlay (only after a touch has been seen)
+    if (st.touch.seen) {
+      var jx = st.touch.joyId !== null ? st.touch.joyOX : 110, jy = st.touch.joyId !== null ? st.touch.joyOY : H - 110;
+      ctx.globalAlpha = 0.35; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(jx, jy, 55, 0, TAU); ctx.stroke();
+      ctx.globalAlpha = 0.6; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(jx + clamp(st.touch.dx, -1, 1) * 32, jy + clamp(st.touch.dy, -1, 1) * 32, 22, 0, TAU); ctx.fill();
+      ctx.globalAlpha = st.touch.fireId !== null ? 0.8 : 0.35; ctx.fillStyle = '#ff5a5a';
+      ctx.beginPath(); ctx.arc(W - 90, H - 110, 42, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.9; ctx.fillStyle = '#fff'; ctx.font = 'bold 15px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('FIRE', W - 90, H - 105);
+      ctx.globalAlpha = 1;
+    }
     ctx.fillStyle = '#9fb4d8'; ctx.font = '13px Arial'; ctx.textAlign = 'right';
     ctx.fillText('Arrows/WASD move • Mouse aim • Hold click/Space to fire • P pause • R restart', W - 12, 22);
     if (st.paused && !st.gameOver) {
@@ -512,8 +672,10 @@
       ctx.fillText('💥 GAME OVER', W / 2, H / 2 - 10);
       ctx.fillStyle = '#fff'; ctx.font = '18px Arial';
       ctx.fillText('Score ' + st.score + '  •  Wave ' + st.wave + '  •  Kills ' + st.kills + '  •  Shots ' + st.shotsFired, W / 2, H / 2 + 26);
+      ctx.fillStyle = '#ffd166'; ctx.font = '15px Arial';
+      ctx.fillText('Best combo ' + st.bestCombo + '  •  Power-ups ' + (st.powerupCounts.shield + st.powerupCounts.rapid + st.powerupCounts.spread + st.powerupCounts.life), W / 2, H / 2 + 48);
       ctx.fillStyle = '#9fb4d8'; ctx.font = '14px Arial';
-      ctx.fillText('Press R to restart, or switch games in the sidebar.', W / 2, H / 2 + 52);
+      ctx.fillText('Press R to restart, or switch games in the sidebar.', W / 2, H / 2 + 74);
     }
     ctx.restore();
   }
@@ -532,13 +694,63 @@
     var r = st.canvas.getBoundingClientRect();
     return { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * (H / r.height) };
   }
+  /* Touch: left half = virtual joystick anchored where the finger lands,
+   * right half = fire button. Identifiers are tracked so a second finger
+   * can fire while the first steers. */
+  function touchPos(st, t) {
+    var r = st.canvas.getBoundingClientRect();
+    return { x: (t.clientX - r.left) * (W / r.width), y: (t.clientY - r.top) * (H / r.height) };
+  }
+  function handleTouchStart(st, ev) {
+    st.touch.seen = true;
+    st.audio.unlock();
+    if (ev.preventDefault) ev.preventDefault();
+    var touches = ev.changedTouches || [];
+    for (var i = 0; i < touches.length; i++) {
+      var pos = touchPos(st, touches[i]);
+      if (pos.x < W * 0.55 && st.touch.joyId === null) {
+        st.touch.joyId = touches[i].identifier;
+        st.touch.joyOX = pos.x; st.touch.joyOY = pos.y; st.touch.dx = 0; st.touch.dy = 0;
+      } else if (st.touch.fireId === null) {
+        st.touch.fireId = touches[i].identifier;
+        st.firing = true;
+      }
+    }
+  }
+  function handleTouchMove(st, ev) {
+    if (ev.preventDefault) ev.preventDefault();
+    var touches = ev.changedTouches || [];
+    for (var i = 0; i < touches.length; i++) {
+      if (touches[i].identifier === st.touch.joyId) {
+        var pos = touchPos(st, touches[i]);
+        st.touch.dx = (pos.x - st.touch.joyOX) / 55;
+        st.touch.dy = (pos.y - st.touch.joyOY) / 55;
+        var m = Math.hypot(st.touch.dx, st.touch.dy);
+        if (m > 1) { st.touch.dx /= m; st.touch.dy /= m; }
+      }
+    }
+  }
+  function handleTouchEnd(st, ev) {
+    var touches = ev.changedTouches || [];
+    for (var i = 0; i < touches.length; i++) {
+      if (touches[i].identifier === st.touch.joyId) { st.touch.joyId = null; st.touch.dx = 0; st.touch.dy = 0; }
+      if (touches[i].identifier === st.touch.fireId) {
+        st.touch.fireId = null;
+        if (!st.mouse.down && !st.keys.space) st.firing = false;
+      }
+    }
+  }
   function reset(st) {
     st.ship.x = W / 2; st.ship.y = H - 70; st.ship.invuln = 0; st.ship.thrust = 0;
-    st.bullets = []; st.bolts = []; st.asteroids = []; st.drones = []; st.powerups = [];
+    st.bullets = []; st.bolts = []; st.asteroids = []; st.drones = []; st.bosses = []; st.powerups = [];
     st.particles = []; st.floaters = [];
     st.spawnQueue = []; st.spawnTimer = 0; st.betweenWaves = false; st.waveTimer = 0;
     st.score = 0; st.wave = 0; st.lives = 3; st.shotsFired = 0; st.kills = 0;
-    st.gameOver = false; st.paused = false; st.rapidUntil = 0; st.fireCd = 0;
+    st.gameOver = false; st.paused = false; st.rapidUntil = 0; st.spreadUntil = 0; st.shield = false;
+    st.combo = 0; st.comboMult = 1; st.bestCombo = 0;
+    st.powerupCounts = { shield: 0, rapid: 0, spread: 0, life: 0 };
+    st.touch.joyId = null; st.touch.fireId = null; st.touch.dx = 0; st.touch.dy = 0;
+    st.fireCd = 0;
     startWave(st);
     emitHud(st);
   }
@@ -558,6 +770,7 @@
     var canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     canvas.style.width = '100%'; canvas.style.maxWidth = W + 'px'; canvas.style.display = 'block';
+    canvas.style.touchAction = 'none';
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', 'Space Shooter game board');
     viewport.innerHTML = '';
@@ -584,14 +797,21 @@
       if (name) { st.keys[name] = false; return; }
       if (ev.key === ' ') { st.keys.space = false; if (!st.mouse.down) st.firing = false; }
     };
-    var onBlur = function () { st.keys = {}; st.firing = false; st.mouse.down = false; };
+    var onBlur = function () { st.keys = {}; st.firing = false; st.mouse.down = false; st.touch.joyId = null; st.touch.fireId = null; st.touch.dx = 0; st.touch.dy = 0; };
+    var onTouchStart = function (ev) { handleTouchStart(st, ev); };
+    var onTouchMove = function (ev) { handleTouchMove(st, ev); };
+    var onTouchEnd = function (ev) { handleTouchEnd(st, ev); };
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mousedown', onDown);
     canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', onTouchStart);
+    canvas.addEventListener('touchmove', onTouchMove);
+    canvas.addEventListener('touchend', onTouchEnd);
+    canvas.addEventListener('touchcancel', onTouchEnd);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
     if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('blur', onBlur);
-    st._listeners = { onMove: onMove, onDown: onDown, onUp: onUp, onKeyDown: onKeyDown, onKeyUp: onKeyUp, onBlur: onBlur };
+    st._listeners = { onMove: onMove, onDown: onDown, onUp: onUp, onTouchStart: onTouchStart, onTouchMove: onTouchMove, onTouchEnd: onTouchEnd, onKeyDown: onKeyDown, onKeyUp: onKeyUp, onBlur: onBlur };
     st.running = true; st.lastT = 0;
     startWave(st);
     st.rafId = (typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(function (t) { loop(st, t); }) : setTimeout(function () { loop(st, Date.now()); }, 16));
@@ -603,7 +823,7 @@
       pause: function () { st.paused = true; emitHud(st); },
       resume: function () { st.paused = false; emitHud(st); },
       startWave: function () { if (!st.gameOver) startWave(st); },
-      getState: function () { return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired }; },
+      getState: function () { return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, shield: st.shield, spreadUntil: st.spreadUntil, rapidUntil: st.rapidUntil, bosses: st.bosses.length, bossHp: st.bosses[0] ? st.bosses[0].hp : null, powerupCounts: st.powerupCounts, touchSeen: st.touch.seen }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -618,6 +838,10 @@
       st.canvas.removeEventListener('mousemove', st._listeners.onMove);
       st.canvas.removeEventListener('mousedown', st._listeners.onDown);
       st.canvas.removeEventListener('mouseup', st._listeners.onUp);
+      st.canvas.removeEventListener('touchstart', st._listeners.onTouchStart);
+      st.canvas.removeEventListener('touchmove', st._listeners.onTouchMove);
+      st.canvas.removeEventListener('touchend', st._listeners.onTouchEnd);
+      st.canvas.removeEventListener('touchcancel', st._listeners.onTouchEnd);
     }
     if (st._listeners) {
       document.removeEventListener('keydown', st._listeners.onKeyDown);
@@ -625,10 +849,10 @@
       if (typeof window !== 'undefined' && window.removeEventListener) window.removeEventListener('blur', st._listeners.onBlur);
     }
     if (st.audio) st.audio.close();
-    if (st.opts.bus) st.opts.bus.emit('game:ended', 'space-shooter', { score: st.score, wave: st.wave });
+    if (st.opts.bus) st.opts.bus.emit('game:ended', 'space-shooter', { score: st.score, wave: st.wave, kills: st.kills });
   }
 
-  var manifest = { id: 'space-shooter', name: 'Space Shooter', version: '1.0.0', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', entry: 'shooter.js', canvas: true };
+  var manifest = { id: 'space-shooter', name: 'Space Shooter', version: '1.1.0', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves. Power-ups, boss waves, combos, touch controls.', entry: 'shooter.js', canvas: true };
 
   global.SpaceShooter = { manifest: manifest, init: init, _createState: createState };
 })(typeof window !== 'undefined' ? window : globalThis);
