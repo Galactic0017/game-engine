@@ -106,6 +106,10 @@ payout sent, order closes.
 - Live serve check: `/`, `/api/config`, `/api/state`, hub CSS/JS and
   game files all return 200; config shows the real CEO address.
 
+## v3.10.0 — 2026-11-01 (4 more, 95 tracked features)
+
+Platform & social: duel invites a rival can accept or decline before the challenger submits the result (Challenges rail); a monthly seasonal ladder from stored monthly bests with last-month top 3 and trophy badges; a PNG share card drawn from the live game canvas with run stats; and a referral code in the profile (`?ref=CODE`), counted once, with no payouts.
+
 ## v3.9.0 — 2026-11-01 (5 more, 91 tracked features)
 
 Batch 10 (Space Shooter depth): drone/boss power-up drops (shield, rapid fire, spread shot, extra life), boss drone every 5 waves with a health bar, combo multiplier up to x3 (shield blocks preserve it), touch controls (virtual joystick + FIRE button on canvas), and a server shooter leaderboard (per-game bests via /api/progress, Shooter filter in Top Players). Tests: server 29/29, BTD 146/146, shooter harness pass incl. Batch 10 checks.
