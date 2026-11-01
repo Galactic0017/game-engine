@@ -497,43 +497,57 @@
     var bg = document.createElement('canvas'); bg.width = W; bg.height = H;
     var b = bg.getContext('2d');
     var bgImg = SPRITES.bg;
-    if (spriteReady(bgImg)) { b.drawImage(bgImg, 0, 0, W, H); b.fillStyle = 'rgba(6,10,22,.55)'; b.fillRect(0, 0, W, H); }
+    if (spriteReady(bgImg)) { b.drawImage(bgImg, 0, 0, W, H); b.fillStyle = 'rgba(6,10,22,.18)'; b.fillRect(0, 0, W, H); }
     var g = b.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, 'rgba(63,158,77,.55)'); g.addColorStop(0.55, 'rgba(47,138,62,.55)'); g.addColorStop(1, 'rgba(42,125,56,.55)');
+    g.addColorStop(0, 'rgba(38,16,84,.42)'); g.addColorStop(0.55, 'rgba(16,24,64,.42)'); g.addColorStop(1, 'rgba(8,14,38,.48)');
     b.fillStyle = g; b.fillRect(0, 0, W, H);
-    for (var i = 0; i < 2600; i++) { b.fillStyle = rnd() > 0.5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)'; b.fillRect(rnd() * W, rnd() * H, 2, 2); }
-    for (i = 0; i < 900; i++) { var gx = rnd() * W, gy = rnd() * H; b.strokeStyle = 'rgba(20,80,30,.5)'; b.lineWidth = 1; b.beginPath(); b.moveTo(gx, gy); b.lineTo(gx + (rnd() - 0.5) * 5, gy - 4 - rnd() * 4); b.stroke(); }
-    for (i = 0; i < 46; i++) { var fx = rnd() * W, fy = rnd() * H; b.fillStyle = ['#ffd166', '#ff8fab', '#ffffff', '#c792ea'][i % 4]; b.beginPath(); b.arc(fx, fy, 2.4, 0, TAU); b.fill(); }
-    // pond
+    [[180, 120, 150, 'rgba(120,60,220,.20)'], [760, 480, 170, 'rgba(0,246,255,.13)'], [480, 90, 120, 'rgba(255,209,102,.10)']].forEach(function (nb) { var ng = b.createRadialGradient(nb[0], nb[1], 8, nb[0], nb[1], nb[2]); ng.addColorStop(0, nb[3]); ng.addColorStop(1, 'rgba(0,0,0,0)'); b.fillStyle = ng; b.fillRect(0, 0, W, H); });
+    for (var i = 0; i < 700; i++) { b.fillStyle = ['rgba(255,255,255,.85)', 'rgba(123,223,242,.8)', 'rgba(255,209,102,.8)'][i % 3]; var sz = 1 + (rnd() * 1.6); b.fillRect(rnd() * W, rnd() * H, sz, sz); }
+    for (i = 0; i < 60; i++) { var sx = rnd() * W, sy = rnd() * H; b.strokeStyle = 'rgba(0,246,255,' + (0.25 + rnd() * 0.4) + ')'; b.lineWidth = 1; b.beginPath(); b.moveTo(sx, sy); b.lineTo(sx + 5 + rnd() * 6, sy + 5 + rnd() * 6); b.stroke(); }
+    for (i = 0; i < 80; i++) { var fx = rnd() * W, fy = rnd() * H; b.fillStyle = ['#00f6ff', '#c792ea', '#ffffff', '#ffd166'][i % 4]; b.beginPath(); b.arc(fx, fy, 2.4, 0, TAU); b.fill(); }
+    // nebula pool
     b.save(); b.beginPath(); b.ellipse(128, 492, 86, 44, 0, 0, TAU); b.clip();
-    var wg = b.createLinearGradient(0, 448, 0, 536); wg.addColorStop(0, '#7bdff2'); wg.addColorStop(1, '#1d6fb8');
+    var wg = b.createLinearGradient(0, 448, 0, 536); wg.addColorStop(0, '#c792ea'); wg.addColorStop(1, '#1d2a6b');
     b.fillStyle = wg; b.fillRect(30, 440, 200, 110);
     for (i = 0; i < 26; i++) { b.strokeStyle = 'rgba(255,255,255,' + (0.12 + rnd() * 0.25) + ')'; b.lineWidth = 1.5; b.beginPath(); b.ellipse(128, 492, rnd() * 76 + 8, rnd() * 30 + 4, 0, rnd() * TAU, rnd() * TAU + 1.2); b.stroke(); }
     b.restore();
-    b.strokeStyle = '#c9a86a'; b.lineWidth = 5; b.beginPath(); b.ellipse(128, 492, 86, 44, 0, 0, TAU); b.stroke();
-    // gravel path
+    b.strokeStyle = '#00f6ff'; b.lineWidth = 4; b.beginPath(); b.ellipse(128, 492, 86, 44, 0, 0, TAU); b.stroke();
+    // glowing energy lane
     b.lineCap = 'round'; b.lineJoin = 'round';
     var stroke = function (w, col) { b.strokeStyle = col; b.lineWidth = w; b.beginPath(); b.moveTo(pathPts[0][0], pathPts[0][1]); pathPts.forEach(function (p) { b.lineTo(p[0], p[1]); }); b.stroke(); };
-    stroke(46, 'rgba(0,0,0,.28)'); stroke(40, '#b8a284'); stroke(36, '#cbb693');
+    stroke(46, 'rgba(0,0,0,.30)'); stroke(40, '#0e3a4e'); stroke(36, '#123f57'); b.save(); b.shadowColor = '#00f6ff'; b.shadowBlur = 16; stroke(12, '#00f6ff'); b.restore(); stroke(4, '#e8fdff');
     var strokeBranch = function (w, col) { b.strokeStyle = col; b.lineWidth = w; b.beginPath(); b.moveTo(branchPts[0][0], branchPts[0][1]); branchPts.forEach(function (pp) { b.lineTo(pp[0], pp[1]); }); b.stroke(); };
-    strokeBranch(46, 'rgba(0,0,0,.28)'); strokeBranch(40, '#b8a284'); strokeBranch(36, '#cbb693');
-    for (i = 0; i < 900; i++) { var d = rnd() * totalLen, pt = pointAt(d), a = rnd() * TAU, r = rnd() * 15; b.fillStyle = rnd() > 0.5 ? '#a08b66' : '#d8c6a2'; b.beginPath(); b.arc(pt[0] + Math.cos(a) * r, pt[1] + Math.sin(a) * r, 1.4 + rnd() * 1.6, 0, TAU); b.fill(); }
+    strokeBranch(46, 'rgba(0,0,0,.30)'); strokeBranch(40, '#0e3a4e'); strokeBranch(36, '#123f57'); b.save(); b.shadowColor = '#00f6ff'; b.shadowBlur = 16; strokeBranch(12, '#00f6ff'); b.restore(); strokeBranch(4, '#e8fdff');
+    for (i = 0; i < 900; i++) { var d = rnd() * totalLen, pt = pointAt(d), a = rnd() * TAU, r = rnd() * 15; b.fillStyle = rnd() > 0.5 ? '#00f6ff' : '#e8fdff'; b.beginPath(); b.arc(pt[0] + Math.cos(a) * r, pt[1] + Math.sin(a) * r, 1.2 + rnd() * 1.4, 0, TAU); b.fill(); }
     stroke(4, 'rgba(255,255,255,.16)'); strokeBranch(4, 'rgba(255,255,255,.16)');
-    b.fillStyle = '#ff5a5a'; b.font = 'bold 13px Arial'; b.textAlign = 'center'; b.fillText('START', 52, 84);
-    b.fillStyle = '#ffd166'; b.fillText('★ FINISH', 872, 388);
+    b.fillStyle = '#00f6ff'; b.font = 'bold 13px Arial'; b.textAlign = 'center'; b.fillText('WARP GATE', 64, 84);
     // trees + rocks (kept clear of the path by fixed placement)
     [[76, 306], [392, 108], [640, 528], [884, 84], [306, 548], [700, 540], [472, 566], [908, 540], [52, 214], [560, 72]].forEach(function (pos) {
       var x = pos[0], y = pos[1];
-      b.fillStyle = 'rgba(0,0,0,.28)'; b.beginPath(); b.ellipse(x + 6, y + 8, 30, 10, 0, 0, TAU); b.fill();
-      b.fillStyle = '#6b4a2b'; b.fillRect(x - 4, y - 2, 8, 18);
-      var tg = b.createRadialGradient(x - 8, y - 26, 4, x, y - 18, 30); tg.addColorStop(0, '#6fdc7a'); tg.addColorStop(1, '#1e6b2e');
-      b.fillStyle = tg; b.beginPath(); b.arc(x, y - 20, 26, 0, TAU); b.fill();
+      b.fillStyle = 'rgba(0,0,0,.28)'; b.beginPath(); b.ellipse(x + 6, y + 8, 26, 8, 0, 0, TAU); b.fill();
+      b.fillStyle = '#7bdff2';
+      [[-14, 6, 22], [0, 0, 34], [14, 8, 20]].forEach(function (sh) {
+        b.beginPath(); b.moveTo(x + sh[0] - 7, y + sh[1]); b.lineTo(x + sh[0], y + sh[1] - sh[2]); b.lineTo(x + sh[0] + 7, y + sh[1]); b.closePath(); b.fill();
+      });
+      b.fillStyle = '#ffffff'; b.beginPath(); b.arc(x, y - 34, 2.5, 0, TAU); b.fill();
     });
     [[250, 540], [640, 84], [830, 540], [430, 520], [180, 556]].forEach(function (pos) {
       var x = pos[0], y = pos[1];
-      var rg = b.createLinearGradient(x - 16, y - 12, x + 16, y + 10); rg.addColorStop(0, '#c9ced6'); rg.addColorStop(1, '#6b7280');
+      var rg = b.createLinearGradient(x - 16, y - 12, x + 16, y + 10); rg.addColorStop(0, '#8fb4d8'); rg.addColorStop(1, '#3a4a6b');
       b.fillStyle = rg; b.beginPath(); b.moveTo(x - 18, y + 6); b.lineTo(x - 8, y - 12); b.lineTo(x + 10, y - 10); b.lineTo(x + 18, y + 6); b.closePath(); b.fill();
     });
+    // ATOM orb: the objective at the end of the energy lane.
+    (function () {
+      var ox = 918, oy = 420;
+      var og = b.createRadialGradient(ox, oy, 4, ox, oy, 64); og.addColorStop(0, 'rgba(0,246,255,.55)'); og.addColorStop(1, 'rgba(0,246,255,0)');
+      b.fillStyle = og; b.beginPath(); b.arc(ox, oy, 64, 0, TAU); b.fill();
+      b.strokeStyle = 'rgba(0,246,255,.7)'; b.lineWidth = 2;
+      [[0.5, 52, 20], [-0.5, 44, 16], [1.1, 58, 24]].forEach(function (o) { b.save(); b.translate(ox, oy); b.rotate(o[0]); b.beginPath(); b.ellipse(0, 0, o[1], o[2], 0, 0, TAU); b.stroke(); b.restore(); });
+      var body = b.createRadialGradient(ox - 7, oy - 8, 3, ox, oy, 26); body.addColorStop(0, '#ffffff'); body.addColorStop(0.45, '#7bdff2'); body.addColorStop(1, '#1d4ed8');
+      b.fillStyle = body; b.beginPath(); b.arc(ox, oy, 24, 0, TAU); b.fill();
+      b.fillStyle = '#0b1124'; b.beginPath(); b.arc(ox, oy, 9, 0, TAU); b.fill();
+      b.fillStyle = '#00f6ff'; b.font = 'bold 13px Arial'; b.textAlign = 'center'; b.fillText('ATOM ORB', ox, oy + 48);
+    })();
     return bg;
   }
 
@@ -945,7 +959,7 @@
         b.dead = true; b.leaked = true;
         var dmg = b.boss ? 25 : b.layers;
         st.lives -= dmg; addShake(st, 8); st.audio.leak();
-        spawnParticle(st, W - 90, 400, '#7bdff2', 8, 90, 'splash');
+        spawnParticle(st, 918, 420, '#7bdff2', 8, 90, 'splash');
         floater(st, W - 90, 400, '-' + dmg + ' HP', '#ff5a5a');
         if (st.lives <= 0) { st.lives = 0; st.lost = true; markRunEnded(st); st.audio.over(); emitHud(st); }
         continue;
@@ -1650,7 +1664,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.7.0', description: 'Bloons-style tower defense: 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. Dev tools: custom-track map editor, JSON mod loader, debug stats.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.8.0', description: 'Space tower defense: protect the ATOM orb across 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. v3.8.0: space ATOM-orb battlefield with glowing energy lane. Dev tools: custom-track map editor, JSON mod loader, debug stats.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded };
 })(typeof window !== 'undefined' ? window : globalThis);
