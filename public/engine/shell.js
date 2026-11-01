@@ -588,11 +588,19 @@
     ctx.host = new window.EngineHost(bus, ctx.wallet, ctx.config);
     ctx.watcher = new window.RpcWatcher(bus, ctx.config);
     ctx.host.setViewport(document.getElementById('game-viewport'));
-    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', load: async function () { return window.CosmosBTD; } });
-    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', image: 'assets/sprites/tower-validator.png', description: 'Build mining rigs, hire overseers, earn while away. Local save.', status: 'playable', load: async function () { return window.SpaceTycoon; } });
-    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, catch multiplier surges, bank shards. Local save.', status: 'playable', load: async function () { return window.AtomClicker; } });
-    if (window.SpaceShooter) ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', image: 'assets/sprites/monster-1.png', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', status: 'playable', load: async function () { return window.SpaceShooter; } });
-    if (window.AsteroidMiner) ctx.host.registerGame({ id: 'asteroid-miner', name: 'Asteroid Miner', tagline: 'Mine ore, upgrade drills', image: 'assets/sprites/monster-1.png', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', status: 'playable', load: async function () { return window.AsteroidMiner; } });
+    /* Batch 15: lazy-load — each game's script is injected on first
+     * selection and cached by GameScriptLoader, so the hub no longer
+     * downloads all five game bundles up front. Shooter/Miner are
+     * registered only when /api/config lists them playable (the
+     * server checks the files exist), matching the old behaviour
+     * where a missing file meant no global and no registration. */
+    var cfgStatus = function (id) { var gs = (ctx.config && ctx.config.games) || []; for (var i = 0; i < gs.length; i++) if (gs[i].id === id) return gs[i].status; return 'playable'; };
+    var lazyGame = function (src, globalName) { return async function () { var mod = await window.GameScriptLoader.load(src, globalName); if (!mod) throw new Error('Game module did not load: ' + src); return mod; }; };
+    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', load: lazyGame('games/cosmos-btd/btd.js', 'CosmosBTD') });
+    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', image: 'assets/sprites/tower-validator.png', description: 'Build mining rigs, hire overseers, earn while away. Local save.', status: 'playable', load: lazyGame('games/space-tycoon/tycoon.js', 'SpaceTycoon') });
+    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, catch multiplier surges, bank shards. Local save.', status: 'playable', load: lazyGame('games/atom-clicker/clicker.js', 'AtomClicker') });
+    if (cfgStatus('space-shooter') === 'playable') ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', image: 'assets/sprites/monster-1.png', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', status: 'playable', load: lazyGame('games/space-shooter/shooter.js', 'SpaceShooter') });
+    if (cfgStatus('asteroid-miner') === 'playable') ctx.host.registerGame({ id: 'asteroid-miner', name: 'Asteroid Miner', tagline: 'Mine ore, upgrade drills', image: 'assets/sprites/monster-1.png', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', status: 'playable', load: lazyGame('games/asteroid-miner/miner.js', 'AsteroidMiner') });
     renderGameList(); renderRecent(); renderWallet(); renderSettingsPanel();
     document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
