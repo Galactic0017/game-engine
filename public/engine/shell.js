@@ -89,12 +89,8 @@
     document.getElementById('walletBalance').textContent = w.address && w.balanceAtom() !== null ? w.balanceAtom() + ' ATOM' : '';
     document.getElementById('btnDisconnect').hidden = !w.address;
     var avail = (w.availableProviders ? w.availableProviders() : []);
-    [['btnConnectKeplr', 'keplr'], ['btnConnectLeap', 'leap']].forEach(function (pair) {
-      var b = document.getElementById(pair[0]); if (!b) return;
-      var missing = avail.indexOf(pair[1]) < 0;
-      b.disabled = missing;
-      b.title = missing ? (pair[1] === 'keplr' ? 'Keplr extension not detected in this browser.' : 'Leap extension not detected in this browser.') : '';
-    });
+    var kb = document.getElementById('btnConnectKeplr');
+    if (kb) { var missing = avail.indexOf('keplr') < 0; kb.disabled = missing; kb.title = missing ? 'Keplr extension not detected in this browser.' : ''; }
   }
   async function ensurePlayer() {
     var w = ctx.wallet; if (!w.address) return;
@@ -518,11 +514,10 @@
     bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
     bus.on('wallet:balance', function () { renderWallet(); });
     bus.on('rpc:watcher_status', function (s) { if (window.CeoUI) window.CeoUI.setWatcherStatus(s); });
-    async function connectWallet(kind) {
-      try { await ctx.wallet.connect(kind); ctx.wallet.startBalancePolling(60000); toast('Wallet connected (' + kind + '): ' + shortAddr(ctx.wallet.address), 'ok'); await ensurePlayer(); await startSession(); refreshState(); if (ctx.currentGame) loadGame(ctx.currentGame); } catch (e) { toast(e.message, 'err'); }
+    async function connectWallet() {
+      try { await ctx.wallet.connect('keplr'); ctx.wallet.startBalancePolling(60000); toast('Wallet connected (Keplr): ' + shortAddr(ctx.wallet.address), 'ok'); await ensurePlayer(); await startSession(); refreshState(); if (ctx.currentGame) loadGame(ctx.currentGame); } catch (e) { toast(e.message, 'err'); }
     }
-    document.getElementById('btnConnectKeplr').addEventListener('click', function () { connectWallet('keplr'); });
-    document.getElementById('btnConnectLeap').addEventListener('click', function () { connectWallet('leap'); });
+    document.getElementById('btnConnectKeplr').addEventListener('click', function () { connectWallet(); });
     document.getElementById('btnDisconnect').addEventListener('click', function () { ctx.wallet.disconnect(); toast('Disconnected.'); });
     var exBtn = document.getElementById('btnExploreStore'); if (exBtn) exBtn.addEventListener('click', function () { showView('marketplace'); });
     var bellBtn = document.getElementById('btnBell'); if (bellBtn) bellBtn.addEventListener('click', function () { showView('updates'); });
