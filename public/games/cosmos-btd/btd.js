@@ -64,6 +64,55 @@
     spikes: { name: 'Spike Factory', key: '7', cost: 220, range: 90,  rate: 0.80, dmg: 1, color: '#94a3b8', desc: 'Drops spikes that pop on contact.' }
   };
 
+  /* ---- Batch 6 (Pillar 4): branching upgrade trees ----
+   * Each tower may commit to ONE branch (locked on first choice) with
+   * up to 3 branch points. Speed: faster shots + range. Power: more
+   * damage + bigger splash (via splashBonus, applied in fireTower).
+   * Branch upgrades are separate from the linear Lv1-5 upgrades, so
+   * existing upgrade costs are unchanged. At Lv4/Lv5 a tower is
+   * Evolved/Ascended: larger sprite + evolution ring in drawTower. */
+  var BRANCH_DEFS = {
+    speed: { name: 'Rapid Fire', desc: 'Faster shots, wider range', max: 3 },
+    power: { name: 'Heavy Impact', desc: 'More damage, bigger splash', max: 3 }
+  };
+  function branchUpgradeCostFor(t, branch) {
+    if (!t || !BRANCH_DEFS[branch]) return null;
+    var lv = (t.paths && t.paths[branch]) || 0;
+    if (lv >= BRANCH_DEFS[branch].max) return null;
+    if (t.branch && t.branch !== branch) return null;
+    return 100 + lv * 70;
+  }
+  function evolutionFor(t) { if (!t) return null; return t.level >= 5 ? 'Ascended' : t.level >= 4 ? 'Evolved' : null; }
+  function branchOptionsFor(t) {
+    if (!t) return [];
+    return Object.keys(BRANCH_DEFS).map(function (b) {
+      return { branch: b, name: BRANCH_DEFS[b].name, desc: BRANCH_DEFS[b].desc, level: (t.paths && t.paths[b]) || 0, max: BRANCH_DEFS[b].max, cost: branchUpgradeCostFor(t, b), locked: !!(t.branch && t.branch !== b) };
+    });
+  }
+
+  /* ---- Batch 6 (Pillar 4): hero commander gear ----
+   * Two equipment slots (weapon/charm). Gear is a plain catalog here;
+   * no server persistence in this batch — the shell keeps the equipped
+   * hero, gear applies inside the run only. */
+  var HERO_GEAR = {
+    'ion-blade': { slot: 'weapon', name: 'Ion Blade', dmgBonus: 1, rangeBonus: 0 },
+    'rail-lance': { slot: 'weapon', name: 'Rail Lance', dmgBonus: 2, rangeBonus: 0 },
+    'void-charm': { slot: 'charm', name: 'Void Charm', dmgBonus: 0, rangeBonus: 30 },
+    'keeper-medal': { slot: 'charm', name: 'Keeper Medal', dmgBonus: 0, rangeBonus: 20 }
+  };
+  function heroGearBonus(h) {
+    var b = { dmg: 0, range: 0 };
+    if (!h || !h.equipment) return b;
+    Object.keys(h.equipment).forEach(function (slot) {
+      var g = HERO_GEAR[h.equipment[slot]];
+      if (g) { b.dmg += g.dmgBonus || 0; b.range += g.rangeBonus || 0; }
+    });
+    return b;
+  }
+  /* Ability tiers unlock with run level: Lv1-2 tier 1, Lv3-4 tier 2,
+   * Lv5+ tier 3 (stronger effect, shorter cooldown in heroAbility). */
+  function heroAbilityTier(h) { var lv = (h && h.level) || 1; return Math.min(3, 1 + Math.floor((lv - 1) / 2)); }
+
   var BALLOON_TYPES = [
     { layers: 1, color: '#ff5a5a', dark: '#c62828', speed: 62,  reward: 6,  name: 'Red', sprite: 'monster-1' },
     { layers: 2, color: '#4f8cff', dark: '#1d4ed8', speed: 70,  reward: 7,  name: 'Blue', sprite: 'monster-2' },
@@ -152,6 +201,68 @@
       best = Math.min(best, dist(x, y, ax + dx * t, ay + dy * t));
     }
     return best;
+  }
+
+  /* ---- Batch 6 (Pillar 4): adaptive pathfinding + hazards ----
+   * The track stays the Catmull-Rom spline above. On top of it:
+   * (a) two terrain hazard zones centred ON the spline slow balloons
+   *     and trigger a lateral detour while the balloon is inside;
+   * (b) every 10th wave balloons take a wide "high road" lateral
+   *     offset that bulges mid-track. Offsets are stored per balloon
+   *     (b.ox/b.oy) so drawBalloon renders the same detoured position
+   *     the physics uses. This is not A* or tower avoidance: towers
+   *     may not be placed within 34px of the path, so no reroute
+   *     around towers is needed. */
+  var HAZARDS = (function () {
+    var c1 = pointAt(totalLen * 0.38), c2 = pointAt(totalLen * 0.72);
+    return [
+      { x: c1[0], y: c1[1], r: 58, kind: 'mud', slow: 0.55 },
+      { x: c2[0], y: c2[1], r: 58, kind: 'bramble', slow: 0.7 }
+    ];
+  })();
+  function hazardAt(x, y) {
+    var factor = 1, hz = null;
+    for (var i = 0; i < HAZARDS.length; i++) {
+      var h = HAZARDS[i];
+      if (dist(x, y, h.x, h.y) <= h.r) { if (h.slow < factor) factor = h.slow; hz = h; }
+    }
+    return { factor: factor, hazard: hz };
+  }
+  function routeOffset(distAlong, wave) {
+    if (!wave || wave % 10 !== 0) return 0;
+    return Math.sin((distAlong / totalLen) * Math.PI) * 18;
+  }
+
+  /* ---- Batch 6 (Pillar 4): weather ----
+   * Global state, not per-balloon. Storm: lightning strikes near a
+   * random tower every 2s. Blizzard: all balloons slowed to 70%.
+   * Auto-triggered at wave start on every 5th wave (storm) / 10th
+   * wave (blizzard); also settable via api.setWeather for tests. */
+  var WEATHER_KINDS = ['clear', 'storm', 'blizzard'];
+  function weatherSlowFactor(st) { return (st.weather && st.weather.kind === 'blizzard') ? 0.7 : 1; }
+  function setWeather(st, kind, seconds) {
+    if (WEATHER_KINDS.indexOf(kind) < 0) return false;
+    st.weather = { kind: kind, until: st.time + (seconds || 8), strikeT: 0 };
+    if (kind !== 'clear') floater(st, W / 2, 40, kind === 'storm' ? '⛈ THUNDERSTORM!' : '❄ BLIZZARD!', kind === 'storm' ? '#ffd166' : '#7bdff2');
+    emitHud(st);
+    return true;
+  }
+  function lightningStrike(st) {
+    var x, y;
+    if (st.towers.length) { var t = st.towers[Math.floor(Math.random() * st.towers.length)]; x = t.x; y = t.y; }
+    else if (st.balloons.length) { var b = st.balloons[Math.floor(Math.random() * st.balloons.length)]; x = b.x; y = b.y; }
+    else return;
+    splashDamage(st, x, y, 70, 3, null);
+    addLight(st, x, y, 130, '#fff7ae', 0.25, 1);
+    spawnParticle(st, x, y, '#fff7ae', 10, 120, 'spark');
+    addShake(st, 5);
+    floater(st, x, y - 30, 'LIGHTNING!', '#fff7ae');
+  }
+  function updateWeather(st, dt) {
+    var w = st.weather;
+    if (!w || w.kind === 'clear') return;
+    if (st.time >= w.until) { st.weather = { kind: 'clear', until: 0, strikeT: 0 }; floater(st, W / 2, 40, 'Weather clears', '#9fb4d8'); emitHud(st); return; }
+    if (w.kind === 'storm') { w.strikeT -= dt; if (w.strikeT <= 0) { w.strikeT = 2; lightningStrike(st); } }
   }
 
   /* ---- Hash helpers (anti-cheat state hash) ---- */
@@ -286,7 +397,8 @@
       audio: makeAudio(),
       grid: new Map(), ecs: createECS(),
       lights: [], acc: 0, alpha: 1, windX: 0, postfx: true, dof: true,
-      gridQueries: 0, glowCv: null, glowCtx: null, sceneCv: null, sceneCtx: null, blurCv: null, blurCtx: null, vigCv: null
+      gridQueries: 0, glowCv: null, glowCtx: null, sceneCv: null, sceneCtx: null, blurCv: null, blurCtx: null, vigCv: null,
+      weather: { kind: 'clear', until: 0, strikeT: 0 }, reroutes: 0, hazardSlows: 0
     };
   }
   var CELL = 64;
@@ -346,6 +458,25 @@
     return out;
   }
   function upgradeCostFor(t) { return t.level >= 5 ? null : 80 + t.level * 60; }
+  /* Branch upgrade (Batch 6): locks the tower to one branch, applies
+   * the branch bonus, and returns false when unaffordable, locked, or
+   * maxed. Requires tower level 2+ so the choice follows investment. */
+  function upgradeBranchSelected(st, branch) {
+    var t = st.selected;
+    if (!t || !BRANCH_DEFS[branch]) return false;
+    if (t.level < 2) { if (st.opts.onToast) st.opts.onToast('Reach tower level 2 to choose a branch.', 'warn'); return false; }
+    var cost = branchUpgradeCostFor(t, branch);
+    if (cost == null) return false;
+    if (st.gold < cost) { if (st.opts.onToast) st.opts.onToast('Branch upgrade costs ' + cost + 'g.', 'warn'); return false; }
+    st.gold -= cost;
+    t.branch = branch;
+    t.paths = t.paths || { speed: 0, power: 0 };
+    t.paths[branch] = (t.paths[branch] || 0) + 1;
+    if (branch === 'speed') { t.rate = Math.max(0.22, t.rate * 0.88); t.range += 6; }
+    else { t.dmg += 1; t.splashBonus = (t.splashBonus || 0) + 12; }
+    floater(st, t.x, t.y - 30, BRANCH_DEFS[branch].name + ' ' + t.paths[branch] + '!', '#c792ea');
+    st.audio.coin(); emitHud(st); return true;
+  }
   function effectivenessFor(t, def) {
     var dps = t.dmg / Math.max(0.22, t.rate);
     var fast = clamp(Math.round(t.rate <= 0.5 ? 92 : t.rate <= 0.9 ? 78 : t.rate <= 1.2 ? 64 : 48) + (def.splash ? 8 : 0), 0, 100);
@@ -367,7 +498,11 @@
       nextDmg: t.level >= 5 ? t.dmg : (t.level === 4 ? t.dmg + 2 : t.dmg + 1),
       nextRange: t.level >= 5 ? Math.round(t.range) : Math.round(t.range + (t.level === 4 ? 15 : 10)),
       sellRefund: Math.floor(def.cost * 0.7),
-      effectiveness: effectivenessFor(t, def)
+      effectiveness: effectivenessFor(t, def),
+      branch: t.branch || null,
+      branchLevel: t.branch ? ((t.paths && t.paths[t.branch]) || 0) : 0,
+      evolution: evolutionFor(t),
+      branchOptions: branchOptionsFor(t)
     };
   }
 
@@ -424,6 +559,8 @@
     st.spawnQueue = waveComposition(st.wave);
     st.spawnTimer = 0.4;
     st.waveActive = true; st.betweenWaves = false;
+    if (st.wave % 10 === 0) setWeather(st, 'blizzard', 8);
+    else if (st.wave % 5 === 0) setWeather(st, 'storm', 8);
     floater(st, W / 2, 60, 'WAVE ' + st.wave, '#00f6ff');
     emitHud(st);
   }
@@ -510,10 +647,10 @@
       target.slowUntil = st.time + (def.slowDur || 1.3); target.slowF = def.slow || 0.5;
       damageBalloon(st, target, tower.dmg, tower); addLight(st, tower.x, tower.y - 10, 70, '#7bdff2', 0.16, 1); st.audio.frost();
     } else if (tower.kind === 'mortar') {
-      if (st.projectiles.length < 128) { st.projectiles.push({ kind: 'mortar', x: tower.x, y: tower.y - 16, tx: target.x, ty: target.y, t: 0, dur: 0.7, dmg: tower.dmg, splash: def.splash, source: tower }); var prM = st.projectiles[st.projectiles.length - 1]; prM.ecsId = ecsAdd(st, 'projectile', { position: prM, velocity: prM, combat: prM, lifetime: prM, render: prM }); }
+      if (st.projectiles.length < 128) { st.projectiles.push({ kind: 'mortar', x: tower.x, y: tower.y - 16, tx: target.x, ty: target.y, t: 0, dur: 0.7, dmg: tower.dmg, splash: (def.splash || 0) + (tower.splashBonus || 0), source: tower }); var prM = st.projectiles[st.projectiles.length - 1]; prM.ecsId = ecsAdd(st, 'projectile', { position: prM, velocity: prM, combat: prM, lifetime: prM, render: prM }); }
       addLight(st, tower.x, tower.y - 16, 70, '#00f6ff', 0.12, 1); st.audio.cannon();
     } else if (tower.kind === 'cannon') {
-      if (st.projectiles.length < 128) { st.projectiles.push({ kind: 'shell', x: tower.x, y: tower.y - 12, tx: target.x, ty: target.y, t: 0, dur: 0.35, dmg: tower.dmg, splash: def.splash, source: tower }); var prS = st.projectiles[st.projectiles.length - 1]; prS.ecsId = ecsAdd(st, 'projectile', { position: prS, velocity: prS, combat: prS, lifetime: prS, render: prS }); }
+      if (st.projectiles.length < 128) { st.projectiles.push({ kind: 'shell', x: tower.x, y: tower.y - 12, tx: target.x, ty: target.y, t: 0, dur: 0.35, dmg: tower.dmg, splash: (def.splash || 0) + (tower.splashBonus || 0), source: tower }); var prS = st.projectiles[st.projectiles.length - 1]; prS.ecsId = ecsAdd(st, 'projectile', { position: prS, velocity: prS, combat: prS, lifetime: prS, render: prS }); }
       addLight(st, tower.x, tower.y - 12, 70, '#ff9e00', 0.12, 1); st.audio.cannon(); addShake(st, 4);
     } else {
       if (st.projectiles.length < 128) {
@@ -528,13 +665,14 @@
   /* ---- Engine systems (ECS queries over component tables) ---- */
   function MovementSystem(st, dt) {
     var balloons = ecsEntitiesOfKind(st, 'balloon');
+    var wSlow = weatherSlowFactor(st);
     for (var i = 0; i < balloons.length; i++) {
       var b = balloons[i];
       if (b.dead) continue;
       var f = (st.time < b.slowUntil) ? b.slowF : 1;
       if (b.regen && !b.boss && b.layers < b.maxLayers) { b.regenT += dt; if (b.regenT >= 2) { b.regenT = 0; b.layers++; b.r = 11 + b.layers * 1.5; } }
       b.prevDist = b.dist;
-      b.dist += b.speed * f * dt;
+      b.dist += b.speed * f * wSlow * dt;
       if (b.dist >= totalLen) {
         b.dead = true; b.leaked = true;
         var dmg = b.boss ? 25 : b.layers;
@@ -544,7 +682,30 @@
         if (st.lives <= 0) { st.lives = 0; st.lost = true; st.audio.over(); emitHud(st); }
         continue;
       }
-      var pt = pointAt(b.dist); b.x = pt[0]; b.y = pt[1]; b.wob += dt * 6;
+      var pt = pointAt(b.dist);
+      /* Batch 6: hazard slow + detour, wave-variant route offset.
+       * The slow factor applies to the NEXT step's movement (f was
+       * computed above from the previous position's slow); the
+       * hazard entry below is evaluated at the new position so the
+       * detour renders immediately. Detour direction uses the
+       * balloon's travel direction (previous position -> new point). */
+      var hz = hazardAt(pt[0], pt[1]);
+      if (hz.factor < 1) {
+        b.slowF = Math.min(b.slowF || 1, hz.factor); b.slowUntil = st.time + 0.25;
+        if (!b.inHazard) {
+          b.inHazard = true; st.hazardSlows++;
+          st.reroutes++;
+          b.detourUntil = st.time + 1.2;
+          b.detourSign = ((b.ecsId || 0) % 2 === 0) ? 1 : -1;
+        }
+      } else b.inHazard = false;
+      var px = b.x, py = b.y;
+      var tx = pt[0] - (px == null ? pt[0] : px), ty = pt[1] - (py == null ? pt[1] : py);
+      var tl = Math.hypot(tx, ty) || 1;
+      var perX = -ty / tl, perY = tx / tl;
+      var off = routeOffset(b.dist, st.wave) + ((st.time < (b.detourUntil || 0)) ? 14 * (b.detourSign || 1) : 0);
+      b.ox = perX * off; b.oy = perY * off;
+      b.x = pt[0] + b.ox; b.y = pt[1] + b.oy; b.wob += dt * 6;
     }
     rebuildGrid(st);
   }
@@ -566,11 +727,14 @@
       var h = st.hero;
       h.cd = (h.cd || 0) - dt;
       if (h.cd <= 0) {
-        var fake = { x: h.x, y: h.y, range: h.range || 150, kind: 'hero' };
+        var gb = heroGearBonus(h);
+        var fake = { x: h.x, y: h.y, range: (h.range || 150) + gb.range, kind: 'hero' };
         var ht = pickTarget(st, fake);
         if (ht) {
-          var dmg = Math.max(1, Math.round((h.basePower || 16) / 8 * heroPowerMult(h)));
+          var wasDead = !!ht.dead;
+          var dmg = Math.max(1, Math.round((h.basePower || 16) / 8 * heroPowerMult(h)) + gb.dmg);
           damageBalloon(st, ht, dmg, null);
+          if (!wasDead && ht.dead) { st.heroXp += 3; h.kills = (h.kills || 0) + 1; }
           addBeam(st, { x1: h.x, y1: h.y, x2: ht.x, y2: ht.y, life: 0.1, color: h.color || '#ffd166' });
           h.cd = 0.8;
         }
@@ -617,6 +781,15 @@
   function stepPhysics(st, dt) {
     st.time += dt;
     st.windX = Math.sin(st.time * 0.4) * 14;
+    /* Batch 6: hero commander patrol — the hero walks the spline
+     * back and forth instead of standing at its placed spot. */
+    if (st.heroPlaced && st.hero && st.hero.patrol) {
+      st.hero.patrolDist = (st.hero.patrolDist || 0) + 42 * dt * (st.hero.patrolDir || 1);
+      if (st.hero.patrolDist >= totalLen) { st.hero.patrolDist = totalLen; st.hero.patrolDir = -1; }
+      if (st.hero.patrolDist <= 0) { st.hero.patrolDist = 0; st.hero.patrolDir = 1; }
+      var hp = pointAt(st.hero.patrolDist); st.hero.x = hp[0]; st.hero.y = hp[1];
+    }
+    updateWeather(st, dt);
     if (st.heroCd > 0) st.heroCd -= dt;
     if (st.shake > 0) st.shake = Math.max(0, st.shake - dt * 18);
     // spawning
@@ -656,7 +829,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroGear: (st.hero && st.hero.equipment) || null, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -679,7 +852,7 @@
     var wob = Math.sin(b.wob) * 2.2;
     var rd = lerp(b.prevDist == null ? b.dist : b.prevDist, b.dist, alpha == null ? 1 : alpha);
     var rp = pointAt(rd);
-    var x = rp[0], y = rp[1] + wob;
+    var x = rp[0] + (b.ox || 0), y = rp[1] + (b.oy || 0) + wob;
     if (b.boss) {
       ctx.save(); ctx.translate(x, y);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(4, 22, 40, 9, 0, 0, TAU); ctx.fill();
@@ -720,11 +893,14 @@
   function drawTower(ctx, t, time) {
     var def = TOWER_DEFS[t.kind];
     var spr = SPRITES[TOWER_SPRITES[t.kind]];
+    var evo = evolutionFor(t);
     if (spriteReady(spr)) {
       ctx.save(); ctx.translate(t.x, t.y);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
-      ctx.drawImage(spr, -22, -22, 44, 44);
+      var sz = t.level >= 5 ? 60 : t.level >= 4 ? 52 : 44;
+      ctx.drawImage(spr, -sz / 2, -sz / 2, sz, sz);
       if (t.maxed) { ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.stroke(); }
+      if (evo) { ctx.strokeStyle = evo === 'Ascended' ? '#c792ea' : '#00f6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 28, 0, TAU); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.fillText(evo.toUpperCase(), 0, -30); }
       ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
       for (var u = 0; u < t.level; u++) ctx.fillText('★', -12 + u * 12, 26);
       ctx.restore(); return;
@@ -773,6 +949,7 @@
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.stroke();
       ctx.fillStyle = '#111'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.fillText('★', 0, 5);
       ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.fillText('Lv ' + (h.level || 1), 0, 30);
+      if (h.patrol) { ctx.fillStyle = '#7bdff2'; ctx.font = 'bold 9px Arial'; ctx.fillText('PATROL', 0, 42); }
       ctx.restore();
     }
     // projectiles
@@ -792,6 +969,10 @@
     ctx.globalAlpha = 1;
   }
   function drawOverlays(ctx, st) {
+    if (st.weather && st.weather.kind !== 'clear') {
+      ctx.fillStyle = st.weather.kind === 'storm' ? '#ffd166' : '#7bdff2'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'left';
+      ctx.fillText((st.weather.kind === 'storm' ? '⛈ STORM ' : '❄ BLIZZARD ') + Math.ceil(Math.max(0, st.weather.until - st.time)) + 's', 12, 22);
+    }
     for (var i = 0; i < st.floaters.length; i++) { var fl = st.floaters[i]; ctx.globalAlpha = Math.max(0, Math.min(1, fl.life / 0.3)); ctx.fillStyle = fl.color; ctx.font = 'bold ' + (fl.size || 16) + 'px Arial'; ctx.textAlign = 'center'; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 3; if (ctx.strokeText) ctx.strokeText(fl.text, fl.x, fl.y); ctx.fillText(fl.text, fl.x, fl.y); }
     ctx.globalAlpha = 1;
     if (st.won || st.lost) {
@@ -932,7 +1113,7 @@
     if (distToPath(x, y) <= 34) { if (st.opts.onToast) st.opts.onToast('Too close to the path.', 'warn'); return false; }
     for (var i = 0; i < st.towers.length; i++) if (dist(x, y, st.towers[i].x, st.towers[i].y) < 30) { if (st.opts.onToast) st.opts.onToast('Too close to another tower.', 'warn'); return false; }
     st.gold -= def.cost;
-    st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, level: 1, canSeeCamo: !!def.camo, maxed: false });
+    st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, level: 1, canSeeCamo: !!def.camo, maxed: false, branch: null, paths: { speed: 0, power: 0 }, splashBonus: 0, evolved: false });
     var tw0 = st.towers[st.towers.length - 1]; tw0.ecsId = ecsAdd(st, 'tower', { position: tw0, combat: tw0, render: tw0 });
     st.audio.place(); st.placing = null; emitHud(st);
     return true;
@@ -977,6 +1158,8 @@
       if (st.hero && !st.heroPlaced) {
         if (distToPath(pos.x, pos.y) <= 34) { if (opts.onToast) opts.onToast('Hero cannot stand on the path.', 'warn'); return; }
         st.heroPlaced = true; st.hero.x = pos.x; st.hero.y = pos.y; st.hero.range = 150; st.hero.cd = 0;
+        st.hero.patrol = !!st.hero.patrol; st.hero.patrolDist = 0; st.hero.patrolDir = 1; st.hero.kills = st.hero.kills || 0;
+        st.hero.equipment = st.hero.equipment || { weapon: null, charm: null };
         if (opts.onToast) opts.onToast(st.hero.name + ' placed!', 'ok');
         emitHud(st); return;
       }
@@ -1025,9 +1208,13 @@
       setDisplayScale: function (v) { st.displayScale = ['auto', '1', '1.5', '2'].indexOf(String(v)) >= 0 ? String(v) : 'auto'; applyDisplayScale(st); },
       setVolume: function (v) { if (st.audio && st.audio.setVolume) st.audio.setVolume(v); },
       upgradeSelected: function () { return upgradeSelected(st); },
+      upgradeBranch: function (branch) { return upgradeBranchSelected(st, branch); },
       sellSelected: function () { return sellSelected(st); },
       heroAbility: function () { return heroAbility(st); },
-      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, sessionId: st.sessionId }; },
+      setHeroPatrol: function (v) { if (st.hero) st.hero.patrol = !!v; emitHud(st); },
+      equipHero: function (itemId) { return equipHero(st, itemId); },
+      setWeather: function (kind, seconds) { return setWeather(st, kind, seconds); },
+      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, sessionId: st.sessionId, weather: (st.weather && st.weather.kind) || 'clear', heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0 }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -1044,6 +1231,7 @@
     var cost = 80 + t.level * 60;
     if (st.gold < cost) { if (st.opts.onToast) st.opts.onToast('Upgrade costs ' + cost + 'g.', 'warn'); return false; }
     st.gold -= cost; t.level++;
+    t.evolved = t.level >= 4;
     if (t.level >= 5) { t.dmg += 2; t.range += 15; t.rate = Math.max(0.22, t.rate * 0.85); t.maxed = true; }
     else { t.dmg += 1; t.range += 10; t.rate = Math.max(0.25, t.rate * 0.9); }
     st.audio.coin(); emitHud(st); return true;
@@ -1055,17 +1243,25 @@
     if (t.ecsId) ecsRemove(st, t.ecsId);
     st.towers.splice(st.towers.indexOf(t), 1); st.selected = null; emitHud(st); return true;
   }
+  function equipHero(st, itemId) {
+    var h = st.hero; if (!h) return false;
+    var g = HERO_GEAR[itemId]; if (!g) return false;
+    h.equipment = h.equipment || { weapon: null, charm: null };
+    h.equipment[g.slot] = itemId;
+    emitHud(st); return true;
+  }
   function heroAbility(st) {
     if (!st.heroPlaced || !st.hero) { if (st.opts.onToast) st.opts.onToast('Place your hero first (click the board).', 'warn'); return false; }
     if (st.heroCd > 0) { if (st.opts.onToast) st.opts.onToast('Hero ability recharging: ' + Math.ceil(st.heroCd) + 's.', 'warn'); return false; }
     var h = st.hero;
-    st.heroCd = 12;
-    if (h.id === 'astra') { splashDamage(st, h.x, h.y, 170, 6, null); floater(st, h.x, h.y - 30, 'NOVA BURST!', '#ffd166'); }
-    else if (h.id === 'lyra') { var near = nearby(st, h.x, h.y, 190); for (var i = 0; i < near.length; i++) { near[i].slowUntil = st.time + 3; near[i].slowF = 0.35; } floater(st, h.x, h.y - 30, 'ION SLOW!', '#7bdff2'); }
-    else if (h.id === 'koda') { st.lives = Math.min(100, st.lives + 10); floater(st, h.x, h.y - 30, '+10 SHIELD', '#90ee90'); }
-    else if (h.id === 'nova7') { var fake = { x: h.x, y: h.y, range: 999, kind: 'hero' }; var tgt = pickTarget(st, fake); if (tgt) { damageBalloon(st, tgt, 10, null); addBeam(st, { x1: h.x, y1: h.y, x2: tgt.x, y2: tgt.y, life: 0.2, color: '#ff8fab' }); } floater(st, h.x, h.y - 30, 'RAIL SHOT!', '#ff8fab'); }
-    else if (h.id === 'vex') { var bosses = st.balloons.filter(function (b) { return b.boss; }); for (i = 0; i < bosses.length; i++) damageBalloon(st, bosses[i], 8, null); floater(st, h.x, h.y - 30, 'VOID STRIKE!', '#c792ea'); }
-    else { for (i = 0; i < st.towers.length; i++) { var tw = st.towers[i]; if (dist(tw.x, tw.y, h.x, h.y) < 180) tw.dmg += 1; } floater(st, h.x, h.y - 30, 'KEEPER AURA!', '#e0e0e0'); }
+    var tier = heroAbilityTier(h);
+    st.heroCd = tier >= 3 ? 7 : tier >= 2 ? 9 : 12;
+    if (h.id === 'astra') { splashDamage(st, h.x, h.y, 170, 4 + 2 * tier, null); floater(st, h.x, h.y - 30, 'NOVA BURST T' + tier + '!', '#ffd166'); }
+    else if (h.id === 'lyra') { var near = nearby(st, h.x, h.y, 190); for (var i = 0; i < near.length; i++) { near[i].slowUntil = st.time + 2 + tier; near[i].slowF = 0.35; } floater(st, h.x, h.y - 30, 'ION SLOW T' + tier + '!', '#7bdff2'); }
+    else if (h.id === 'koda') { st.lives = Math.min(100, st.lives + 10 * tier); floater(st, h.x, h.y - 30, '+' + (10 * tier) + ' SHIELD', '#90ee90'); }
+    else if (h.id === 'nova7') { var fake = { x: h.x, y: h.y, range: 999, kind: 'hero' }; var tgt = pickTarget(st, fake); if (tgt) { damageBalloon(st, tgt, 6 + 4 * tier, null); addBeam(st, { x1: h.x, y1: h.y, x2: tgt.x, y2: tgt.y, life: 0.2, color: '#ff8fab' }); } floater(st, h.x, h.y - 30, 'RAIL SHOT T' + tier + '!', '#ff8fab'); }
+    else if (h.id === 'vex') { var bosses = st.balloons.filter(function (b) { return b.boss; }); for (i = 0; i < bosses.length; i++) damageBalloon(st, bosses[i], 4 + 4 * tier, null); floater(st, h.x, h.y - 30, 'VOID STRIKE T' + tier + '!', '#c792ea'); }
+    else { for (i = 0; i < st.towers.length; i++) { var tw = st.towers[i]; if (dist(tw.x, tw.y, h.x, h.y) < 180) tw.dmg += 1; } floater(st, h.x, h.y - 30, 'KEEPER AURA T' + tier + '!', '#e0e0e0'); }
     st.audio.clear(); emitHud(st); return true;
   }
   function reset(st) {
@@ -1073,6 +1269,8 @@
     st.gold = st.challenge ? 100 : keep.gold; st.lives = st.challenge ? 20 : keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
     st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = []; st.spikes = []; st.lights = []; st.ecs = createECS(); st.acc = 0; st.alpha = 1; st.paused = false;
     st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null;
+    st.weather = { kind: 'clear', until: 0, strikeT: 0 }; st.reroutes = 0; st.hazardSlows = 0;
+    if (st.hero) { st.hero.patrol = false; st.hero.patrolDist = 0; st.hero.patrolDir = 1; st.hero.kills = 0; }
     emitHud(st);
   }
   function destroy(st) {
@@ -1086,7 +1284,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.2.0', description: 'Bloons-style tower defense: 50 waves + endless, 7 towers, camo/fortified/regen enemies, heroes, image sprites, ECS + spatial hash, fixed 60Hz timestep, bloom/lighting/vignette/tilt-shift/water post-processing, particle engine, Pillar 3 UI: floating combat text, inspection stat cards, settings (FPS/particles/motion blur/HiDPI), ECS-table iteration.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.3.0', description: 'Bloons-style tower defense: 50 waves + endless, 7 towers, camo/fortified/regen enemies, heroes, image sprites, ECS + spatial hash, fixed 60Hz timestep, bloom/lighting/vignette/tilt-shift/water post-processing, particle engine, Pillar 3 UI: floating combat text, inspection stat cards, settings (FPS/particles/motion blur/HiDPI), ECS-table iteration. Pillar 4: branching tower upgrade trees with Lv4/Lv5 evolutions, hero commander patrol/gear/ability tiers, hazard detours + wave-variant routing on the spline, storm/blizzard weather.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor };
 })(typeof window !== 'undefined' ? window : globalThis);
