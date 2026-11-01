@@ -4,6 +4,30 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.4.0 — 2026-11-01 — 9 features (63 total)
+
+| Area | Features |
+|---|---|
+| Cosmos BTD (8) | Multi-lane fork path, Closest/Elite targeting, Status effects (burn/poison/stun/shred), Synergy Beacon, Boss phase shields + minions, Log endless scaling, Hero radial cooldown, FCT arcs + crit rolls |
+| UI/UX (1) | Action-bar branch + patrol controls |
+
+Honest limits: branch-lane visuals are the same gravel style as the
+main path (no distinct branch art); DoF/water/lighting still not
+browser-verified; radial cooldown ring + status dots code-reviewed
+in canvas draw code, harness-verified via state/HUD only.
+
+## v3.3.0 — 2026-11-01 — 4 features (54 total)
+
+| Area | Features |
+|---|---|
+| Gameplay depth (4) | Branching upgrade trees, Hero commander (patrol/gear/tiers), Hazard detours + wave routing, Storm/blizzard weather |
+
+## v3.2.0 — 2026-11-01 — 5 features (50 total)
+
+| Area | Features |
+|---|---|
+| UI/UX framework (5) | Glassmorphism theme, Floating combat text, Inspection stat cards, Settings (FPS/particles/motion blur/HiDPI), ECS-table iteration |
+
 ## v3.1.0 — 2026-11-01 — 11 features (45 total)
 
 | Area | Features |
