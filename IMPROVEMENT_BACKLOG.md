@@ -154,6 +154,13 @@ Visuals
 Tests: server 25/25, BTD 146/146, shooter pass; serve 200s (server test covers homepage/config/features/shooter).
 Limits: flash/recoil + leak edge + end-screen panel are canvas draw code, harness-verified via helpers/state only (no browser screenshot check); starfield + hero glow are CSS/DOM, code-reviewed only.
 
+## LEVEL UP redesign — DONE 2026-11-01 — v3.8.0 (9 features, 85 total)
+- [x] LEVEL UP 3-column launcher layout + featured hero + game cards + info window + Recently Played + Find Games search.
+- [x] Wallet provider choice (Keplr/Leap, sticky signing) + no-demo real players + CEO side tabs.
+- [x] Space ATOM look (energy lane + ATOM orb) + link preview OG/Twitter tags (battlefield.jpg 1600x900).
+- Tests: server 25/25, BTD harness, shooter pass; serve 200s incl. OG tags + image.
+- Limits: launcher/modal/rail rendering code-reviewed + serve-checked (no browser screenshot/click check); wallet harness covers provider choice, not a real wallet send.
+
 ## Batch 10 — Space Shooter depth (was Batch 6)
 - [ ] Power-ups: shield, rapid fire, spread shot, dropping from drones.
 - [ ] Boss drone every 5 waves with a health bar.
@@ -229,3 +236,6 @@ Limits: flash/recoil + leak edge + end-screen panel are canvas draw code, harnes
 - 2026-11-01 15:07 EST: Batch 8 built locally (v3.6.0, BTD depth II): health/config 200 at run start (live 3.5.0). Tests: server 25/25, BTD 129/129, shooter pass. Push via browser task; verify /api/config shows 3.6.0.
 - 2026-11-01 15:20 EST: VERIFIED LIVE — push 8 files / 8 commits (HEAD dd10ddc, 73 commits total; previous HEAD 7221b4b). Fresh live-browser reload: /api/config version 3.6.0 (real CEO address, 5% fee, 30-min orders), /api/health version 3.6.0 at 2026-11-01T20:19:45Z (timestamp advanced on reload, live not cached). Batch 8 shipped.
 - 2026-11-01 15:24 EST: Batch 9 built locally (v3.7.0, Visuals): health/config 200 at run start (live 3.6.0; crawls stale at 3.5.0/3.3.0). Tests: server 25/25, BTD 146/146, shooter pass. Push via browser task; verify /api/config shows 3.7.0.
+- 2026-11-01 15:29 EST: Batch 9 pushed (browser task, saved GitHub login, no challenge): 9 files, 9 commits e230fef, 53abad2, ed5772c, 2c79600, 305e67e, 6b791bb, e2e53a5, bd3d5c4, 4e3bb88 (HEAD, 82 commits total). GitHub server.js + features.json verified 3.7.0 on main. Live /api/config verification pending after auto-deploy.
+- 2026-11-01 15:31 EST: VERIFIED LIVE — fresh live-browser reload: /api/config version 3.7.0 (real CEO address, 5% fee, 30-min orders), /api/health version 3.7.0 at 2026-11-01T20:31:12Z. Batch 9 shipped.
+- 2026-11-01 15:32 EST: LEVEL UP redesign built locally (v3.8.0): health/config 200 at run start (live 3.7.0). Tests: server 25/25, BTD harness, shooter pass. Push via browser task; verify /api/config shows 3.8.0.
