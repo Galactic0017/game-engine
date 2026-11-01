@@ -196,6 +196,7 @@
       + bar('Range', ins.range, 350, '#00f6ff')
       + bar('Shots/sec', (1 / Math.max(0.22, ins.rate)).toFixed(1), 5, '#ffd166')
       + '<p class="small"><strong>Upgrade tree:</strong> ' + (ins.upgradeCost ? ins.upgradeCost + 'g → Lv ' + (ins.level + 1) + ' (dmg ' + ins.nextDmg + ', range ' + ins.nextRange + ')' : 'MAX — fully upgraded') + ' · Sell refund ' + ins.sellRefund + 'g · Cost ' + ins.cost + 'g</p>'
+      + (ins.evolution || ins.branch ? '<p class="small"><strong>Branch:</strong> ' + esc(ins.evolution ? ins.evolution + (ins.branch ? ' · ' + esc(ins.branch) + ' ' + ins.branchLevel + '/3' : '') : (ins.branch ? esc(ins.branch) + ' ' + ins.branchLevel + '/3' : 'none yet — reach Lv 2')) + '</p>' : '')
       + '<p class="small"><strong>Tactical effectiveness</strong></p>'
       + bar('vs Fast', eff.fast || 0, 100, '#3ddc5f')
       + bar('vs Armored', eff.armored || 0, 100, '#c9ced6')
