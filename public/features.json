@@ -545,9 +545,33 @@
    "id": "shooter-leaderboard",
    "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
    "title": "Shooter leaderboard — game-over scores post to /api/progress with game=space-shooter (per-game bests, BTD bests untouched) and the Top Players rail has a Shooter filter; duplicate game-over emits deduped"
+  },
+  {
+   "category": "Platform & social",
+   "id": "friend-challenges",
+   "tested": "server test: invite create, rival accept/decline, non-rival 403, double-respond 400, result after accept, GET /api/duels list; shell invite/respond/submit UI code-reviewed only (no browser/DOM harness)",
+   "title": "Friend challenges — send a duel invite by address, the rival accepts or declines, then the challenger submits the result asynchronously; invite status and results live in the Challenges rail"
+  },
+  {
+   "category": "Platform & social",
+   "id": "seasonal-ladder",
+   "tested": "server test: monthly bests recorded on progress and duel results, season leaderboard returns seasonBest, previous month empty; shell season toggle + top-3 badges code-reviewed only (no browser/DOM harness)",
+   "title": "Seasonal ladder — monthly leaderboard (This month toggle in Top Players) from stored monthly bests, with last month top 3 shown and a trophy badge on this month top 3; all-time board unchanged"
+  },
+  {
+   "category": "Platform & social",
+   "id": "share-card",
+   "tested": "serve check: Share run card button in served homepage; canvas snapshot + stats banner + PNG download code-reviewed only (no browser canvas check; a tainted canvas fails with a toast only)",
+   "title": "Share card — download a PNG snapshot of the live game canvas with the game name, score, wave, pops, player name and date drawn on a stats banner"
+  },
+  {
+   "category": "Platform & social",
+   "id": "referral-code",
+   "tested": "server test: code derived from the address, invite counted once, self-referral ignored, no credits paid to either side; shell code display + ?ref= capture code-reviewed only (no browser/DOM harness)",
+   "title": "Referral code in profile — every player has a GAME- code, a friend opening ?ref=CODE is counted once in the profile; tracked only, no payouts"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.9.0"
+ "version": "3.10.0"
 }
