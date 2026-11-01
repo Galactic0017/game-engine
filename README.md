@@ -7,7 +7,7 @@ One wallet, one level, one set of heroes across every game.
 
 **No contracts.** There is no CosmWasm contract, no escrow contract, and
 none is needed for this model. Payments are plain ATOM bank sends the
-buyer signs in their own wallet (Keplr/Leap), exactly like the user did
+buyer signs in their own wallet (Keplr), exactly like the user did
 in the past:
 
 1. Seller lists a hero for X ATOM.
@@ -42,7 +42,7 @@ The server never holds keys and never moves ATOM.
 
 Shared shell (`public/engine/`): `EngineHost` (load/unload, zero-leak
 teardown), `EngineEvents` bus (typed event registry), `WalletManager`
-(Keplr/Leap identity, balance, ADR-36 CEO signing, real Amino send),
+(Keplr identity, balance, ADR-36 CEO signing, real Amino send),
 `RpcWatcher` (CometBFT WebSocket + REST fallback; notification only —
 approval always re-checks server-side and fails closed).
 
@@ -86,7 +86,7 @@ cp .env.example .env   # CEO_ADDRESS is already the user's address by default
 node server.js         # http://localhost:3000
 ```
 
-Flow to test (use tiny amounts, desktop Keplr/Leap):
+Flow to test (use tiny amounts, desktop Keplr):
 Connect wallet → My Heroes → Get demo hero → Marketplace → List →
 second wallet → Buy with Keplr (review address + memo in wallet) →
 CEO Panel → Sign in as CEO → One-click execute → hero moves, seller
@@ -105,6 +105,10 @@ payout sent, order closes.
   the animation frame: **pass**.
 - Live serve check: `/`, `/api/config`, `/api/state`, hub CSS/JS and
   game files all return 200; config shows the real CEO address.
+
+## v3.8.1 — 2026-11-01 (1 more, 86 tracked features)
+
+Keplr only: the other wallet option was removed from the UI, wallet detection, signing and all wording. Players connect with Keplr.
 
 ## v3.8.0 — 2026-11-01 (9 more, 85 tracked features)
 
