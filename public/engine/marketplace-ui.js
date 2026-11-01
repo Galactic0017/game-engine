@@ -81,11 +81,11 @@
     var l = (state.listings || []).find(function (x) { return x.id === listingId; });
     if (!l) return ctx.toast('Listing not found. Refresh.', 'err');
     if (!ctx.wallet || !ctx.wallet.address) return ctx.toast('Connect your wallet first.', 'warn');
-    if (!ctx.wallet.hasExtension()) return ctx.toast('Real send needs a real wallet (Keplr/Leap).', 'err');
+    if (!ctx.wallet.hasExtension()) return ctx.toast('Real send needs Keplr.', 'err');
     var ok = confirm('Send EXACTLY ' + l.priceAtom + ' ATOM to the CEO address?\n\nTo: ' + state.ceoAddress + '\nMemo (must be exact): ' + l.id + '\n\nYou will review this in your wallet before signing. The CEO moves "' + l.heroName + '" to you after verifying, then sends the seller ' + l.sellerAmount + ' ATOM.');
     if (!ok) return;
     try {
-      ctx.toast('Waiting for your wallet signature… Check Keplr/Leap.', '');
+      ctx.toast('Waiting for your wallet signature… Check Keplr.', '');
       var sent = await ctx.wallet.sendAtom({ toAddress: state.ceoAddress, amountAtom: l.priceAtom, memo: l.id });
       ctx.toast('Sent! TX: ' + sent.txhash.slice(0, 16) + '… Submitting order…', 'ok');
       var r = await ctx.api('/api/buy', 'POST', { listingId: l.id, buyerAddress: ctx.wallet.address, txid: sent.txhash, amountAtom: l.priceAtom, memo: l.id });
