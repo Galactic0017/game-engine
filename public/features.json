@@ -509,9 +509,15 @@
    "id": "space-atom-look",
    "tested": "harness: background renders in vm stub; orb/leak coordinates code-reviewed, no browser screenshot check",
    "title": "Space ATOM look — energy lane ending at a drawn ATOM orb, violet/navy space gradient, starfield, crystal spires, nebula pool; leak effects at the orb"
+  },
+  {
+   "category": "Hub UI",
+   "id": "keplr-only-wallet",
+   "tested": "wallet harness: Keplr-only providers list, other wallet extensions ignored, connect with another provider name rejected, stored Leap sessions not restored",
+   "title": "Keplr-only wallet — the other wallet option was removed; connect, signing and sends use Keplr only"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.8.0"
+ "version": "3.8.1"
 }
