@@ -4,6 +4,12 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.8.1 — 2026-11-01 — 1 feature (86 total)
+
+| Area | Features |
+|---|---|
+| Hub UI (1) | Keplr-only wallet — the other wallet option was removed everywhere (button, provider detection, signing, wording); stored sessions from it are not restored |
+
 ## v3.8.0 — 2026-11-01 — 9 features (85 total)
 
 | Area | Features |
