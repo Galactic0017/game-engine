@@ -570,8 +570,33 @@
    "tested": "server test: code derived from the address, invite counted once, self-referral ignored, no credits paid to either side; shell code display + ?ref= capture code-reviewed only (no browser/DOM harness)",
    "title": "Referral code in profile — every player has a GAME- code, a friend opening ?ref=CODE is counted once in the profile; tracked only, no payouts"
   }
+ ,
+ {
+  "category": "Marketplace",
+  "id": "marketplace-price-history",
+  "tested": "server test: history endpoint empty before any closed sale, still empty for a pending order; sparkline SVG helper + listing rendering code-reviewed only (no browser/DOM harness); history records only on CEO approve/execute, not on pending orders",
+  "title": "Price history sparkline per hero — last 10 closed sales per hero type, with last price, average and count, drawn as an SVG sparkline under each listing price"
+ },
+ {
+  "category": "Marketplace",
+  "id": "marketplace-offers",
+  "tested": "server test: below-list offer, at-list offer 400, self-offer 400, duplicate pending 400, non-seller respond 403, accept reprices + reserves listing, other-buyer buy 400, offer-buyer buy at offer price with 5% fee; offer UI code-reviewed only (no browser/DOM harness)",
+  "title": "Offer system — buyer offers below list price; seller accepts (listing reprices to the offer and reserves it for that buyer under the normal CEO-escrow buy) or declines; other pending offers are superseded; accepted offers expire with the order timer and restore the original price"
+ },
+ {
+  "category": "Marketplace",
+  "id": "marketplace-rentals",
+  "tested": "server test: rental create/request guards, wrong amount 400, owner-rent 400, listed-hero rental 400, reused TXID rejected, fee split 2.85 on 3 ATOM; CEO execute + auto-return sweep code-reviewed only (CEO-signed endpoints, no test keys in the harness); rented heroes show in the marketplace, in-game equip of a rented hero is not yet wired",
+  "title": "Hero rentals — owner lists a hero for a total price over 1-30 days; renter sends the full price to the CEO address (memo = rental ID); CEO execute starts the loan with the same fee split and the hero returns automatically at the end; rented heroes cannot be listed for sale"
+ },
+ {
+  "category": "Marketplace",
+  "id": "marketplace-bulk-list",
+  "tested": "server test: bulk list creates 2 listings, batch with an already-listed hero creates 0 (atomic), 11-item batch rejected; bulk form code-reviewed only (no browser/DOM harness)",
+  "title": "Bulk list — list up to 10 owned heroes in one batch from the marketplace; the whole batch is validated first, so one bad hero rejects the batch with nothing listed"
+ }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.10.0"
+ "version": "3.11.0"
 }
