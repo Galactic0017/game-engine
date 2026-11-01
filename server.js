@@ -1,18 +1,20 @@
-// Voidfall Cosmos v2 - DEMO / TEST MODE ONLY.
-// No real ATOM is moved, signed, or verified on-chain by this code.
-// Wallet connect (Keplr) = identity + storage only. Payment = buyer sends
-// ATOM themselves in TWO sends (seller net + CEO fee), submits both TXIDs,
-// admin checks both on the explorer, then the hero moves.
-// Real mainnet needs: CosmWasm escrow, audit, legal review, automatic on-chain verification.
+// GAME — game.atomstaking.app — Engine Hub server.
+// Model (user-confirmed, no contracts): real wallet connect (Keplr/Leap).
+// Buyer sends the FULL price in one ATOM send to the CEO address, memo =
+// listing ID. CEO verifies the TX, moves the item ID to the buyer, then
+// sends the seller their cut (price minus CEO fee) from the CEO wallet.
+// No smart contract is deployed or used. All on-chain moves are plain
+// bank sends the user signs in their own wallet — nothing moves without
+// their keys, like Swap.
+// CEO panel auth: Keplr signArbitrary (ADR-36) per action, like Swap.
+// Storage: JSON file locally; in-memory on Vercel (read-only filesystem).
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
-// CEO auth: Keplr signArbitrary (ADR-36), like Swap — you sign, nothing moves
-// without your keys. No ADMIN_KEY is required in the UI. If ADMIN_KEY is set
-// in the environment it is kept only as an emergency fallback for admin calls.
 const CEO_SESSION_TTL_MS = 5 * 60 * 1000;
 // --- ADR-36 / secp256k1 verification (zero dependencies, Node crypto) ---
 const SECP_P = (1n << 256n) - (1n << 32n) - 977n;
@@ -36,9 +38,6 @@ function bech32Encode(hrp, data5) { const values = bech32HrpExpand(hrp).concat(d
 function addressFromPubkey(pub) { const h1 = crypto.createHash('sha256').update(pub).digest(); const h2 = crypto.createHash('ripemd160').update(h1).digest(); const d5 = convertBits([...h2], 8, 5, true); return bech32Encode('cosmos', d5); }
 function canonicalJson(v) { if (v === null || typeof v !== 'object') return JSON.stringify(v); if (Array.isArray(v)) return '[' + v.map(canonicalJson).join(',') + ']'; return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canonicalJson(v[k])).join(',') + '}'; }
 function rawSigToDer(raw) { if (raw.length !== 64) throw new Error('bad signature length'); const r = raw.slice(0, 32), s = raw.slice(32); const strip = b => { let i = 0; while (i < b.length - 1 && b[i] === 0) i++; return b.slice(i); }; const enc = b => { let x = strip(b); if (x[0] & 0x80) x = Buffer.concat([Buffer.from([0]), x]); return Buffer.concat([Buffer.from([0x02, x.length]), x]); }; const rb = enc(r), sb = enc(s); return Buffer.concat([Buffer.from([0x30, rb.length + sb.length]), rb, sb]); }
-// Verify a Keplr signArbitrary (ADR-36) signature over `message` (plain text).
-// Returns true only if the pubkey derives to `address` and the signature
-// verifies over the ADR-36 amino doc for that message.
 function verifyAdr36(address, message, signatureB64, pubkeyB64) {
   try {
     const pub = Buffer.from(pubkeyB64, 'base64'); const sig = Buffer.from(signatureB64, 'base64');
@@ -51,9 +50,7 @@ function verifyAdr36(address, message, signatureB64, pubkeyB64) {
   } catch { return false; }
 }
 // A CEO admin request must carry a fresh ADR-36 signature over
-// "<path>\n<canonical body>\n<timestamp>". Timestamp must be within 5 min,
-// so an old signature cannot be replayed forever, and the signature binds
-// the exact action — like Swap, you sign every trade, here every CEO action.
+// "<path>\n<canonical body>\n<timestamp>" (5 min window, binds the action).
 function isCeoRequest(req, bodyForMessage) {
   if (ADMIN_KEY && req.headers['x-admin-key'] === ADMIN_KEY) return true;
   const address = req.headers['x-ceo-address'], sig = req.headers['x-ceo-signature'], pub = req.headers['x-ceo-pubkey'], ts = Number(req.headers['x-ceo-timestamp']);
@@ -68,16 +65,20 @@ function isCeoRequest(req, bodyForMessage) {
 const MODE = (process.env.MODE || 'demo').toLowerCase();
 const EXPLORER = process.env.EXPLORER_TX_URL || 'https://www.mintscan.io/cosmos/txs/';
 const CHAIN_ID = process.env.CHAIN_ID || 'cosmoshub-4';
-let FEE_PERCENT = parseFloat(process.env.FEE_PERCENT || '5');
-if (!isFinite(FEE_PERCENT)) FEE_PERCENT = 5;
-FEE_PERCENT = Math.min(7, Math.max(4, FEE_PERCENT));
-const CEO_ADDRESS = process.env.CEO_ADDRESS || 'cosmos1cccccccccccccccccccccccccccccccccccccc';
+let ENV_FEE = parseFloat(process.env.FEE_PERCENT || '5');
+if (!isFinite(ENV_FEE)) ENV_FEE = 5;
+ENV_FEE = Math.min(7, Math.max(4, ENV_FEE));
+let ORDER_TTL_MINUTES = parseFloat(process.env.ORDER_TTL_MINUTES || '30');
+if (!isFinite(ORDER_TTL_MINUTES) || ORDER_TTL_MINUTES < 1) ORDER_TTL_MINUTES = 30;
+if (ORDER_TTL_MINUTES > 1440) ORDER_TTL_MINUTES = 1440;
+// CEO address provided by the user (2026-11-01, bech32 checksum verified).
+// Env override wins; this default is a public receiving address, not a secret.
+const CEO_ADDRESS = process.env.CEO_ADDRESS || 'cosmos1pyp3wd7dsa7zmu7ges2dar2e6lk77lfa9qchlm';
+const LCD_URLS = (process.env.LCD_URLS || 'https://rest.cosmos.directory/cosmoshub,https://cosmos-lcd.publicnode.com,https://lcd-cosmoshub.keplr.app').split(',').map(s => s.trim()).filter(Boolean);
+const WS_URL = process.env.WS_URL || 'wss://rpc.cosmos.network/websocket';
 const IS_VERCEL = !!process.env.VERCEL;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
-// Vercel serverless functions run on a read-only filesystem: creating a
-// data folder crashes the whole function (500). On Vercel, storage is
-// in-memory only (see load()/save()), so skip the folder entirely there.
 if (!IS_VERCEL) { try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {} }
 const HERO_DEFS = [
   { id: 'astra', name: 'Astra, Validator Prime', rarity: 'Legendary', basePower: 45, ability: 'Nova Burst: big area damage', color: '#ffd166', unlockLevel: 15, tagline: 'The last validator of the fallen chain.' },
@@ -88,50 +89,245 @@ const HERO_DEFS = [
   { id: 'orin', name: 'Orin, Cosmos Keeper', rarity: 'Common', basePower: 16, ability: 'Keeper Aura: +10% tower damage nearby', color: '#e0e0e0', unlockLevel: 1, tagline: 'Every keeper starts somewhere.' },
 ];
 const UNLOCK = Object.fromEntries(HERO_DEFS.map(d => [d.id, d.unlockLevel]));
+const SKIN_DEFS = [
+  { id: 'gold-trim', name: 'Gold Trim', cost: 500, color: '#ffd166', desc: 'Golden frame on your hero portrait.' },
+  { id: 'void-glow', name: 'Void Glow', cost: 800, color: '#c792ea', desc: 'Purple void glow behind your hero.' },
+  { id: 'ion-aura', name: 'Ion Aura', cost: 1200, color: '#7bdff2', desc: 'Cyan ion aura in game and profile.' },
+];
+const MAX_XP_PER_WAVE = 200;
+const MIN_WAVE_GAP_MS = 10000;
 function uid(p) { return p + '_' + crypto.randomBytes(6).toString('hex'); }
 function isAddress(a) { return typeof a === 'string' && /^cosmos1[0-9a-z]{38,45}$/.test(a); }
 function isTxid(t) { return typeof t === 'string' && /^[0-9a-fA-F]{64}$/.test(t); }
 function round6(n) { return Math.round(n * 1e6) / 1e6; }
 function levelForXp(xp) { return Math.min(20, 1 + Math.floor((xp || 0) / 400)); }
-function load() { if (IS_VERCEL) return { players: {}, heroes: [], listings: [], sales: [], usedTxids: [], duels: [] }; try { const d = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); if (d && Array.isArray(d.heroes)) { d.duels = d.duels || []; d.usedTxids = d.usedTxids || []; return d; } } catch {} return { players: {}, heroes: [], listings: [], sales: [], usedTxids: [], duels: [] }; }
-function save(db) { if (IS_VERCEL) return; fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); }
+function feePercent() { const f = parseFloat(db.settings && db.settings.feePercent); return isFinite(f) ? Math.min(7, Math.max(4, f)) : ENV_FEE; }
+function orderTtlMinutes() { const t = parseFloat(db.settings && db.settings.orderTtlMinutes); return isFinite(t) ? Math.min(1440, Math.max(1, t)) : ORDER_TTL_MINUTES; }
+function autoVerifyEnabled() { return !!(db.settings && db.settings.autoVerifyEnabled); }
+function load() {
+  const base = { players: {}, heroes: [], listings: [], sales: [], usedTxids: [], duels: [], bans: {}, ledger: [], flags: [], sessions: {}, auditLog: [], settings: { feePercent: ENV_FEE, orderTtlMinutes: ORDER_TTL_MINUTES, autoVerifyEnabled: false } };
+  if (IS_VERCEL) return base;
+  try {
+    const d = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    if (d && typeof d === 'object') return { ...base, ...d, settings: { ...base.settings, ...(d.settings || {}) }, bans: d.bans || {}, sessions: d.sessions || {} };
+  } catch {}
+  return base;
+}
+function save(db) { if (IS_VERCEL) return; try { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); } catch {} }
 let db = load();
+function addLedger(kind, data) {
+  const entry = { id: uid('led'), ts: new Date().toISOString(), kind, ...(data || {}) };
+  db.ledger.push(entry);
+  if (db.ledger.length > 5000) db.ledger = db.ledger.slice(-5000);
+  return entry;
+}
+function addAudit(action, data) {
+  db.auditLog.push({ id: uid('aud'), ts: new Date().toISOString(), action, ...(data || {}) });
+  if (db.auditLog.length > 2000) db.auditLog = db.auditLog.slice(-2000);
+}
+function addFlag(type, data) {
+  const flag = { id: uid('flag'), ts: new Date().toISOString(), type, resolved: false, ...(data || {}) };
+  db.flags.push(flag);
+  return flag;
+}
+function isBanned(address) { return !!(address && db.bans && db.bans[address]); }
+// Pending orders close themselves when the timer runs out: listing
+// re-opens, sale is marked expired, ledger records it. Runs on every
+// request so no background job is needed (also safe on Vercel).
+function expireSweep() {
+  const now = Date.now(); let changed = false;
+  for (const s of db.sales) {
+    if (s.status === 'pending' && s.expiresAt && now > s.expiresAt) {
+      s.status = 'expired'; s.closedAt = new Date().toISOString(); changed = true;
+      const l = db.listings.find(x => x.id === s.listingId);
+      if (l && l.status === 'reserved') l.status = 'active';
+      addLedger('order_expired', { saleId: s.id, listingId: s.listingId, heroId: s.heroId, heroName: s.heroName, priceAtom: s.priceAtom, buyerAddress: s.buyerAddress, sellerAddress: s.sellerAddress });
+    }
+  }
+  if (changed) save(db);
+  return changed;
+}
+function saleView(s) {
+  const now = Date.now();
+  return { ...s, secondsLeft: s.status === 'pending' && s.expiresAt ? Math.max(0, Math.round((s.expiresAt - now) / 1000)) : 0, txidMasked: s.txid ? s.txid.slice(0, 10) + '…' + s.txid.slice(-6) : '' };
+}
 function send(res, code, obj) { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); }
-function readBody(req) { return new Promise((resolve) => { let s=''; req.on('data', c=>s+=c); req.on('end', ()=>{ try{ resolve(s?JSON.parse(s):{}); }catch{ resolve({}); } }); }); }
-const MIME = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.json':'application/json', '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg' };
-function leaderboard() { return Object.values(db.players).map(p=>({ address: p.address, name: p.name, level: levelForXp(p.xp||0), xp: p.xp||0, bestScore: p.bestScore||0, wins: p.wins||0, losses: p.losses||0, games: p.gamesPlayed||0, heroes: db.heroes.filter(h=>h.owner===p.address).length })).sort((a,b)=> b.bestScore-a.bestScore || b.level-a.level); }
+function readBody(req) { return new Promise((resolve) => { let s = ''; req.on('data', c => s += c); req.on('end', () => { try { resolve(s ? JSON.parse(s) : {}); } catch { resolve({}); } }); }); }
+const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon' };
+function leaderboard() { return Object.values(db.players).map(p => ({ address: p.address, name: p.name, level: levelForXp(p.xp || 0), xp: p.xp || 0, bestScore: p.bestScore || 0, wins: p.wins || 0, losses: p.losses || 0, games: p.gamesPlayed || 0, heroes: db.heroes.filter(h => h.owner === p.address).length, banned: isBanned(p.address) })).sort((a, b) => b.bestScore - a.bestScore || b.level - a.level); }
+// --- On-chain TX lookup (LCD REST). Notification/verification aid only:
+// the server never moves ATOM and never holds keys. Fail closed: any
+// fetch/parse failure returns found:false and the caller must not approve.
+function fetchJson(url, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { timeout: timeoutMs || 8000 }, (res) => {
+      let s = '';
+      res.on('data', c => s += c);
+      res.on('end', () => { try { resolve({ status: res.statusCode, json: JSON.parse(s) }); } catch (e) { reject(new Error('bad json')); } });
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+  });
+}
+async function fetchTx(hash) {
+  for (const base of LCD_URLS) {
+    try {
+      const { status, json } = await fetchJson(base.replace(/\/$/, '') + '/cosmos/tx/v1beta1/txs/' + hash);
+      if (status === 404) return { found: false, code: null, memo: null, sends: [], raw: json };
+      if (status !== 200 || !json || !json.tx) continue;
+      const tx = json.tx, resp = json.tx_response || {};
+      const sends = [];
+      for (const m of (tx.body && tx.body.messages) || []) {
+        if (m['@type'] === '/cosmos.bank.v1beta1.MsgSend' || m.type === 'cosmos-sdk/MsgSend') {
+          const v = m.value || m;
+          sends.push({ from: v.from_address, to: v.to_address, amount: v.amount || [] });
+        }
+      }
+      // Fallback: transfer events in logs carry the same facts.
+      if (!sends.length && Array.isArray(resp.logs)) {
+        for (const log of resp.logs) {
+          for (const ev of (log.events || [])) {
+            if (ev.type === 'transfer') {
+              const get = k => { const a = (ev.attributes || []).find(x => x.key === k); return a ? a.value : ''; };
+              sends.push({ from: get('sender'), to: get('recipient'), amount: get('amount').split(',').map(p => { const mm = p.match(/^(\d+)([a-z0-9]+)$/); return mm ? { denom: mm[2], amount: mm[1] } : null; }).filter(Boolean) });
+            }
+          }
+        }
+      }
+      return { found: true, code: resp.code, memo: (tx.body && tx.body.memo) || '', sends, height: resp.height };
+    } catch { /* try next LCD */ }
+  }
+  return { found: false, code: null, memo: null, sends: [], error: 'LCD unreachable or TX not found' };
+}
+// 5 checks for the CEO-escrow payment: exists, code 0, sender = buyer,
+// recipient = CEO address, amount = full price in uatom, memo = listing ID.
+async function validateBuyerTx(sale) {
+  const tx = await fetchTx(sale.txid);
+  const expectedUatom = String(Math.round(sale.priceAtom * 1e6));
+  const send = tx.sends.find(s => s.to === CEO_ADDRESS) || tx.sends[0];
+  const amountOk = !!send && (send.amount || []).some(a => a.denom === 'uatom' && String(a.amount) === expectedUatom);
+  const checks = [
+    { name: 'tx_exists', ok: tx.found, detail: tx.found ? 'Found on chain' : (tx.error || 'Not found') },
+    { name: 'tx_success', ok: tx.found && tx.code === 0, detail: 'code=' + tx.code },
+    { name: 'sender_is_buyer', ok: !!send && send.from === sale.buyerAddress, detail: send ? send.from : 'no send found' },
+    { name: 'recipient_is_ceo', ok: !!send && send.to === CEO_ADDRESS, detail: send ? send.to : 'no send found' },
+    { name: 'amount_and_memo', ok: amountOk && tx.memo === sale.listingId, detail: 'amount ' + (amountOk ? 'OK' : 'expected ' + expectedUatom + 'uatom') + ', memo ' + (tx.memo === sale.listingId ? 'OK' : 'mismatch') },
+  ];
+  return { verified: checks.every(c => c.ok), checks, tx };
+}
+function moveHeroToBuyer(sale) {
+  const hero = db.heroes.find(h => h.id === sale.heroId);
+  if (!hero) return null;
+  hero.owner = sale.buyerAddress;
+  return hero;
+}
+function closeListing(sale) { const l = db.listings.find(x => x.id === sale.listingId); if (l) l.status = 'closed'; }
+
 async function handle(req, res) {
   const u = new URL(req.url, 'http://x'); let p = u.pathname;
-  // Vercel rewrites /api/* to /api/index and loses the original path in
-  // req.url; the rewrite in vercel.json passes it back as ?__path=...
   if (p === '/api/index' && u.searchParams.get('__path')) p = u.searchParams.get('__path');
-  if (p === '/api/config') return send(res, 200, { mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, walletConnect: true, demoOnly: true, feePercent: FEE_PERCENT, ceoAddress: CEO_ADDRESS, heroDefs: HERO_DEFS, platform: 'GAME', domain: 'game.atomstaking.app', games: [{id:'defend-atom',name:'Defend ATOM',status:'playable',tagline:'Defend the ATOM core from layered space monsters.'},{id:'space-shooter',name:'Space Shooter',status:'coming-soon'},{id:'asteroid-miner',name:'Asteroid Miner',status:'coming-soon'},{id:'validator-runner',name:'Validator Runner',status:'coming-soon'}], unlockLevels: UNLOCK });
-  if (p === '/api/state') return send(res, 200, { mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, feePercent: FEE_PERCENT, ceoAddress: CEO_ADDRESS, players: Object.values(db.players).map(x=>({address:x.address, name:x.name, credits:x.credits||0, xp:x.xp||0, level:levelForXp(x.xp||0), bestScore:x.bestScore||0})), heroes: db.heroes, listings: db.listings.filter(l=>l.status!=='closed'), sales: db.sales.map(s=>({...s, txidMasked: s.txid ? s.txid.slice(0,10)+'…'+s.txid.slice(-6) : ''})), leaderboard: leaderboard() });
-  if (p === '/api/leaderboard') return send(res, 200, { leaderboard: leaderboard(), feePercent: FEE_PERCENT });
-  if (req.method === 'POST' && p === '/api/player') { const b = await readBody(req); if (!isAddress(b.address)) return send(res, 400, { error: 'Need a valid Cosmos address (cosmos1...). Connect Keplr, or paste a valid address in demo mode.' }); if (!db.players[b.address]) db.players[b.address] = { address: b.address, name: String(b.name||'Player').slice(0,40), credits: 1000, xp: 0, bestScore: 0, wins: 0, losses: 0, gamesPlayed: 0, createdAt: new Date().toISOString() }; else if (b.name) db.players[b.address].name = String(b.name).slice(0,40); save(db); const pl=db.players[b.address]; return send(res, 200, { player: {...pl, level: levelForXp(pl.xp||0)}, heroes: db.heroes.filter(h=>h.owner===b.address) }); }
-  if (req.method === 'POST' && p === '/api/progress') { const b = await readBody(req); const pl = db.players[b.address]; if (!pl) return send(res, 400, { error: 'Connect wallet / create player first.' }); const score = Math.max(0, Math.min(100000, Number(b.score)||0)); const wave = Math.max(0, Math.min(20, Number(b.waveReached)||0)); const won = !!b.won; const oldLevel = levelForXp(pl.xp||0); const xpGain = wave*40 + Math.floor(score/20); const creditGain = wave*20 + (won?100:0); pl.xp=(pl.xp||0)+xpGain; pl.credits=(pl.credits||0)+creditGain; pl.gamesPlayed=(pl.gamesPlayed||0)+1; if (score>(pl.bestScore||0)) pl.bestScore=score; const newLevel = levelForXp(pl.xp); const unlocked = HERO_DEFS.filter(d=>d.unlockLevel>oldLevel && d.unlockLevel<=newLevel).map(d=>d.id); save(db); return send(res, 200, { player: {...pl, level:newLevel}, xpGain, creditGain, unlocked }); }
-  if (req.method === 'POST' && p === '/api/heroes/demo') { const b = await readBody(req); if (!isAddress(b.address) || !db.players[b.address]) return send(res, 400, { error: 'Connect wallet / create player first.' }); const def = HERO_DEFS.find(d=>d.id===b.defId) || HERO_DEFS[5]; const lvl = levelForXp(db.players[b.address].xp||0); if (lvl < def.unlockLevel) return send(res, 403, { error: def.name+' unlocks at level '+def.unlockLevel+'. You are level '+lvl+'. Play waves to earn XP.' }); const hero = { id: uid('hero'), defId: def.id, name: def.name, rarity: def.rarity, basePower: def.basePower, ability: def.ability, color: def.color, tagline: def.tagline, level: 1, owner: b.address, isDemo: true, createdAt: new Date().toISOString() }; db.heroes.push(hero); save(db); return send(res, 200, { hero }); }
-  if (req.method === 'POST' && p === '/api/heroes/upgrade') { const b = await readBody(req); const hero = db.heroes.find(h=>h.id===b.heroId); if (!hero) return send(res, 404, { error: 'Hero not found' }); if (hero.owner !== b.address) return send(res, 403, { error: 'You do not own this hero' }); const cost = 200 * hero.level; const pl = db.players[b.address]; if (!pl || (pl.credits||0) < cost) return send(res, 400, { error: 'Not enough in-game credits. Cost: '+cost }); pl.credits -= cost; hero.level += 1; save(db); return send(res, 200, { hero, credits: pl.credits }); }
-  if (req.method === 'POST' && p === '/api/listings') { const b = await readBody(req); const hero = db.heroes.find(h=>h.id===b.heroId); if (!hero) return send(res, 404, { error: 'Hero not found' }); if (hero.owner !== b.address) return send(res, 403, { error: 'You do not own this hero' }); if (db.listings.some(l=>l.heroId===hero.id && l.status==='active')) return send(res, 400, { error: 'Already listed' }); const price = Number(b.priceAtom); if (!isFinite(price) || price <= 0 || price > 100000) return send(res, 400, { error: 'Price must be > 0 ATOM' }); if (!isAddress(b.sellerAddress)) return send(res, 400, { error: 'Seller Cosmos address required (your connected wallet address). Do NOT send real ATOM in demo mode.' }); const fee = round6(price * FEE_PERCENT / 100); const listing = { id: uid('list'), heroId: hero.id, heroName: hero.name, rarity: hero.rarity, level: hero.level, priceAtom: price, sellerAmount: round6(price-fee), ceoFee: fee, feePercent: FEE_PERCENT, ceoAddress: CEO_ADDRESS, sellerAddress: b.sellerAddress, sellerName: (db.players[b.address]||{}).name||'Seller', status: 'active', createdAt: new Date().toISOString() }; db.listings.push(listing); save(db); return send(res, 200, { listing }); }
-  if (req.method === 'POST' && p === '/api/buy') { const b = await readBody(req); const listing = db.listings.find(l=>l.id===b.listingId); if (!listing || listing.status !== 'active') return send(res, 400, { error: 'Listing not active' }); if (!isAddress(b.buyerAddress)) return send(res, 400, { error: 'Buyer Cosmos address required (connected wallet).' }); if (b.buyerAddress === listing.sellerAddress) return send(res, 400, { error: 'Buyer and seller addresses are the same.' }); if (!isTxid(b.txid) || !isTxid(b.txidFee)) return send(res, 400, { error: 'Two TXIDs required: seller send + CEO fee send, each 64 hex characters.' }); const tx = b.txid.toLowerCase(), txF = b.txidFee.toLowerCase(); if (tx === txF) return send(res, 400, { error: 'Seller TXID and fee TXID must be different sends.' }); if (db.usedTxids.includes(tx) || db.usedTxids.includes(txF)) return send(res, 400, { error: 'A TXID was already used for another sale.' }); if (Number(b.amountAtom) !== Number(listing.sellerAmount) || Number(b.feeAmount) !== Number(listing.ceoFee)) return send(res, 400, { error: 'Amounts must match exactly: seller '+listing.sellerAmount+' ATOM + CEO fee '+listing.ceoFee+' ATOM = '+listing.priceAtom+' ATOM total.' }); if (String(b.memo||'').trim() !== listing.id) return send(res, 400, { error: 'Memo must be exactly the listing ID: '+listing.id }); const sale = { id: uid('sale'), listingId: listing.id, heroId: listing.heroId, heroName: listing.heroName, priceAtom: listing.priceAtom, sellerAmount: listing.sellerAmount, ceoFee: listing.ceoFee, feePercent: listing.feePercent, sellerAddress: listing.sellerAddress, ceoAddress: listing.ceoAddress, buyerAddress: b.buyerAddress, txid: tx, txidFee: txF, amountAtom: Number(b.amountAtom), feeAmount: Number(b.feeAmount), memo: listing.id, status: 'pending', explorerUrl: EXPLORER + tx, explorerFeeUrl: EXPLORER + txF, createdAt: new Date().toISOString() }; listing.status = 'reserved'; db.sales.push(sale); db.usedTxids.push(tx, txF); save(db); return send(res, 200, { sale, note: 'Pending admin check of BOTH sends. No hero moved yet.' }); }
-  if (req.method === 'POST' && p === '/api/duels') { const b = await readBody(req); if (!db.players[b.challengerAddress] || !db.players[b.rivalAddress]) return send(res, 400, { error: 'Both players must connect wallet first.' }); if (b.challengerAddress===b.rivalAddress) return send(res, 400, { error: 'Cannot duel yourself.' }); const duel = { id: uid('duel'), challenger: b.challengerAddress, rival: b.rivalAddress, rivalBest: db.players[b.rivalAddress].bestScore||0, status: 'pending', createdAt: new Date().toISOString() }; db.duels.push(duel); save(db); return send(res, 200, { duel }); }
-  if (req.method === 'POST' && p === '/api/duels/result') { const b = await readBody(req); const duel = db.duels.find(d=>d.id===b.duelId); if (!duel || duel.status!=='pending') return send(res, 400, { error: 'Duel not pending' }); if (duel.challenger!==b.address) return send(res, 403, { error: 'Only the challenger submits the result.' }); const score = Math.max(0, Math.min(100000, Number(b.score)||0)); const won = score > duel.rivalBest; duel.status = won?'challenger_won':'challenger_lost'; duel.score=score; duel.decidedAt=new Date().toISOString(); const pl=db.players[b.address]; pl.gamesPlayed=(pl.gamesPlayed||0)+1; if (score>(pl.bestScore||0)) pl.bestScore=score; if (won){ pl.wins=(pl.wins||0)+1; pl.credits=(pl.credits||0)+150; pl.xp=(pl.xp||0)+100; } else { pl.losses=(pl.losses||0)+1; pl.xp=(pl.xp||0)+20; } save(db); return send(res, 200, { duel, won, rivalBest: duel.rivalBest }); }
-  if (p === '/api/admin/pending') { if (!isCeoRequest(req, {})) return send(res, 401, { error: 'CEO wallet signature required: connect Keplr with the CEO address and sign.' }); return send(res, 200, { sales: db.sales.filter(s=>s.status==='pending'), feePercent: FEE_PERCENT, ceoAddress: CEO_ADDRESS }); }
-  if (req.method === 'POST' && (p === '/api/admin/approve' || p === '/api/admin/reject')) {
+  expireSweep();
+  const fee = feePercent(), ttl = orderTtlMinutes();
+  if (p === '/api/config') return send(res, 200, { mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, walletConnect: true, realWalletSend: true, noContracts: true, escrowModel: 'ceo-escrow', demoOnly: false, feePercent: fee, orderTtlMinutes: ttl, autoVerifyEnabled: autoVerifyEnabled(), ceoAddress: CEO_ADDRESS, lcdUrls: LCD_URLS, wsUrl: WS_URL, heroDefs: HERO_DEFS, skins: SKIN_DEFS, platform: 'GAME', domain: 'game.atomstaking.app', games: [{ id: 'cosmos-btd', name: 'Cosmos BTD', status: 'playable', tagline: 'Bloons-style tower defense. 50 waves, 5 towers, heroes.' }, { id: 'space-tycoon', name: 'Space Tycoon', status: 'playable', tagline: 'Build rigs, earn offline. Local save.' }, { id: 'atom-clicker', name: 'ATOM Core Clicker', status: 'playable', tagline: 'Tap the core, earn shards. Local save.' }, { id: 'defend-atom', name: 'Defend ATOM', status: 'legacy', tagline: 'Original canvas defense (legacy files).' }], unlockLevels: UNLOCK });
+  if (p === '/api/state') return send(res, 200, { mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, feePercent: fee, orderTtlMinutes: ttl, ceoAddress: CEO_ADDRESS, players: Object.values(db.players).map(x => ({ address: x.address, name: x.name, credits: x.credits || 0, xp: x.xp || 0, level: levelForXp(x.xp || 0), bestScore: x.bestScore || 0, banned: isBanned(x.address) })), heroes: db.heroes, listings: db.listings.filter(l => l.status === 'active'), sales: db.sales.map(saleView), leaderboard: leaderboard() });
+  if (p === '/api/leaderboard') return send(res, 200, { leaderboard: leaderboard(), feePercent: fee });
+  if (req.method === 'POST' && p === '/api/player') { const b = await readBody(req); if (!isAddress(b.address)) return send(res, 400, { error: 'Need a valid Cosmos address (cosmos1...). Connect Keplr, or paste a valid address in demo mode.' }); if (isBanned(b.address)) return send(res, 403, { error: 'This address is banned.' }); if (!db.players[b.address]) db.players[b.address] = { address: b.address, name: String(b.name || 'Player').slice(0, 40), credits: 1000, xp: 0, bestScore: 0, wins: 0, losses: 0, gamesPlayed: 0, skins: [], equippedSkin: null, createdAt: new Date().toISOString() }; else if (b.name) db.players[b.address].name = String(b.name).slice(0, 40); db.players[b.address].skins = db.players[b.address].skins || []; save(db); const pl = db.players[b.address]; return send(res, 200, { player: { ...pl, level: levelForXp(pl.xp || 0) }, heroes: db.heroes.filter(h => h.owner === b.address) }); }
+  if (req.method === 'POST' && p === '/api/session/start') { const b = await readBody(req); const sessionId = uid('sess'); const nonce = crypto.randomBytes(16).toString('hex'); db.sessions[sessionId] = { sessionId, address: isAddress(b.address) ? b.address : null, nonce, startedAt: Date.now(), lastWave: 0, lastWaveAt: 0, wavesSubmitted: [] }; save(db); return send(res, 200, { sessionId, nonce }); }
+  if (req.method === 'POST' && p === '/api/progress') { const b = await readBody(req); const pl = db.players[b.address]; if (!pl) return send(res, 400, { error: 'Connect wallet / create player first.' }); if (isBanned(b.address)) return send(res, 403, { error: 'This address is banned.' }); const score = Math.max(0, Math.min(100000, Number(b.score) || 0)); const wave = Math.max(0, Math.min(50, Number(b.waveReached) || 0)); const won = !!b.won; const oldLevel = levelForXp(pl.xp || 0); const xpGain = wave * 40 + Math.floor(score / 20); const creditGain = wave * 20 + (won ? 100 : 0); pl.xp = (pl.xp || 0) + xpGain; pl.credits = (pl.credits || 0) + creditGain; pl.gamesPlayed = (pl.gamesPlayed || 0) + 1; if (score > (pl.bestScore || 0)) pl.bestScore = score; const newLevel = levelForXp(pl.xp); const unlocked = HERO_DEFS.filter(d => d.unlockLevel > oldLevel && d.unlockLevel <= newLevel).map(d => d.id); save(db); return send(res, 200, { player: { ...pl, level: newLevel }, xpGain, creditGain, unlocked }); }
+  if (req.method === 'POST' && p === '/api/progress/secure') {
     const b = await readBody(req);
-    if (!isCeoRequest(req, b)) return send(res, 401, { error: 'CEO wallet signature required: connect Keplr with the CEO address and sign.' });
-    const sale = db.sales.find(s=>s.id===b.saleId); if (!sale || sale.status !== 'pending') return send(res, 400, { error: 'Sale not pending' });
-    const listing = db.listings.find(l=>l.id===sale.listingId); const hero = db.heroes.find(h=>h.id===sale.heroId);
-    if (p === '/api/admin/approve') { if (!b.checkedAmount || !b.checkedFee || !b.checkedRecipient || !b.checkedCeo || !b.checkedMemo || !b.checkedExplorer) return send(res, 400, { error: 'Admin must tick all 6 checks: seller amount, CEO fee, seller recipient, CEO recipient, memo, explorer.' }); if (!hero) return send(res, 400, { error: 'Hero missing' }); hero.owner = sale.buyerAddress; sale.status = 'approved'; sale.decidedAt = new Date().toISOString(); if (listing) listing.status = 'closed'; save(db); return send(res, 200, { sale, hero }); }
-    sale.status = 'rejected'; sale.reason = String(b.reason||'Rejected by admin').slice(0,200); sale.decidedAt = new Date().toISOString(); if (listing) listing.status = 'active'; save(db); return send(res, 200, { sale });
+    const pl = db.players[b.address]; if (!pl) return send(res, 400, { error: 'Connect wallet / create player first.' });
+    if (isBanned(b.address)) return send(res, 403, { error: 'This address is banned.' });
+    const sess = db.sessions[b.sessionId];
+    const wave = Math.max(0, Math.min(50, Number(b.waveReached) || 0)); const score = Math.max(0, Math.min(100000, Number(b.score) || 0));
+    const pops = Math.max(0, Number(b.pops) || 0); const heroXp = Math.max(0, Number(b.heroXp) || 0);
+    const xpGain = wave * 40 + Math.floor(score / 20);
+    // Hash must match: SHA256(sessionId:wave:pops:heroXp:nonce). A mismatch
+    // means the numbers were changed after the hash was made — fail closed.
+    let hashOk = false;
+    if (sess) { const expect = crypto.createHash('sha256').update(sess.sessionId + ':' + wave + ':' + pops + ':' + heroXp + ':' + sess.nonce).digest('hex'); hashOk = expect === String(b.stateHash || ''); }
+    const tooFast = sess && sess.lastWaveAt && (Date.now() - sess.lastWaveAt) < MIN_WAVE_GAP_MS;
+    const waveJump = sess && wave > sess.lastWave + 1;
+    const overCap = xpGain > MAX_XP_PER_WAVE;
+    if (!hashOk || tooFast || waveJump || overCap) {
+      const reasons = []; if (!hashOk) reasons.push('state hash mismatch'); if (tooFast) reasons.push('waves too fast'); if (waveJump) reasons.push('wave jump'); if (overCap) reasons.push('XP over cap');
+      addFlag('secure-progress', { address: b.address, sessionId: b.sessionId, wave, score, pops, heroXp, reasons }); save(db);
+      return send(res, 200, { flagged: true, credited: 0, reasons, note: 'Claim flagged for CEO audit. Nothing was credited.' });
+    }
+    const oldLevel = levelForXp(pl.xp || 0); const creditGain = wave * 20 + (b.won ? 100 : 0);
+    pl.xp = (pl.xp || 0) + xpGain; pl.credits = (pl.credits || 0) + creditGain; pl.gamesPlayed = (pl.gamesPlayed || 0) + 1; if (score > (pl.bestScore || 0)) pl.bestScore = score;
+    sess.lastWave = wave; sess.lastWaveAt = Date.now(); sess.wavesSubmitted.push(wave);
+    const newLevel = levelForXp(pl.xp); const unlocked = HERO_DEFS.filter(d => d.unlockLevel > oldLevel && d.unlockLevel <= newLevel).map(d => d.id);
+    save(db); return send(res, 200, { flagged: false, player: { ...pl, level: newLevel }, xpGain, creditGain, unlocked });
   }
+  if (req.method === 'POST' && p === '/api/heroes/demo') { const b = await readBody(req); if (!isAddress(b.address) || !db.players[b.address]) return send(res, 400, { error: 'Connect wallet / create player first.' }); if (isBanned(b.address)) return send(res, 403, { error: 'This address is banned.' }); const def = HERO_DEFS.find(d => d.id === b.defId) || HERO_DEFS[5]; const lvl = levelForXp(db.players[b.address].xp || 0); if (lvl < def.unlockLevel) return send(res, 403, { error: def.name + ' unlocks at level ' + def.unlockLevel + '. You are level ' + lvl + '. Play waves to earn XP.' }); const hero = { id: uid('hero'), defId: def.id, name: def.name, rarity: def.rarity, basePower: def.basePower, ability: def.ability, color: def.color, tagline: def.tagline, level: 1, xp: 0, owner: b.address, isDemo: true, createdAt: new Date().toISOString() }; db.heroes.push(hero); save(db); return send(res, 200, { hero }); }
+  if (req.method === 'POST' && p === '/api/heroes/upgrade') { const b = await readBody(req); const hero = db.heroes.find(h => h.id === b.heroId); if (!hero) return send(res, 404, { error: 'Hero not found' }); if (hero.owner !== b.address) return send(res, 403, { error: 'You do not own this hero' }); const cost = 200 * hero.level; const pl = db.players[b.address]; if (!pl || (pl.credits || 0) < cost) return send(res, 400, { error: 'Not enough in-game credits. Cost: ' + cost }); pl.credits -= cost; hero.level += 1; hero.xp = (hero.xp || 0) + 400; save(db); return send(res, 200, { hero, credits: pl.credits }); }
+  if (req.method === 'POST' && p === '/api/heroes/add-xp') { const b = await readBody(req); const hero = db.heroes.find(h => h.id === b.heroId); if (!hero) return send(res, 404, { error: 'Hero not found' }); if (hero.owner !== b.address) return send(res, 403, { error: 'You do not own this hero' }); const xp = Math.max(0, Number(b.xp) || 0); if (xp > 1000) { addFlag('hero-xp-cap', { address: b.address, heroId: hero.id, xp }); save(db); return send(res, 400, { error: 'Hero XP per claim is capped at 1000. Flagged for CEO audit.' }); } hero.xp = (hero.xp || 0) + xp; hero.level = Math.min(100, 1 + Math.floor(hero.xp / 400)); if (Number(b.pops)) hero.totalPops = (hero.totalPops || 0) + Number(b.pops); save(db); return send(res, 200, { hero }); }
+  if (req.method === 'POST' && p === '/api/shop/buy-skin') { const b = await readBody(req); const pl = db.players[b.address]; if (!pl) return send(res, 400, { error: 'Connect wallet / create player first.' }); const skin = SKIN_DEFS.find(s => s.id === b.skinId); if (!skin) return send(res, 404, { error: 'Skin not found' }); pl.skins = pl.skins || []; if (pl.skins.includes(skin.id)) { pl.equippedSkin = skin.id; save(db); return send(res, 200, { player: pl, equipped: skin.id }); } if ((pl.credits || 0) < skin.cost) return send(res, 400, { error: 'Not enough credits. Cost: ' + skin.cost }); pl.credits -= skin.cost; pl.skins.push(skin.id); pl.equippedSkin = skin.id; save(db); return send(res, 200, { player: pl, equipped: skin.id }); }
+  if (req.method === 'POST' && p === '/api/listings') { const b = await readBody(req); const hero = db.heroes.find(h => h.id === b.heroId); if (!hero) return send(res, 404, { error: 'Hero not found' }); if (hero.owner !== b.address) return send(res, 403, { error: 'You do not own this hero' }); if (isBanned(b.address)) return send(res, 403, { error: 'This address is banned.' }); if (db.listings.some(l => l.heroId === hero.id && l.status === 'active')) return send(res, 400, { error: 'Already listed' }); const price = Number(b.priceAtom); if (!isFinite(price) || price <= 0 || price > 100000) return send(res, 400, { error: 'Price must be > 0 ATOM' }); if (!isAddress(b.sellerAddress)) return send(res, 400, { error: 'Seller Cosmos address required (your connected wallet address).' }); const feeAmt = round6(price * fee / 100); const listing = { id: uid('list'), heroId: hero.id, heroName: hero.name, rarity: hero.rarity, level: hero.level, priceAtom: price, sellerAmount: round6(price - feeAmt), ceoFee: feeAmt, feePercent: fee, ceoAddress: CEO_ADDRESS, sellerAddress: b.sellerAddress, sellerName: (db.players[b.address] || {}).name || 'Seller', status: 'active', createdAt: new Date().toISOString() }; db.listings.push(listing); addLedger('listing_created', { listingId: listing.id, heroId: hero.id, heroName: hero.name, priceAtom: price, sellerAddress: listing.sellerAddress }); save(db); return send(res, 200, { listing }); }
+  // CEO-escrow buy: ONE send, full price, to the CEO address, memo = listing ID.
+  if (req.method === 'POST' && p === '/api/buy') { const b = await readBody(req); const listing = db.listings.find(l => l.id === b.listingId); if (!listing || listing.status !== 'active') return send(res, 400, { error: 'Listing not active' }); if (!isAddress(b.buyerAddress)) return send(res, 400, { error: 'Buyer Cosmos address required (connected wallet).' }); if (isBanned(b.buyerAddress)) return send(res, 403, { error: 'This address is banned.' }); if (b.buyerAddress === listing.sellerAddress) return send(res, 400, { error: 'Buyer and seller addresses are the same.' }); if (!isTxid(b.txid)) return send(res, 400, { error: 'One TXID required: the single send to the CEO address, 64 hex characters.' }); const tx = b.txid.toLowerCase(); if (db.usedTxids.includes(tx)) return send(res, 400, { error: 'This TXID was already used for another order.' }); if (Number(b.amountAtom) !== Number(listing.priceAtom)) return send(res, 400, { error: 'Amount must be exactly the full price: ' + listing.priceAtom + ' ATOM to the CEO address.' }); if (String(b.memo || '').trim() !== listing.id) return send(res, 400, { error: 'Memo must be exactly the listing ID: ' + listing.id }); const expiresAt = Date.now() + ttl * 60000; const sale = { id: uid('sale'), listingId: listing.id, heroId: listing.heroId, heroName: listing.heroName, priceAtom: listing.priceAtom, sellerAmount: listing.sellerAmount, ceoFee: listing.ceoFee, feePercent: listing.feePercent, sellerAddress: listing.sellerAddress, ceoAddress: listing.ceoAddress, buyerAddress: b.buyerAddress, txid: tx, amountAtom: Number(b.amountAtom), memo: listing.id, status: 'pending', verification: 'unverified', sellerPayout: { amount: listing.sellerAmount, to: listing.sellerAddress, status: 'pending', txid: null }, explorerUrl: EXPLORER + tx, expiresAt, createdAt: new Date().toISOString() }; listing.status = 'reserved'; db.sales.push(sale); db.usedTxids.push(tx); addLedger('order_created', { saleId: sale.id, listingId: listing.id, heroId: listing.heroId, heroName: listing.heroName, priceAtom: listing.priceAtom, ceoFee: listing.ceoFee, sellerAmount: listing.sellerAmount, buyerAddress: sale.buyerAddress, sellerAddress: sale.sellerAddress, txid: tx, expiresAt: new Date(expiresAt).toISOString() }); save(db); return send(res, 200, { sale: saleView(sale), note: 'Pending CEO check. The hero moves only after the CEO verifies the send to the CEO address.' }); }
+  if (req.method === 'POST' && p === '/api/duels') { const b = await readBody(req); if (!db.players[b.challengerAddress] || !db.players[b.rivalAddress]) return send(res, 400, { error: 'Both players must connect wallet first.' }); if (b.challengerAddress === b.rivalAddress) return send(res, 400, { error: 'Cannot duel yourself.' }); const duel = { id: uid('duel'), challenger: b.challengerAddress, rival: b.rivalAddress, rivalBest: db.players[b.rivalAddress].bestScore || 0, status: 'pending', createdAt: new Date().toISOString() }; db.duels.push(duel); save(db); return send(res, 200, { duel }); }
+  if (req.method === 'POST' && p === '/api/duels/result') { const b = await readBody(req); const duel = db.duels.find(d => d.id === b.duelId); if (!duel || duel.status !== 'pending') return send(res, 400, { error: 'Duel not pending' }); if (duel.challenger !== b.address) return send(res, 403, { error: 'Only the challenger submits the result.' }); const score = Math.max(0, Math.min(100000, Number(b.score) || 0)); const won = score > duel.rivalBest; duel.status = won ? 'challenger_won' : 'challenger_lost'; duel.score = score; duel.decidedAt = new Date().toISOString(); const pl = db.players[b.address]; pl.gamesPlayed = (pl.gamesPlayed || 0) + 1; if (score > (pl.bestScore || 0)) pl.bestScore = score; if (won) { pl.wins = (pl.wins || 0) + 1; pl.credits = (pl.credits || 0) + 150; pl.xp = (pl.xp || 0) + 100; } else { pl.losses = (pl.losses || 0) + 1; pl.xp = (pl.xp || 0) + 20; } save(db); return send(res, 200, { duel, won, rivalBest: duel.rivalBest }); }
+  // ---------------- CEO PANEL (ADR-36 signed, every action) ----------------
+  const ceoOnly = async (body) => { if (!isCeoRequest(req, body)) { send(res, 401, { error: 'CEO wallet signature required: connect Keplr with the CEO address and sign.' }); return false; } return true; };
+  if (p === '/api/admin/pending') { if (!(await ceoOnly({}))) return; return send(res, 200, { sales: db.sales.filter(s => s.status === 'pending').map(saleView), flags: db.flags.filter(f => !f.resolved), settings: db.settings, feePercent: fee, orderTtlMinutes: ttl, ceoAddress: CEO_ADDRESS }); }
+  if (p === '/api/admin/settings') {
+    if (req.method === 'GET') { if (!(await ceoOnly({}))) return; return send(res, 200, { settings: db.settings, feePercent: fee, orderTtlMinutes: ttl, autoVerifyEnabled: autoVerifyEnabled(), ceoAddress: CEO_ADDRESS, lcdUrls: LCD_URLS, wsUrl: WS_URL }); }
+    const b = await readBody(req); if (!(await ceoOnly(b))) return;
+    if (b.feePercent !== undefined) { const f = parseFloat(b.feePercent); if (!isFinite(f) || f < 4 || f > 7) return send(res, 400, { error: 'CEO fee must be 4-7%.' }); db.settings.feePercent = f; }
+    if (b.orderTtlMinutes !== undefined) { const t = parseFloat(b.orderTtlMinutes); if (!isFinite(t) || t < 1 || t > 1440) return send(res, 400, { error: 'Order timer must be 1-1440 minutes.' }); db.settings.orderTtlMinutes = t; }
+    if (b.autoVerifyEnabled !== undefined) db.settings.autoVerifyEnabled = !!b.autoVerifyEnabled;
+    addLedger('settings_changed', { feePercent: feePercent(), orderTtlMinutes: orderTtlMinutes(), autoVerifyEnabled: autoVerifyEnabled() }); addAudit('settings', { by: CEO_ADDRESS }); save(db);
+    return send(res, 200, { settings: db.settings });
+  }
+  if (p === '/api/admin/ledger') { if (!(await ceoOnly({}))) return; const kind = u.searchParams.get('kind') || ''; const limit = Math.min(500, Math.max(1, parseInt(u.searchParams.get('limit') || '200', 10))); const entries = db.ledger.filter(e => !kind || e.kind === kind).slice().reverse().slice(0, limit); const closed = db.sales.filter(s => s.status === 'closed' || s.status === 'approved'); const volume = round6(closed.reduce((a, s) => a + (s.priceAtom || 0), 0)); const fees = round6(closed.reduce((a, s) => a + (s.ceoFee || 0), 0)); const payouts = round6(db.sales.filter(s => s.sellerPayout && s.sellerPayout.status === 'paid').reduce((a, s) => a + (s.sellerPayout.amount || 0), 0)); return send(res, 200, { entries, totals: { volume, fees, payouts, orders: db.sales.length, pending: db.sales.filter(s => s.status === 'pending').length, closed: closed.length, expired: db.sales.filter(s => s.status === 'expired').length }, kinds: [...new Set(db.ledger.map(e => e.kind))] }); }
+  if (p === '/api/admin/users') { if (!(await ceoOnly({}))) return; const users = Object.values(db.players).map(pl => ({ address: pl.address, name: pl.name, credits: pl.credits || 0, xp: pl.xp || 0, level: levelForXp(pl.xp || 0), bestScore: pl.bestScore || 0, heroes: db.heroes.filter(h => h.owner === pl.address).length, listings: db.listings.filter(l => l.sellerAddress === pl.address).length, orders: db.sales.filter(s => s.buyerAddress === pl.address || s.sellerAddress === pl.address).length, banned: isBanned(pl.address), ban: db.bans[pl.address] || null })); return send(res, 200, { users, banned: Object.keys(db.bans) }); }
+  if (p === '/api/admin/flags') { if (!(await ceoOnly({}))) return; return send(res, 200, { flags: db.flags.slice().reverse() }); }
+  if (p === '/api/admin/audit') { if (!(await ceoOnly({}))) return; return send(res, 200, { audit: db.auditLog.slice().reverse().slice(0, 200) }); }
+  if (req.method === 'POST' && p === '/api/admin/auto-verify-order') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const sale = db.sales.find(s => s.id === b.saleId); if (!sale) return send(res, 404, { error: 'Order not found' }); if (sale.status !== 'pending') return send(res, 400, { error: 'Order is not pending (status: ' + sale.status + ')' }); const v = await validateBuyerTx(sale); sale.lastVerification = { at: new Date().toISOString(), verified: v.verified, checks: v.checks }; save(db); return send(res, 200, { verified: v.verified, checks: v.checks, sale: saleView(sale) }); }
+  if (req.method === 'POST' && p === '/api/admin/record-payout') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const sale = db.sales.find(s => s.id === b.saleId); if (!sale) return send(res, 404, { error: 'Order not found' }); if (!isTxid(b.payoutTxid)) return send(res, 400, { error: 'Payout TXID must be 64 hex characters.' }); if (db.usedTxids.includes(b.payoutTxid.toLowerCase())) return send(res, 400, { error: 'Payout TXID already used.' }); sale.sellerPayout = sale.sellerPayout || { amount: sale.sellerAmount, to: sale.sellerAddress, status: 'pending', txid: null }; sale.sellerPayout.status = 'paid'; sale.sellerPayout.txid = b.payoutTxid.toLowerCase(); db.usedTxids.push(sale.sellerPayout.txid); addLedger('seller_payout', { saleId: sale.id, listingId: sale.listingId, heroName: sale.heroName, amount: sale.sellerPayout.amount, to: sale.sellerAddress, txid: sale.sellerPayout.txid, buyerAddress: sale.buyerAddress }); addAudit('record-payout', { saleId: sale.id }); save(db); return send(res, 200, { sale: saleView(sale) }); }
+  if (req.method === 'POST' && (p === '/api/admin/approve' || p === '/api/admin/reject')) {
+    const b = await readBody(req); if (!(await ceoOnly(b))) return;
+    const sale = db.sales.find(s => s.id === b.saleId); if (!sale || sale.status !== 'pending') return send(res, 400, { error: 'Order not pending' });
+    const listing = db.listings.find(l => l.id === sale.listingId);
+    if (p === '/api/admin/approve') { if (!b.checkedAmount || !b.checkedCeo || !b.checkedMemo || !b.checkedExplorer) return send(res, 400, { error: 'Tick all 4 checks: amount, CEO recipient, memo, explorer.' }); const hero = moveHeroToBuyer(sale); if (!hero) return send(res, 400, { error: 'Hero missing' }); sale.status = 'approved'; sale.verification = 'manual'; sale.decidedAt = new Date().toISOString(); closeListing(sale); addLedger('item_moved', { saleId: sale.id, heroId: sale.heroId, heroName: sale.heroName, to: sale.buyerAddress }); addLedger('order_approved', { saleId: sale.id, priceAtom: sale.priceAtom, ceoFee: sale.ceoFee, buyerAddress: sale.buyerAddress, sellerAddress: sale.sellerAddress }); addAudit('approve', { saleId: sale.id }); save(db); return send(res, 200, { sale: saleView(sale), hero }); }
+    sale.status = 'rejected'; sale.reason = String(b.reason || 'Rejected by CEO').slice(0, 200); sale.decidedAt = new Date().toISOString(); if (listing) listing.status = 'active'; addLedger('order_rejected', { saleId: sale.id, reason: sale.reason, priceAtom: sale.priceAtom }); addAudit('reject', { saleId: sale.id }); save(db); return send(res, 200, { sale: saleView(sale) });
+  }
+  // ONE-CLICK EXECUTE: verify + move + close in one CEO-signed action.
+  // If autoVerify is set, the server re-checks the buyer TX on-chain and
+  // fails closed when it cannot verify. Otherwise the 4 manual checks
+  // must be ticked. Payout TXID is optional here — the CEO UI sends the
+  // seller payout from the CEO wallet first, then calls execute with its
+  // TXID; if the payout was already sent, record it afterwards.
+  if (req.method === 'POST' && p === '/api/admin/execute-order') {
+    const b = await readBody(req); if (!(await ceoOnly(b))) return;
+    const sale = db.sales.find(s => s.id === b.saleId); if (!sale || sale.status !== 'pending') return send(res, 400, { error: 'Order not pending' });
+    let verification = 'manual';
+    if (b.autoVerify) { const v = await validateBuyerTx(sale); sale.lastVerification = { at: new Date().toISOString(), verified: v.verified, checks: v.checks }; if (!v.verified) { save(db); return send(res, 400, { error: 'On-chain verification failed. Order left pending.', checks: v.checks }); } verification = 'chain'; }
+    else if (!b.checkedAmount || !b.checkedCeo || !b.checkedMemo || !b.checkedExplorer) return send(res, 400, { error: 'Tick all 4 checks, or use on-chain auto-verify.' });
+    const hero = moveHeroToBuyer(sale); if (!hero) return send(res, 400, { error: 'Hero missing' });
+    sale.verification = verification; sale.status = 'closed'; const nowIso = new Date().toISOString(); sale.decidedAt = nowIso; sale.closedAt = nowIso; sale.closedInSec = Math.max(0, Math.round((Date.now() - new Date(sale.createdAt).getTime()) / 1000)); closeListing(sale);
+    if (b.payoutTxid) { if (!isTxid(b.payoutTxid)) return send(res, 400, { error: 'Payout TXID must be 64 hex characters.' }); const pt = b.payoutTxid.toLowerCase(); if (db.usedTxids.includes(pt)) return send(res, 400, { error: 'Payout TXID already used.' }); sale.sellerPayout = { amount: sale.sellerAmount, to: sale.sellerAddress, status: 'paid', txid: pt }; db.usedTxids.push(pt); addLedger('seller_payout', { saleId: sale.id, listingId: sale.listingId, heroName: sale.heroName, amount: sale.sellerAmount, to: sale.sellerAddress, txid: pt, buyerAddress: sale.buyerAddress }); }
+    addLedger('order_verified', { saleId: sale.id, verification, priceAtom: sale.priceAtom, txid: sale.txid });
+    addLedger('item_moved', { saleId: sale.id, heroId: sale.heroId, heroName: sale.heroName, to: sale.buyerAddress });
+    addLedger('order_closed', { saleId: sale.id, listingId: sale.listingId, heroName: sale.heroName, priceAtom: sale.priceAtom, ceoFee: sale.ceoFee, sellerAmount: sale.sellerAmount, buyerAddress: sale.buyerAddress, sellerAddress: sale.sellerAddress, closedInSec: sale.closedInSec, verification });
+    addAudit('execute-order', { saleId: sale.id, verification }); save(db);
+    return send(res, 200, { sale: saleView(sale), hero, note: sale.sellerPayout && sale.sellerPayout.status === 'paid' ? 'Executed: verified, item moved, payout recorded, order closed.' : 'Executed: verified, item moved, order closed. Seller payout still pending — send it from the CEO wallet and record the TXID.' });
+  }
+  if (req.method === 'POST' && p === '/api/admin/ban') { const b = await readBody(req); if (!(await ceoOnly(b))) return; if (!isAddress(b.address)) return send(res, 400, { error: 'Valid Cosmos address required.' }); if (b.address === CEO_ADDRESS) return send(res, 400, { error: 'Cannot ban the CEO address.' }); db.bans[b.address] = { reason: String(b.reason || 'Banned by CEO').slice(0, 200), at: new Date().toISOString(), by: CEO_ADDRESS }; let removed = 0; for (const l of db.listings) if (l.sellerAddress === b.address && l.status === 'active') { l.status = 'removed'; removed++; } addLedger('user_banned', { address: b.address, reason: db.bans[b.address].reason, listingsRemoved: removed }); addAudit('ban', { address: b.address }); save(db); return send(res, 200, { banned: b.address, listingsRemoved: removed }); }
+  if (req.method === 'POST' && p === '/api/admin/unban') { const b = await readBody(req); if (!(await ceoOnly(b))) return; if (!db.bans[b.address]) return send(res, 404, { error: 'Address is not banned.' }); delete db.bans[b.address]; addLedger('user_unbanned', { address: b.address }); addAudit('unban', { address: b.address }); save(db); return send(res, 200, { unbanned: b.address }); }
+  if (req.method === 'POST' && p === '/api/admin/remove-listing') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const l = db.listings.find(x => x.id === b.listingId); if (!l) return send(res, 404, { error: 'Listing not found' }); if (l.status !== 'active') return send(res, 400, { error: 'Only active listings can be removed (status: ' + l.status + '). Resolve its order first.' }); l.status = 'removed'; l.removedReason = String(b.reason || 'Removed by CEO').slice(0, 200); addLedger('listing_removed', { listingId: l.id, heroId: l.heroId, heroName: l.heroName, reason: l.removedReason, sellerAddress: l.sellerAddress }); addAudit('remove-listing', { listingId: l.id }); save(db); return send(res, 200, { listing: l }); }
+  if (req.method === 'POST' && p === '/api/admin/remove-hero') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const idx = db.heroes.findIndex(h => h.id === b.heroId); if (idx < 0) return send(res, 404, { error: 'Hero not found' }); const hero = db.heroes[idx]; if (db.sales.some(s => s.heroId === hero.id && s.status === 'pending')) return send(res, 400, { error: 'Hero has a pending order. Resolve the order first.' }); db.heroes.splice(idx, 1); let removed = 0; for (const l of db.listings) if (l.heroId === hero.id && l.status === 'active') { l.status = 'removed'; removed++; } addLedger('hero_removed', { heroId: hero.id, heroName: hero.name, owner: hero.owner, reason: String(b.reason || 'Removed by CEO').slice(0, 200), listingsRemoved: removed }); addAudit('remove-hero', { heroId: hero.id }); save(db); return send(res, 200, { removed: hero.id, listingsRemoved: removed }); }
+  if (req.method === 'POST' && p === '/api/admin/flag-resolve') { const b = await readBody(req); if (!(await ceoOnly(b))) return; const f = db.flags.find(x => x.id === b.flagId); if (!f) return send(res, 404, { error: 'Flag not found' }); f.resolved = true; f.resolvedAt = new Date().toISOString(); addAudit('flag-resolve', { flagId: f.id }); save(db); return send(res, 200, { flag: f }); }
+  // ---------------- Static files ----------------
   let file = p === '/' ? '/index.html' : p;
   const fp = path.join(__dirname, 'public', file);
   if (!fp.startsWith(path.join(__dirname, 'public'))) return send(res, 403, { error: 'bad path' });
   fs.readFile(fp, (e, data) => { if (e) return send(res, 404, { error: 'not found' }); res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'text/plain' }); res.end(data); });
 }
 const server = http.createServer(handle);
-if (require.main === module) { server.listen(PORT, () => console.log('GAME / Defend ATOM listening on ' + PORT + ' mode=' + MODE + ' chain=' + CHAIN_ID + ' fee=' + FEE_PERCENT + '%')); }
+if (require.main === module) { server.listen(PORT, () => console.log('GAME listening on ' + PORT + ' mode=' + MODE + ' chain=' + CHAIN_ID + ' fee=' + feePercent() + '% ceo=' + CEO_ADDRESS)); }
 module.exports = handle;
 module.exports.default = handle;
 module.exports.verifyAdr36 = verifyAdr36;
