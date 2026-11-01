@@ -85,10 +85,16 @@
 
   function renderWallet() {
     var w = ctx.wallet;
-    document.getElementById('walletStatus').textContent = w.address ? (w.provider === 'demo' ? 'Demo: ' + shortAddr(w.address) : shortAddr(w.address) + ' · ' + w.provider) : 'Not connected';
+    document.getElementById('walletStatus').textContent = w.address ? shortAddr(w.address) + (w.provider ? ' · ' + w.provider : '') : 'Not connected';
     document.getElementById('walletBalance').textContent = w.address && w.balanceAtom() !== null ? w.balanceAtom() + ' ATOM' : '';
     document.getElementById('btnDisconnect').hidden = !w.address;
-    document.getElementById('btnConnect').textContent = w.address ? 'Reconnect wallet' : 'Connect Keplr / Leap';
+    var avail = (w.availableProviders ? w.availableProviders() : []);
+    [['btnConnectKeplr', 'keplr'], ['btnConnectLeap', 'leap']].forEach(function (pair) {
+      var b = document.getElementById(pair[0]); if (!b) return;
+      var missing = avail.indexOf(pair[1]) < 0;
+      b.disabled = missing;
+      b.title = missing ? (pair[1] === 'keplr' ? 'Keplr extension not detected in this browser.' : 'Leap extension not detected in this browser.') : '';
+    });
   }
   async function ensurePlayer() {
     var w = ctx.wallet; if (!w.address) return;
@@ -228,7 +234,7 @@
       var isEquipped = !!(equipped && equipped.id === h.id);
       return '<div class="heroCard' + (isEquipped ? ' equipped' : '') + '">' + heroImg(h) + '<div style="flex:1"><strong>' + esc(h.name) + '</strong><br><span class="small muted">Lv ' + h.level + ' · ' + esc(h.rarity) + ' · Power ' + h.basePower + '</span></div>'
         + '<button data-equip="' + h.id + '">' + (isEquipped ? 'Equipped ✓' : 'Equip') + '</button></div>';
-    }).join('') : '<p class="muted small">No heroes yet. Get a demo hero below (unlocks by level).</p>';
+    }).join('') : '<p class="muted small">No heroes yet. Claim a hero below (unlocks by level).</p>';
     el.querySelectorAll('[data-equip]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var h = heroes.find(function (x) { return x.id === btn.getAttribute('data-equip'); });
@@ -237,26 +243,93 @@
     });
     var actions = document.getElementById('heroActions');
     var defs = (ctx.config && ctx.config.heroDefs) || [];
-    actions.innerHTML = '<label>Get demo hero (if unlocked)</label><select id="demoHeroSel">' + defs.map(function (d) { return '<option value="' + d.id + '">' + esc(d.name) + ' — Lv ' + d.unlockLevel + '+</option>'; }).join('') + '</select>'
+    actions.innerHTML = '<label>Claim hero (if unlocked)</label><select id="claimHeroSel">' + defs.map(function (d) { return '<option value="' + d.id + '">' + esc(d.name) + ' — Lv ' + d.unlockLevel + '+</option>'; }).join('') + '</select>'
       + '<div style="display:flex;gap:6px;margin-top:6px"><button id="btnGetHero">Get hero</button><button id="btnUpgradeHero" class="ghost">Upgrade equipped (200×Lv)</button></div>';
     document.getElementById('btnGetHero').addEventListener('click', async function () {
       if (!ctx.player) return toast('Connect your wallet first.', 'warn');
-      try { var r = await api('/api/heroes/demo', 'POST', { address: ctx.player.address, defId: document.getElementById('demoHeroSel').value }); toast('Hero added: ' + r.hero.name, 'ok'); refreshState(); } catch (e) { toast(e.message, 'err'); }
+      try { var r = await api('/api/heroes/claim', 'POST', { address: ctx.player.address, defId: document.getElementById('claimHeroSel').value }); toast('Hero added: ' + r.hero.name, 'ok'); refreshState(); } catch (e) { toast(e.message, 'err'); }
     });
     document.getElementById('btnUpgradeHero').addEventListener('click', async function () {
       var h = ctx.host.equippedHero; if (!h) return toast('Equip a hero first.', 'warn');
       try { var r = await api('/api/heroes/upgrade', 'POST', { address: ctx.player.address, heroId: h.id }); toast('Upgraded to Lv ' + r.hero.level, 'ok'); refreshState(); } catch (e) { toast(e.message, 'err'); }
     });
   }
+  var GAME_IMAGES = { 'cosmos-btd': 'assets/sprites/battlefield.jpg', 'space-tycoon': 'assets/sprites/tower-validator.png', 'atom-clicker': 'assets/sprites/hero-astra.png', 'space-shooter': 'assets/sprites/monster-1.png' };
+  function gameMeta(g) {
+    return { id: g.id, name: g.name, tagline: g.tagline || '', status: g.status || 'playable',
+      image: g.image || GAME_IMAGES[g.id] || 'assets/sprites/battlefield.jpg',
+      description: g.description || g.tagline || '' };
+  }
+  function recordRecent(id) {
+    try {
+      var list = JSON.parse(localStorage.getItem('game-recent') || '[]');
+      list = list.filter(function (x) { return x.id !== id; });
+      list.unshift({ id: id, at: new Date().toISOString().slice(0, 10) });
+      localStorage.setItem('game-recent', JSON.stringify(list.slice(0, 5)));
+    } catch (e) {}
+  }
+  function renderRecent() {
+    var el = document.getElementById('recentBox'); if (!el) return;
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem('game-recent') || '[]'); } catch (e) {}
+    var games = ctx.host ? ctx.host.listGames() : [];
+    if (!list.length) { el.innerHTML = '<p class="muted small">No games played yet. Pick a game above.</p>'; return; }
+    el.innerHTML = list.map(function (r) {
+      var g = games.filter(function (x) { return x.id === r.id; })[0];
+      if (!g) return '';
+      var m = gameMeta(g);
+      return '<div class="recentRow"><img src="' + m.image + '" alt="" onerror="this.style.display=\'none\'"><div style="flex:1"><strong>' + esc(m.name) + '</strong><br><span class="small muted">Last played ' + esc(r.at || '') + '</span></div><button data-recent="' + m.id + '">Play</button></div>';
+    }).join('');
+    el.querySelectorAll('[data-recent]').forEach(function (btn) { btn.addEventListener('click', function () { loadGame(btn.getAttribute('data-recent')); }); });
+  }
+  function openGameInfo(id) {
+    var games = ctx.host.listGames();
+    var g = games.filter(function (x) { return x.id === id; })[0];
+    if (!g) return;
+    var m = gameMeta(g);
+    var body = document.getElementById('gamePickerBody'); if (!body) return;
+    body.innerHTML = '<img src="' + m.image + '" alt="">'
+      + '<h3>' + esc(m.name) + ' <span class="pill">' + esc(m.status) + '</span></h3>'
+      + '<p class="gameDesc">' + esc(m.description) + '</p>'
+      + '<p class="small muted">' + esc(m.tagline) + '</p>';
+    var pk = document.getElementById('gamePicker');
+    pk.setAttribute('data-game', m.id);
+    var play = document.getElementById('btnPlayPicker'); if (play) play.disabled = (m.status !== 'playable');
+    pk.hidden = false;
+  }
+  function closeGamePicker() { var pk = document.getElementById('gamePicker'); if (pk) pk.hidden = true; }
+  ctx.openGameInfo = openGameInfo; ctx.closeGamePicker = closeGamePicker;
+  function filterGameCards(q) {
+    q = (q || '').toLowerCase();
+    document.querySelectorAll('#gameCards .gameCard').forEach(function (c) {
+      c.style.display = (!q || (c.getAttribute('data-search') || '').indexOf(q) >= 0) ? '' : 'none';
+    });
+  }
   function renderGameList() {
     var el = document.getElementById('gameList');
     var games = ctx.host.listGames();
-    el.innerHTML = games.map(function (g) {
-      return '<button class="gameItem ' + (ctx.currentGame === g.id ? 'active' : '') + '" data-game="' + g.id + '"><strong>' + esc(g.name) + '</strong><small>' + esc(g.tagline || '') + '</small></button>';
-    }).join('');
-    el.querySelectorAll('[data-game]').forEach(function (btn) {
-      btn.addEventListener('click', function () { loadGame(btn.getAttribute('data-game')); });
-    });
+    if (el) {
+      el.innerHTML = games.map(function (g) {
+        var m = gameMeta(g);
+        return '<button class="gameItem ' + (ctx.currentGame === g.id ? 'active' : '') + '" data-game="' + g.id + '"><strong>' + esc(g.name) + '</strong><small>' + esc(g.tagline || '') + '</small></button>';
+      }).join('');
+      el.querySelectorAll('[data-game]').forEach(function (btn) {
+        btn.addEventListener('click', function () { openGameInfo(btn.getAttribute('data-game')); });
+      });
+    }
+    var cards = document.getElementById('gameCards');
+    if (cards) {
+      cards.innerHTML = games.map(function (g) {
+        var m = gameMeta(g);
+        return '<div class="gameCard" data-search="' + esc((m.name + ' ' + m.description + ' ' + m.tagline).toLowerCase()) + '">'
+          + '<img class="gameThumb" src="' + m.image + '" alt="" onerror="this.style.display=\'none\'">'
+          + '<div class="gameMeta"><strong>' + esc(m.name) + '</strong> <span class="pill">' + esc(m.status) + '</span>'
+          + '<p class="gameDesc">' + esc(m.description) + '</p></div>'
+          + '<div class="gameRow"><button data-info="' + m.id + '">About</button><button data-play="' + m.id + '" class="primary"' + (m.status !== 'playable' ? ' disabled' : '') + '>▶ Play</button></div></div>';
+      }).join('');
+      cards.querySelectorAll('[data-info]').forEach(function (btn) { btn.addEventListener('click', function () { openGameInfo(btn.getAttribute('data-info')); }); });
+      cards.querySelectorAll('[data-play]').forEach(function (btn) { btn.addEventListener('click', function () { loadGame(btn.getAttribute('data-play')); }); });
+    }
   }
   async function startSession() {
     if (!ctx.player) return;
@@ -264,6 +337,7 @@
   }
   async function loadGame(gameId) {
     ctx.currentGame = gameId;
+    recordRecent(gameId); renderRecent();
     renderGameList();
     var opts = {
       onHud: function (hud) { ctx.hud = hud; renderActionBar(); },
@@ -307,10 +381,12 @@
       }).join('');
     }
     var defs = (window.CosmosBTD && window.CosmosBTD.TOWER_DEFS) || {};
-    var towersHtml = Object.keys(defs).map(function (k) {
+    var sprMap = (window.CosmosBTD && window.CosmosBTD.TOWER_SPRITES) || {};
+    var towersHtml = '<div class="towerGrid">' + Object.keys(defs).map(function (k) {
       var d = defs[k];
-      return '<button class="towerBtn" data-tower="' + k + '"><strong>' + d.name + ' (' + d.key + ')</strong><small>' + d.cost + 'g · ' + esc(d.desc) + '</small></button>';
-    }).join('');
+      var spr = sprMap[k] || 'tower-validator';
+      return '<button class="towerBtn" data-tower="' + k + '"><img class="towerThumb" src="assets/sprites/' + spr + '.png" alt="" onerror="this.outerHTML=\'<span class=towerDot style=background:' + d.color + '></span>\'"><span class="towerMeta"><strong>' + d.name + ' (' + d.key + ')</strong><small>' + d.cost + 'g · ' + esc(d.desc) + '</small></span></button>';
+    }).join('') + '</div>';
     /* Batch 8: sell preview (refund from the inspect payload) + hero
      * ability cooldown bar (seconds left, fill = charge recovered). */
     var sellLabel = (hud.inspect && hud.inspect.sellRefund != null) ? 'Sell +' + hud.inspect.sellRefund + 'g' : 'Sell 70%';
@@ -430,27 +506,32 @@
     ctx.host = new window.EngineHost(bus, ctx.wallet, ctx.config);
     ctx.watcher = new window.RpcWatcher(bus, ctx.config);
     ctx.host.setViewport(document.getElementById('game-viewport'));
-    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', status: 'playable', load: async function () { return window.CosmosBTD; } });
-    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', status: 'playable', load: async function () { return window.SpaceTycoon; } });
-    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', status: 'playable', load: async function () { return window.AtomClicker; } });
-    if (window.SpaceShooter) ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', status: 'playable', load: async function () { return window.SpaceShooter; } });
-    renderGameList(); renderWallet(); renderSettingsPanel();
+    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', load: async function () { return window.CosmosBTD; } });
+    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', image: 'assets/sprites/tower-validator.png', description: 'Build mining rigs, hire overseers, earn while away. Local save.', status: 'playable', load: async function () { return window.SpaceTycoon; } });
+    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, catch multiplier surges, bank shards. Local save.', status: 'playable', load: async function () { return window.AtomClicker; } });
+    if (window.SpaceShooter) ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', image: 'assets/sprites/monster-1.png', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', status: 'playable', load: async function () { return window.SpaceShooter; } });
+    renderGameList(); renderRecent(); renderWallet(); renderSettingsPanel();
     document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
-    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeSettings(); });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); } });
     bus.on('wallet:connected', function () { renderWallet(); });
     bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
     bus.on('wallet:balance', function () { renderWallet(); });
     bus.on('rpc:watcher_status', function (s) { if (window.CeoUI) window.CeoUI.setWatcherStatus(s); });
-    document.getElementById('btnConnect').addEventListener('click', async function () {
-      try { await ctx.wallet.connect(); ctx.wallet.startBalancePolling(60000); toast('Wallet connected: ' + shortAddr(ctx.wallet.address), 'ok'); await ensurePlayer(); await startSession(); refreshState(); if (ctx.currentGame) loadGame(ctx.currentGame); } catch (e) { toast(e.message, 'err'); }
-    });
-    document.getElementById('btnDemo').addEventListener('click', async function () {
-      var addr = prompt('Demo address (cosmos1…):', ctx.wallet.address || '');
-      if (!addr) return;
-      try { ctx.wallet.useDemoAddress(addr.trim()); toast('Demo address set. Demo addresses cannot send real ATOM or open the CEO panel.', 'warn'); await ensurePlayer(); await startSession(); refreshState(); loadGame(ctx.currentGame); } catch (e) { toast(e.message, 'err'); }
-    });
+    async function connectWallet(kind) {
+      try { await ctx.wallet.connect(kind); ctx.wallet.startBalancePolling(60000); toast('Wallet connected (' + kind + '): ' + shortAddr(ctx.wallet.address), 'ok'); await ensurePlayer(); await startSession(); refreshState(); if (ctx.currentGame) loadGame(ctx.currentGame); } catch (e) { toast(e.message, 'err'); }
+    }
+    document.getElementById('btnConnectKeplr').addEventListener('click', function () { connectWallet('keplr'); });
+    document.getElementById('btnConnectLeap').addEventListener('click', function () { connectWallet('leap'); });
     document.getElementById('btnDisconnect').addEventListener('click', function () { ctx.wallet.disconnect(); toast('Disconnected.'); });
+    var exBtn = document.getElementById('btnExploreStore'); if (exBtn) exBtn.addEventListener('click', function () { showView('marketplace'); });
+    var bellBtn = document.getElementById('btnBell'); if (bellBtn) bellBtn.addEventListener('click', function () { showView('updates'); });
+    var pfBtn = document.getElementById('btnPlayFeatured'); if (pfBtn) pfBtn.addEventListener('click', function () { loadGame('cosmos-btd'); });
+    var infBtn = document.getElementById('btnInfoFeatured'); if (infBtn) infBtn.addEventListener('click', function () { openGameInfo('cosmos-btd'); });
+    var closePk = document.getElementById('btnClosePicker'); if (closePk) closePk.addEventListener('click', closeGamePicker);
+    var playPk = document.getElementById('btnPlayPicker'); if (playPk) playPk.addEventListener('click', function () { var id = document.getElementById('gamePicker').getAttribute('data-game'); closeGamePicker(); if (id) loadGame(id); });
+    var pkOverlay = document.getElementById('gamePicker'); if (pkOverlay) pkOverlay.addEventListener('click', function (ev) { if (ev.target === pkOverlay) closeGamePicker(); });
+    var gsInput = document.getElementById('gameSearch'); if (gsInput) gsInput.addEventListener('input', function () { filterGameCards(gsInput.value); });
     var restored = ctx.wallet.restore();
     if (restored) { renderWallet(); await ensurePlayer(); await startSession(); }
     await refreshState();
