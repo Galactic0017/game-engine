@@ -299,9 +299,33 @@
    "id": "grid-stats",
    "tested": "BTD harness 27/27: 12800 grid queries across 4 cells asserted",
    "title": "Spatial hash stats — grid cell/query counts in HUD for the future debug overlay"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "branching-upgrade-trees",
+   "tested": "harness: branch choice locks path, speed/power bonuses apply, costs 100/170/240; inspect shows branch + evolution; shell card renders branch line (code-reviewed)",
+   "title": "Branching tower upgrade trees — one locked path per tower (Rapid Fire vs Heavy Impact, 3 points), Evolved at Lv4 / Ascended at Lv5 with larger sprite + ring"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "hero-commander",
+   "tested": "harness: patrol walks the spline, gear bonuses apply, ability tiers 1-3 by run level, hero kills grant +3 XP; gear applies in-run only, no server persistence",
+   "title": "Hero Commander — patrol mode walks the track, XP per hero kill, ability tiers unlock by level, weapon/charm equipment slots"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "adaptive-pathfinding",
+   "tested": "harness: hazardAt slow factors asserted, balloons detour + slow inside hazard zones, reroutes counter >0 after waves; wave-10 route offset asserted via routeOffset()",
+   "title": "Adaptive pathfinding — mud/bramble hazard zones on the spline slow balloons and trigger lateral detours; every 10th wave takes a wide high-road offset (not A*, towers cannot block the path)"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "weather-hazards",
+   "tested": "harness: setWeather storm strikes + blizzard slows (weather factor 0.7); auto-trigger code-reviewed (wave %5 storm / %10 blizzard in startWave); HUD weather + countdown present",
+   "title": "Weather hazards — thunderstorm lightning strikes near towers, blizzard slows all balloons map-wide, auto-triggered every 5th/10th wave"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.2.0"
+ "version": "3.3.0"
 }
