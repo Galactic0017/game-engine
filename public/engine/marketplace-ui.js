@@ -44,7 +44,7 @@
         return '<tr><td class="mono small">' + ctx.esc(s.id) + '</td><td>' + ctx.esc(s.heroName) + '</td><td>' + s.priceAtom + ' ATOM</td><td><span class="pill ' + s.status + '">' + s.status + '</span></td><td><span class="timer" data-expires="' + (s.secondsLeft || 0) + '" data-now="' + Date.now() + '">' + fmtLeft(s.secondsLeft || 0) + '</span></td><td><a href="' + ctx.config.explorerTxUrl + s.txid + '" target="_blank" rel="noopener">Explorer</a></td></tr>';
       }).join('') + '</table>' : '<p class="muted small">No orders yet.</p>')
       + '<h4 style="margin-top:18px">List a hero for sale</h4>'
-      + (myHeroes.length ? '<label>Hero</label><select id="mkHero">' + myHeroes.map(function (h) { return '<option value="' + h.id + '">' + ctx.esc(h.name) + ' — Lv ' + h.level + '</option>'; }).join('') + '</select><label>Price (ATOM)</label><input id="mkPrice" type="number" min="0.000001" step="0.000001" placeholder="e.g. 10"><p class="small muted" id="mkPreview"></p><button id="mkList" class="primary">List hero</button>' : '<p class="muted small">You own no heroes yet. Get a demo hero from the sidebar.</p>')
+      + (myHeroes.length ? '<label>Hero</label><select id="mkHero">' + myHeroes.map(function (h) { return '<option value="' + h.id + '">' + ctx.esc(h.name) + ' — Lv ' + h.level + '</option>'; }).join('') + '</select><label>Price (ATOM)</label><input id="mkPrice" type="number" min="0.000001" step="0.000001" placeholder="e.g. 10"><p class="small muted" id="mkPreview"></p><button id="mkList" class="primary">List hero</button>' : '<p class="muted small">You own no heroes yet. Claim a hero from the sidebar (unlocks by level).</p>')
       + '<h4 style="margin-top:18px">Skins (in-game credits)</h4>'
       + '<div class="listingGrid">' + ((ctx.config.skins || []).map(function (sk) {
         var owned = ctx.player && (ctx.player.skins || []).indexOf(sk.id) >= 0;
@@ -81,7 +81,7 @@
     var l = (state.listings || []).find(function (x) { return x.id === listingId; });
     if (!l) return ctx.toast('Listing not found. Refresh.', 'err');
     if (!ctx.wallet || !ctx.wallet.address) return ctx.toast('Connect your wallet first.', 'warn');
-    if (ctx.wallet.provider === 'demo') return ctx.toast('Real send needs a real wallet (Keplr/Leap). Demo addresses cannot send.', 'err');
+    if (!ctx.wallet.hasExtension()) return ctx.toast('Real send needs a real wallet (Keplr/Leap).', 'err');
     var ok = confirm('Send EXACTLY ' + l.priceAtom + ' ATOM to the CEO address?\n\nTo: ' + state.ceoAddress + '\nMemo (must be exact): ' + l.id + '\n\nYou will review this in your wallet before signing. The CEO moves "' + l.heroName + '" to you after verifying, then sends the seller ' + l.sellerAmount + ' ATOM.');
     if (!ok) return;
     try {
