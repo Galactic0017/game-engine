@@ -1,13 +1,1 @@
-{
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "public/**"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
-  ]
-}
+{"functions":{"api/[...path].js":{"includeFiles":"public/**"},"api/index.js":{"includeFiles":"public/**"}},"rewrites":[{"destination":"/api/index?__path=/api/:path*","source":"/api/:path*"},{"destination":"/api/index","source":"/(.*)"}]}

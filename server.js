@@ -61,7 +61,8 @@ function isCeoRequest(req, bodyForMessage) {
   if (address !== CEO_ADDRESS) return false;
   if (Math.abs(Date.now() - ts) > CEO_SESSION_TTL_MS) return false;
   const u = new URL(req.url, 'http://x');
-  const message = u.pathname + '\n' + canonicalJson(bodyForMessage || {}) + '\n' + String(ts);
+  const effPath = (u.pathname === '/api/index' && u.searchParams.get('__path')) ? u.searchParams.get('__path') : u.pathname;
+  const message = effPath + '\n' + canonicalJson(bodyForMessage || {}) + '\n' + String(ts);
   return verifyAdr36(address, message, sig, pub);
 }
 const MODE = (process.env.MODE || 'demo').toLowerCase();
@@ -100,7 +101,10 @@ function readBody(req) { return new Promise((resolve) => { let s=''; req.on('dat
 const MIME = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.json':'application/json', '.png':'image/png' };
 function leaderboard() { return Object.values(db.players).map(p=>({ address: p.address, name: p.name, level: levelForXp(p.xp||0), xp: p.xp||0, bestScore: p.bestScore||0, wins: p.wins||0, losses: p.losses||0, games: p.gamesPlayed||0, heroes: db.heroes.filter(h=>h.owner===p.address).length })).sort((a,b)=> b.bestScore-a.bestScore || b.level-a.level); }
 async function handle(req, res) {
-  const u = new URL(req.url, 'http://x'); const p = u.pathname;
+  const u = new URL(req.url, 'http://x'); let p = u.pathname;
+  // Vercel rewrites /api/* to /api/index and loses the original path in
+  // req.url; the rewrite in vercel.json passes it back as ?__path=...
+  if (p === '/api/index' && u.searchParams.get('__path')) p = u.searchParams.get('__path');
   if (p === '/api/config') return send(res, 200, { mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, walletConnect: true, demoOnly: true, feePercent: FEE_PERCENT, ceoAddress: CEO_ADDRESS, heroDefs: HERO_DEFS, platform: 'GAME', domain: 'game.atomstaking.app', games: [{id:'defend-atom',name:'Defend ATOM',status:'playable',tagline:'Defend the ATOM core from layered space monsters.'},{id:'space-shooter',name:'Space Shooter',status:'coming-soon'},{id:'asteroid-miner',name:'Asteroid Miner',status:'coming-soon'},{id:'validator-runner',name:'Validator Runner',status:'coming-soon'}], unlockLevels: UNLOCK });
   if (p === '/api/state') return send(res, 200, { mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, feePercent: FEE_PERCENT, ceoAddress: CEO_ADDRESS, players: Object.values(db.players).map(x=>({address:x.address, name:x.name, credits:x.credits||0, xp:x.xp||0, level:levelForXp(x.xp||0), bestScore:x.bestScore||0})), heroes: db.heroes, listings: db.listings.filter(l=>l.status!=='closed'), sales: db.sales.map(s=>({...s, txidMasked: s.txid ? s.txid.slice(0,10)+'…'+s.txid.slice(-6) : ''})), leaderboard: leaderboard() });
   if (p === '/api/leaderboard') return send(res, 200, { leaderboard: leaderboard(), feePercent: FEE_PERCENT });
