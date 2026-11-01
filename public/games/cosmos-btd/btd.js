@@ -61,7 +61,8 @@
     frost:  { name: 'Frost Beam',    key: '4', cost: 150, range: 98,  rate: 0.90, dmg: 1, slow: 0.5, slowDur: 1.3, color: '#7bdff2', desc: 'Slows everything it touches.' },
     mortar: { name: 'Plasma Mortar', key: '5', cost: 350, range: 330, rate: 2.30, dmg: 4, splash: 82, color: '#00f6ff', desc: 'Long-range lobbed plasma. Huge splash. Cracks lead.' },
     tesla:  { name: 'Tesla Coil',     key: '6', cost: 300, range: 140, rate: 1.10, dmg: 2, chains: 3, color: '#facc15', camo: true, desc: 'Chain lightning hits 3. Sees camo.' },
-    spikes: { name: 'Spike Factory', key: '7', cost: 220, range: 90,  rate: 0.80, dmg: 1, color: '#94a3b8', desc: 'Drops spikes that pop on contact.' }
+    spikes: { name: 'Spike Factory', key: '7', cost: 220, range: 90,  rate: 0.80, dmg: 1, color: '#94a3b8', desc: 'Drops spikes that pop on contact.' },
+    beacon: { name: 'Synergy Beacon', key: '8', cost: 200, range: 130, rate: 0, dmg: 0, color: '#22d3ee', support: true, desc: 'No attack. Nearby towers fire 20%+ faster.' }
   };
 
   /* ---- Batch 6 (Pillar 4): branching upgrade trees ----
@@ -128,7 +129,7 @@
 
   /* ---- Image sprites (procedural fallback when assets are missing) ---- */
   var SPRITES = {};
-  var TOWER_SPRITES = { dart: 'tower-validator', cannon: 'tower-railgun', sniper: 'tower-nova', frost: 'tower-cryo', mortar: 'tower-ion', tesla: 'tower-nova', spikes: 'tower-validator' };
+  var TOWER_SPRITES = { dart: 'tower-validator', cannon: 'tower-railgun', sniper: 'tower-nova', frost: 'tower-cryo', mortar: 'tower-ion', tesla: 'tower-nova', spikes: 'tower-validator', beacon: 'tower-validator' };
   var HERO_SPRITES = { astra: 'hero-astra', lyra: 'hero-lyra', koda: 'hero-koda', nova7: 'hero-nova7', vex: 'hero-vex', orin: 'hero-orin' };
   function spriteReady(img) { return !!(img && img.complete && img.naturalWidth > 0); }
   /* ---- Asset pipeline: central load queue, pre-decode, one retry ---- */
@@ -164,14 +165,20 @@
     AssetManager.loadAll(null, onReady);
   }
 
-  /* ---- Curved multi-lane track: Catmull-Rom spline, sampled to a polyline ---- */
-  var CTRL = [[-40, 118], [140, 118], [222, 238], [182, 418], [362, 472], [522, 382], [542, 202], [700, 140], [862, 220], [822, 420], [1000, 420]];
+  /* ---- Curved multi-lane track: Catmull-Rom spline, sampled to a polyline ----
+   * Batch 7 (Pillar 5): the track is rebuildable. rebuildTrack()
+   * re-samples the spline from new control points and recomputes
+   * hazards + the branch lane, so the map editor can apply a custom
+   * track without reloading the module. DEFAULT_CTRL is never mutated. */
+  var DEFAULT_CTRL = [[-40, 118], [140, 118], [222, 238], [182, 418], [362, 472], [522, 382], [542, 202], [700, 140], [862, 220], [822, 420], [1000, 420]];
+  var CTRL = DEFAULT_CTRL.map(function (p) { return p.slice(); });
   function catmull(p0, p1, p2, p3, t) {
     var t2 = t * t, t3 = t2 * t;
     return 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
   }
-  var pathPts = [];
-  (function buildPath() {
+  var pathPts = [], pathLen = [], totalLen = 0;
+  function buildPath() {
+    pathPts = []; pathLen = []; totalLen = 0;
     for (var i = 0; i < CTRL.length - 1; i++) {
       var p0 = CTRL[Math.max(0, i - 1)], p1 = CTRL[i], p2 = CTRL[i + 1], p3 = CTRL[Math.min(CTRL.length - 1, i + 2)];
       for (var j = 0; j < 24; j++) {
@@ -180,12 +187,12 @@
       }
     }
     pathPts.push(CTRL[CTRL.length - 1].slice());
-  })();
-  var pathLen = [], totalLen = 0;
-  for (var pi = 0; pi < pathPts.length; pi++) {
-    if (pi > 0) totalLen += dist(pathPts[pi - 1][0], pathPts[pi - 1][1], pathPts[pi][0], pathPts[pi][1]);
-    pathLen.push(totalLen);
+    for (var pi = 0; pi < pathPts.length; pi++) {
+      if (pi > 0) totalLen += dist(pathPts[pi - 1][0], pathPts[pi - 1][1], pathPts[pi][0], pathPts[pi][1]);
+      pathLen.push(totalLen);
+    }
   }
+  buildPath();
   function pointAt(d) {
     d = clamp(d, 0, totalLen);
     var lo = 0, hi = pathLen.length - 1;
@@ -198,6 +205,11 @@
     for (var i = 0; i < pathPts.length - 1; i++) {
       var ax = pathPts[i][0], ay = pathPts[i][1], bx = pathPts[i + 1][0], by = pathPts[i + 1][1];
       var dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1, t = clamp(((x - ax) * dx + (y - ay) * dy) / L2, 0, 1);
+      best = Math.min(best, dist(x, y, ax + dx * t, ay + dy * t));
+    }
+    for (i = 0; i < branchPts.length - 1; i++) {
+      ax = branchPts[i][0]; ay = branchPts[i][1]; bx = branchPts[i + 1][0]; by = branchPts[i + 1][1];
+      dx = bx - ax; dy = by - ay; L2 = dx * dx + dy * dy || 1; t = clamp(((x - ax) * dx + (y - ay) * dy) / L2, 0, 1);
       best = Math.min(best, dist(x, y, ax + dx * t, ay + dy * t));
     }
     return best;
@@ -213,13 +225,15 @@
    *     the physics uses. This is not A* or tower avoidance: towers
    *     may not be placed within 34px of the path, so no reroute
    *     around towers is needed. */
-  var HAZARDS = (function () {
+  var HAZARDS = [];
+  function buildHazards() {
     var c1 = pointAt(totalLen * 0.38), c2 = pointAt(totalLen * 0.72);
-    return [
+    HAZARDS = [
       { x: c1[0], y: c1[1], r: 58, kind: 'mud', slow: 0.55 },
       { x: c2[0], y: c2[1], r: 58, kind: 'bramble', slow: 0.7 }
     ];
-  })();
+  }
+  buildHazards();
   function hazardAt(x, y) {
     var factor = 1, hz = null;
     for (var i = 0; i < HAZARDS.length; i++) {
@@ -264,6 +278,161 @@
     if (st.time >= w.until) { st.weather = { kind: 'clear', until: 0, strikeT: 0 }; floater(st, W / 2, 40, 'Weather clears', '#9fb4d8'); emitHud(st); return; }
     if (w.kind === 'storm') { w.strikeT -= dt; if (w.strikeT <= 0) { w.strikeT = 2; lightningStrike(st); } }
   }
+
+  /* ---- Track 3 (141): second lane — fork at 45%, rejoin at 85% ----
+   * Batch 7: rebuilt by buildBranch() whenever the track changes. */
+  var FORK_FRAC = 0.45, REJOIN_FRAC = 0.85;
+  var forkDist = 0, rejoinDist = 0, forkPt = [0, 0], rejoinPt = [0, 0], BRANCH_CTRL = [], branchPts = [], branchLen = [], branchTotal = 0;
+  function buildBranch() {
+    forkDist = totalLen * FORK_FRAC; rejoinDist = totalLen * REJOIN_FRAC;
+    forkPt = pointAt(forkDist); rejoinPt = pointAt(rejoinDist);
+    BRANCH_CTRL = [forkPt.slice(), [forkPt[0] + 40, forkPt[1] + 110], [forkPt[0] + 170, forkPt[1] + 130], [forkPt[0] + 300, forkPt[1] + 60], rejoinPt.slice()];
+    branchPts = [];
+    for (var i = 0; i < BRANCH_CTRL.length - 1; i++) {
+      var p0 = BRANCH_CTRL[Math.max(0, i - 1)], p1 = BRANCH_CTRL[i], p2 = BRANCH_CTRL[i + 1], p3 = BRANCH_CTRL[Math.min(BRANCH_CTRL.length - 1, i + 2)];
+      for (var j = 0; j < 24; j++) {
+        var t = j / 24;
+        branchPts.push([catmull(p0[0], p1[0], p2[0], p3[0], t), catmull(p0[1], p1[1], p2[1], p3[1], t)]);
+      }
+    }
+    branchPts.push(BRANCH_CTRL[BRANCH_CTRL.length - 1].slice());
+    branchLen = []; branchTotal = 0;
+    for (var bi = 0; bi < branchPts.length; bi++) {
+      if (bi > 0) branchTotal += dist(branchPts[bi - 1][0], branchPts[bi - 1][1], branchPts[bi][0], branchPts[bi][1]);
+      branchLen.push(branchTotal);
+    }
+  }
+  buildBranch();
+  function pointAtBranch(d) {
+    d = clamp(d, 0, branchTotal);
+    var lo = 0, hi = branchLen.length - 1;
+    while (lo < hi) { var m = (lo + hi) >> 1; if (branchLen[m] < d) lo = m + 1; else hi = m; }
+    var i = Math.max(1, lo), a = branchPts[i - 1], b = branchPts[i], seg = branchLen[i] - branchLen[i - 1] || 1, t = (d - branchLen[i - 1]) / seg;
+    return [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+  }
+  function pointAtLane(d, lane) { return lane === 1 ? pointAtBranch(d) : pointAt(d); }
+  function laneLen(b) { return b.lane === 1 ? branchTotal : totalLen; }
+
+  /* ---- Batch 7 (Pillar 5): map editor + modding ----
+   * A map is plain JSON: { name, controlPoints, terrain }.
+   * controlPoints are the Catmull-Rom control points ([x,y] in the
+   * 960x600 board); terrain is [{x,y,kind}] with kind tree|rock|pond.
+   * Validation is strict and never throws: bad maps return errors.
+   * Custom towers/enemies/waves are registered through the same
+   * validators the ModLoader uses; custom waves override
+   * waveComposition for one wave number only. */
+  function isNum(v) { return typeof v === 'number' && isFinite(v); }
+  function validateMap(map) {
+    var errors = [];
+    if (!map || typeof map !== 'object') return { ok: false, errors: ['map must be an object'] };
+    var pts = map.controlPoints;
+    if (!Array.isArray(pts) || pts.length < 3 || pts.length > 24) errors.push('controlPoints must be 3-24 [x,y] points');
+    else pts.forEach(function (p, i) {
+      if (!Array.isArray(p) || p.length !== 2 || !isNum(p[0]) || !isNum(p[1])) errors.push('controlPoints[' + i + '] must be [x,y] numbers');
+      else if (p[0] < -100 || p[0] > 1060 || p[1] < -100 || p[1] > 700) errors.push('controlPoints[' + i + '] is off the board');
+    });
+    if (map.terrain != null) {
+      if (!Array.isArray(map.terrain)) errors.push('terrain must be an array');
+      else map.terrain.forEach(function (t, i) {
+        if (!t || !isNum(t.x) || !isNum(t.y) || ['tree', 'rock', 'pond'].indexOf(t.kind) < 0) errors.push('terrain[' + i + '] needs x, y and kind tree|rock|pond');
+        else if (t.x < 0 || t.x > W || t.y < 0 || t.y > H) errors.push('terrain[' + i + '] is off the board');
+      });
+    }
+    if (map.name != null && typeof map.name !== 'string') errors.push('name must be a string');
+    return { ok: errors.length === 0, errors: errors };
+  }
+  function exportMap(st, name) {
+    var start = pointAt(0), finish = pointAt(totalLen);
+    return { name: name || (st && st.customMapName) || 'Custom map', version: 1, controlPoints: CTRL.map(function (p) { return p.slice(); }), terrain: (st && st.terrain ? st.terrain.map(function (t) { return { x: t.x, y: t.y, kind: t.kind }; }) : []), spawn: [Math.round(start[0]), Math.round(start[1])], finish: [Math.round(finish[0]), Math.round(finish[1])], trackLength: Math.round(totalLen) };
+  }
+  function rebuildTrack(ctrl) {
+    CTRL = ctrl.map(function (p) { return [p[0], p[1]]; });
+    buildPath(); buildHazards(); buildBranch();
+    return true;
+  }
+  function applyMap(st, map) {
+    var v = validateMap(map);
+    if (!v.ok) return { ok: false, errors: v.errors };
+    rebuildTrack(map.controlPoints);
+    st.terrain = (map.terrain || []).map(function (t) { return { x: t.x, y: t.y, kind: t.kind }; });
+    st.customMapName = typeof map.name === 'string' ? map.name : 'Custom map';
+    st.customMap = exportMap(st, st.customMapName);
+    if (st.canvas && typeof document !== 'undefined') { try { st.bg = paintBackground(); } catch (e) {} }
+    emitHud(st);
+    return { ok: true, map: st.customMap };
+  }
+  function resetMap(st) {
+    rebuildTrack(DEFAULT_CTRL);
+    st.terrain = []; st.customMapName = null; st.customMap = null;
+    if (st.canvas && typeof document !== 'undefined') { try { st.bg = paintBackground(); } catch (e) {} }
+    emitHud(st);
+    return { ok: true, map: exportMap(st, 'Default track') };
+  }
+  function validateTowerDef(def) {
+    var errors = [];
+    if (!def || typeof def !== 'object') return { ok: false, errors: ['tower must be an object'] };
+    if (typeof def.id !== 'string' || !/^[a-z0-9-]{2,20}$/.test(def.id)) errors.push('tower id must be 2-20 lowercase letters/digits/hyphens');
+    if (TOWER_DEFS[def.id]) errors.push('tower id already exists: ' + def.id);
+    if (typeof def.name !== 'string' || !def.name.trim()) errors.push('tower name is required');
+    if (!isNum(def.cost) || def.cost < 10 || def.cost > 2000) errors.push('cost must be 10-2000');
+    if (!isNum(def.range) || def.range < 40 || def.range > 400) errors.push('range must be 40-400');
+    if (!isNum(def.rate) || def.rate < 0.2 || def.rate > 4) errors.push('rate must be 0.2-4 seconds');
+    if (!isNum(def.dmg) || def.dmg < 0 || def.dmg > 20) errors.push('dmg must be 0-20');
+    if (typeof def.color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(def.color)) errors.push('color must be #rrggbb');
+    if (def.splash != null && (!isNum(def.splash) || def.splash < 0 || def.splash > 200)) errors.push('splash must be 0-200');
+    return { ok: errors.length === 0, errors: errors };
+  }
+  function registerCustomTower(st, def) {
+    var v = validateTowerDef(def);
+    if (!v.ok) return { ok: false, errors: v.errors };
+    var kinds = Object.keys(TOWER_DEFS);
+    TOWER_DEFS[def.id] = { name: def.name, key: String(kinds.length + 1), cost: def.cost, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, splash: def.splash || 0, camo: !!def.camo, support: !!def.support, desc: def.desc || 'Custom tower (mod).' };
+    TOWER_SPRITES[def.id] = 'tower-validator';
+    if (st) { st.customTowers = st.customTowers || []; st.customTowers.push(def.id); emitHud(st); }
+    return { ok: true, id: def.id };
+  }
+  function validateEnemyDef(def, typeCount) {
+    var errors = [];
+    if (!def || typeof def !== 'object') return { ok: false, errors: ['enemy must be an object'] };
+    if (typeof def.name !== 'string' || !def.name.trim()) errors.push('enemy name is required');
+    if (!isNum(def.layers) || def.layers < 1 || def.layers > 20) errors.push('layers must be 1-20');
+    if (!isNum(def.speed) || def.speed < 20 || def.speed > 200) errors.push('speed must be 20-200');
+    if (!isNum(def.reward) || def.reward < 1 || def.reward > 100) errors.push('reward must be 1-100');
+    if (typeof def.color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(def.color)) errors.push('color must be #rrggbb');
+    return { ok: errors.length === 0, errors: errors };
+  }
+  function registerCustomEnemy(st, def) {
+    var v = validateEnemyDef(def);
+    if (!v.ok) return { ok: false, errors: v.errors };
+    var idx = BALLOON_TYPES.length;
+    BALLOON_TYPES.push({ layers: def.layers, color: def.color, dark: def.color, speed: def.speed, reward: def.reward, name: def.name, sprite: 'monster-1', camo: !!def.camo, armored: !!def.armored, fortified: !!def.fortified, regen: !!def.regen, splits: !!def.splits });
+    if (st) { st.customEnemies = st.customEnemies || []; st.customEnemies.push({ index: idx, name: def.name }); }
+    return { ok: true, index: idx, name: def.name };
+  }
+  function registerCustomWave(st, waveNum, composition) {
+    if (!isNum(waveNum) || waveNum < 1 || waveNum > 200 || Math.floor(waveNum) !== waveNum) return { ok: false, errors: ['wave must be an integer 1-200'] };
+    if (!Array.isArray(composition) || !composition.length || composition.length > 200) return { ok: false, errors: ['composition must be 1-200 enemy type indices'] };
+    for (var i = 0; i < composition.length; i++) {
+      if (!isNum(composition[i]) || composition[i] < -1 || composition[i] >= BALLOON_TYPES.length || Math.floor(composition[i]) !== composition[i]) return { ok: false, errors: ['composition[' + i + '] is not a valid enemy type index'] };
+    }
+    st.customWaves = st.customWaves || {};
+    st.customWaves[waveNum] = composition.slice();
+    return { ok: true, wave: waveNum, count: composition.length };
+  }
+  function getDebugStats(st) {
+    var mem = null;
+    try { if (typeof performance !== 'undefined' && performance.memory && isNum(performance.memory.usedJSHeapSize)) mem = Math.round(performance.memory.usedJSHeapSize / 1048576 * 10) / 10; } catch (e) {}
+    return {
+      version: manifestVersion(), fps: st.fps || 0, fpsTarget: st.fpsTarget, frameMs: st.fps ? Math.round(1000 / st.fps * 10) / 10 : null,
+      entities: Object.keys(st.ecs.entities).length, balloons: st.balloons.length, towers: st.towers.length,
+      projectiles: st.projectiles.length, particles: st.particles.length, floaters: st.floaters.length, spikes: st.spikes.length, lights: st.lights.length,
+      gridCells: st.grid.size, gridQueries: st.gridQueries, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total,
+      wave: st.wave, gold: st.gold, lives: st.lives, trackLength: Math.round(totalLen), customMap: st.customMapName || null,
+      customTowers: (st.customTowers || []).slice(), customWaves: Object.keys(st.customWaves || {}).map(Number), memoryMB: mem,
+      weather: (st.weather && st.weather.kind) || 'clear', paused: !!st.paused
+    };
+  }
+  function manifestVersion() { try { return manifest.version; } catch (e) { return '3.5.0'; } }
 
   /* ---- Hash helpers (anti-cheat state hash) ---- */
   function cyrb53(str, seedNum) {
@@ -314,8 +483,10 @@
     b.lineCap = 'round'; b.lineJoin = 'round';
     var stroke = function (w, col) { b.strokeStyle = col; b.lineWidth = w; b.beginPath(); b.moveTo(pathPts[0][0], pathPts[0][1]); pathPts.forEach(function (p) { b.lineTo(p[0], p[1]); }); b.stroke(); };
     stroke(46, 'rgba(0,0,0,.28)'); stroke(40, '#b8a284'); stroke(36, '#cbb693');
+    var strokeBranch = function (w, col) { b.strokeStyle = col; b.lineWidth = w; b.beginPath(); b.moveTo(branchPts[0][0], branchPts[0][1]); branchPts.forEach(function (pp) { b.lineTo(pp[0], pp[1]); }); b.stroke(); };
+    strokeBranch(46, 'rgba(0,0,0,.28)'); strokeBranch(40, '#b8a284'); strokeBranch(36, '#cbb693');
     for (i = 0; i < 900; i++) { var d = rnd() * totalLen, pt = pointAt(d), a = rnd() * TAU, r = rnd() * 15; b.fillStyle = rnd() > 0.5 ? '#a08b66' : '#d8c6a2'; b.beginPath(); b.arc(pt[0] + Math.cos(a) * r, pt[1] + Math.sin(a) * r, 1.4 + rnd() * 1.6, 0, TAU); b.fill(); }
-    stroke(4, 'rgba(255,255,255,.16)');
+    stroke(4, 'rgba(255,255,255,.16)'); strokeBranch(4, 'rgba(255,255,255,.16)');
     b.fillStyle = '#ff5a5a'; b.font = 'bold 13px Arial'; b.textAlign = 'center'; b.fillText('START', 52, 84);
     b.fillStyle = '#ffd166'; b.fillText('★ FINISH', 872, 388);
     // trees + rocks (kept clear of the path by fixed placement)
@@ -387,7 +558,7 @@
       running: false, destroyed: false, rafId: 0, lastT: 0, time: 0,
       gold: 650, lives: 100, wave: 0, score: 0, pops: 0, endless: false, challenge: false, paused: false, quality: 'high', shakeOn: true, fps: 0, _fpsN: 0, _fpsT: 0,
       balloons: [], towers: [], projectiles: [], beams: [], floaters: [], spikes: [],
-      particles: [], spawnQueue: [], spawnTimer: 0, betweenWaves: true,
+      particles: [], spawnCount: 0, spawnQueue: [], spawnTimer: 0, betweenWaves: true,
       speed: 1, autoStart: false, targeting: 'first', placing: null,
       selected: null, hoverTower: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
       fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', _lastFrameT: 0,
@@ -398,7 +569,8 @@
       grid: new Map(), ecs: createECS(),
       lights: [], acc: 0, alpha: 1, windX: 0, postfx: true, dof: true,
       gridQueries: 0, glowCv: null, glowCtx: null, sceneCv: null, sceneCtx: null, blurCv: null, blurCtx: null, vigCv: null,
-      weather: { kind: 'clear', until: 0, strikeT: 0 }, reroutes: 0, hazardSlows: 0
+      weather: { kind: 'clear', until: 0, strikeT: 0 }, reroutes: 0, hazardSlows: 0,
+      terrain: [], customMap: null, customMapName: null, customTowers: [], customEnemies: [], customWaves: {}
     };
   }
   var CELL = 64;
@@ -529,7 +701,7 @@
   function floater(st, x, y, text, color, opts) {
     opts = opts || {};
     var kind = opts.kind || 'info';
-    var fl = { x: x, y: y, text: text, color: color || '#ffd166', life: kind === 'crit' ? 1.1 : 0.9, vy: kind === 'crit' ? -95 : -70, size: kind === 'crit' ? 22 : kind === 'coin' ? 14 : 16, kind: kind };
+    var fl = { x: x, y: y, text: text, color: color || '#ffd166', life: kind === 'crit' ? 1.1 : 0.9, vx: (Math.random() - 0.5) * 24, vy: kind === 'crit' ? -95 : -70, size: kind === 'crit' ? 22 : kind === 'coin' ? 14 : 16, kind: kind };
     fl.ecsId = ecsAdd(st, 'floater', { position: fl, render: fl, lifetime: fl });
     st.floaters.push(fl);
   }
@@ -543,6 +715,26 @@
     return l;
   }
 
+  /* ---- Track 3 (150): status effect engine — burn/poison/stun/shred ---- */
+  function applyStatus(st, b, type, dur) {
+    if (!b || b.dead || b.boss) return;
+    b.statuses = b.statuses || {};
+    b.statuses[type] = { until: st.time + dur };
+  }
+  function hasStatus(st, b, type) {
+    return !!(b.statuses && b.statuses[type] && st.time < b.statuses[type].until);
+  }
+  /* ---- Track 3 (149): synergy buff factor from nearby beacons ---- */
+  function buffFactor(st, t) {
+    var best = 1;
+    var towers = ecsEntitiesOfKind(st, 'tower');
+    for (var i = 0; i < towers.length; i++) {
+      var b = towers[i];
+      if (b.kind !== 'beacon' || b === t) continue;
+      if (dist(t.x, t.y, b.x, b.y) <= b.range) { var f = b.level >= 5 ? 0.65 : b.level >= 3 ? 0.72 : 0.8; if (f < best) best = f; }
+    }
+    return best;
+  }
   function waveComposition(w) {
     var list = [];
     var push = function (type, n) { for (var i = 0; i < n; i++) list.push(type); };
@@ -556,7 +748,7 @@
   function startWave(st) {
     if (st.waveActive || st.won || st.lost) return;
     st.wave++;
-    st.spawnQueue = waveComposition(st.wave);
+    st.spawnQueue = (st.customWaves && st.customWaves[st.wave]) ? st.customWaves[st.wave].slice() : waveComposition(st.wave);
     st.spawnTimer = 0.4;
     st.waveActive = true; st.betweenWaves = false;
     if (st.wave % 10 === 0) setWeather(st, 'blizzard', 8);
@@ -565,40 +757,63 @@
     emitHud(st);
   }
   function spawnBalloon(st, typeIdx) {
+    st.spawnCount = (st.spawnCount || 0) + 1;
+    var lane = (typeIdx === -1) ? 0 : (st.spawnCount % 3 === 0 ? 1 : 0);
     if (typeIdx === -1) {
-      var pt = pointAt(0);
-      st.balloons.push({ boss: true, x: pt[0], y: pt[1], dist: 0, prevDist: 0, layers: 60, maxLayers: 60, r: 34, speed: 26, reward: 250, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, shieldUntil: st.wave >= 30 ? st.time + 5 : 0, sprite: 'monster-4', type: BALLOON_TYPES[3] });
+      var pt = pointAtLane(0, 0);
+      var bossLayers = 60 + (st.wave > 50 ? (st.wave - 50) * 2 : 0);
+      st.balloons.push({ boss: true, x: pt[0], y: pt[1], dist: 0, prevDist: 0, lane: 0, layers: bossLayers, maxLayers: bossLayers, r: 34, speed: 26, reward: 250, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, shieldUntil: st.wave >= 30 ? st.time + 5 : 0, sprite: 'monster-4', type: BALLOON_TYPES[3] });
       var bb0 = st.balloons[st.balloons.length - 1]; bb0.ecsId = ecsAdd(st, 'balloon', { position: bb0, health: bb0, path: bb0, render: bb0 });
       return;
     }
-    var t = BALLOON_TYPES[typeIdx], p2 = pointAt(0);
-    st.balloons.push({ boss: false, x: p2[0], y: p2[1], dist: 0, prevDist: 0, layers: t.layers, maxLayers: t.layers, r: 11 + t.layers * 1.5, speed: t.speed * (1 + st.wave * 0.012), reward: t.reward, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: !!t.armored, splits: !!t.splits, camo: !!t.camo, fortified: !!t.fortified, regen: !!t.regen, regenT: 0, sprite: t.sprite, type: t });
+    var t = BALLOON_TYPES[typeIdx], p2 = pointAtLane(0, lane);
+    var layers = t.layers, spd = t.speed * (1 + st.wave * 0.012);
+    if (st.wave > 50) { var lg = Math.log(st.wave - 49); layers = t.layers + Math.min(6, Math.floor(lg * 2)); spd = spd * (1 + 0.35 * lg); }
+    st.balloons.push({ boss: false, x: p2[0], y: p2[1], dist: 0, prevDist: 0, lane: lane, layers: layers, maxLayers: layers, r: 11 + layers * 1.5, speed: spd, reward: t.reward, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: !!t.armored, splits: !!t.splits, camo: !!t.camo, fortified: !!t.fortified, regen: !!t.regen, regenT: 0, sprite: t.sprite, type: t });
     var bb1 = st.balloons[st.balloons.length - 1]; bb1.ecsId = ecsAdd(st, 'balloon', { position: bb1, health: bb1, path: bb1, render: bb1 });
   }
   function damageBalloon(st, b, dmg, sourceTower) {
     if (b.dead) return;
     if (b.shieldUntil && st.time < b.shieldUntil) return;
-    if (b.fortified && !(sourceTower && (sourceTower.kind === 'cannon' || sourceTower.kind === 'mortar'))) dmg = Math.max(1, Math.ceil(dmg / 2));
+    var crit = !!(sourceTower && Math.random() < 0.1);
+    if (crit) dmg += 1;
+    var shred = !!(sourceTower && sourceTower.branch === 'power') || hasStatus(st, b, 'shred');
+    if (sourceTower && sourceTower.branch === 'power') applyStatus(st, b, 'shred', 4);
+    if (b.fortified && !shred && !(sourceTower && (sourceTower.kind === 'cannon' || sourceTower.kind === 'mortar'))) dmg = Math.max(1, Math.ceil(dmg / 2));
     var heroNear = st.heroPlaced && st.hero && dist(b.x, b.y, st.hero.x, st.hero.y) < 170;
-    if (b.armored && sourceTower && sourceTower.kind === 'dart') return; // darts cannot crack lead
-    if (b.boss) { b.layers -= dmg; st.pops += dmg; if (b.layers <= 0) { b.dead = true; st.gold += b.reward; st.score += 500; spawnParticle(st, b.x, b.y, '#ffd166', 26, 160, 'spark'); spawnParticle(st, b.x, b.y, '#ffd166', 1, 10, 'ring'); spawnParticle(st, b.x, b.y, '#8a8f9c', 8, 60, 'smoke'); addLight(st, b.x, b.y, 160, '#ffd166', 0.4, 1); addShake(st, 7); floater(st, b.x, b.y, '+' + b.reward + 'g', '#ffd166', { kind: 'coin' }); st.audio.coin(); } return; }
+    if (b.armored && sourceTower && sourceTower.kind === 'dart' && !shred) return; // darts cannot crack lead (unless shred)
+    if (b.boss) {
+      b.layers -= dmg; st.pops += dmg;
+      if (!b.phase2 && b.layers <= b.maxLayers / 2 && b.layers > 0) {
+        b.phase2 = true; b.shieldUntil = st.time + 3;
+        for (var mi = 0; mi < 2; mi++) {
+          var mn = { boss: false, x: b.x, y: b.y, dist: b.dist, prevDist: b.dist, lane: 0, layers: 5, maxLayers: 5, r: 11 + 5 * 1.5, speed: 112, reward: 11, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, splits: false, sprite: 'monster-5', type: BALLOON_TYPES[4] };
+          mn.ecsId = ecsAdd(st, 'balloon', { position: mn, health: mn, path: mn, render: mn }); st.balloons.push(mn);
+        }
+        floater(st, b.x, b.y - 40, 'PHASE SHIELD!', '#00f6ff');
+        addLight(st, b.x, b.y, 120, '#00f6ff', 0.35, 1);
+        spawnParticle(st, b.x, b.y, '#00f6ff', 10, 100, 'ring');
+      }
+      if (b.layers <= 0) { b.dead = true; st.gold += b.reward; st.score += 500; spawnParticle(st, b.x, b.y, '#ffd166', 26, 160, 'spark'); spawnParticle(st, b.x, b.y, '#ffd166', 1, 10, 'ring'); spawnParticle(st, b.x, b.y, '#8a8f9c', 8, 60, 'smoke'); addLight(st, b.x, b.y, 160, '#ffd166', 0.4, 1); addShake(st, 7); floater(st, b.x, b.y, '+' + b.reward + 'g', '#ffd166', { kind: 'coin' }); st.audio.coin(); }
+      return;
+    }
     b.layers -= dmg; st.pops += dmg;
     if (b.layers <= 0) {
       b.dead = true; st.gold += b.reward; st.score += 10;
       if (st.floaters.length < 24) floater(st, b.x, b.y - 28, '+' + b.reward + 'g', '#ffd166', { kind: 'coin' });
       spawnParticle(st, b.x, b.y, b.type.color, 10, 110);
       if (heroNear) st.heroXp += 2;
-      if (b.splits) { for (var i = 0; i < 2; i++) { var nb = { boss: false, x: b.x + (i ? 8 : -8), y: b.y, dist: b.dist, prevDist: b.dist, layers: 2, maxLayers: 2, r: 14, speed: b.speed * 1.15, reward: 7, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, splits: false, sprite: 'monster-2', type: BALLOON_TYPES[1] }; nb.ecsId = ecsAdd(st, 'balloon', { position: nb, health: nb, path: nb, render: nb }); st.balloons.push(nb); } }
+      if (b.splits) { for (var i = 0; i < 2; i++) { var nb = { boss: false, x: b.x + (i ? 8 : -8), y: b.y, dist: b.dist, prevDist: b.dist, lane: b.lane || 0, layers: 2, maxLayers: 2, r: 14, speed: b.speed * 1.15, reward: 7, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, splits: false, sprite: 'monster-2', type: BALLOON_TYPES[1] }; nb.ecsId = ecsAdd(st, 'balloon', { position: nb, health: nb, path: nb, render: nb }); st.balloons.push(nb); } }
       st.audio.pop();
     } else {
       b.r = 11 + b.layers * 1.5;
       spawnParticle(st, b.x, b.y, b.type.color, 4, 70);
-      if (dmg >= 3 && st.floaters.length < 24) floater(st, b.x, b.y - 16, (dmg >= 5 ? 'CRIT -' : '-') + dmg, dmg >= 5 ? '#ffd166' : '#ffffff', { kind: dmg >= 5 ? 'crit' : 'damage' });
+      if (dmg >= 3 && st.floaters.length < 24) floater(st, b.x, b.y - 16, (crit || dmg >= 5 ? 'CRIT -' : '-') + dmg, (crit || dmg >= 5) ? '#ffd166' : '#ffffff', { kind: (crit || dmg >= 5) ? 'crit' : 'damage' });
     }
   }
   function splashDamage(st, x, y, radius, dmg, sourceTower) {
     var targets = nearby(st, x, y, radius + 20);
-    for (var i = 0; i < targets.length; i++) { var b = targets[i]; if (!b.dead && dist(b.x, b.y, x, y) <= radius + b.r) damageBalloon(st, b, dmg, sourceTower); }
+    for (var i = 0; i < targets.length; i++) { var b = targets[i]; if (!b.dead && dist(b.x, b.y, x, y) <= radius + b.r) { damageBalloon(st, b, dmg, sourceTower); if (!b.dead && sourceTower && sourceTower.kind === 'mortar') applyStatus(st, b, 'burn', 3); } }
     spawnParticle(st, x, y, '#ff9e00', 14, 130, 'spark');
     spawnParticle(st, x, y, '#8a8f9c', 5, 50, 'smoke');
     addLight(st, x, y, radius + 40, '#ff9e00', 0.3, 1);
@@ -612,6 +827,8 @@
     if (mode === 'last') return inRange.reduce(function (a, b) { return b.dist < a.dist ? b : a; });
     if (mode === 'strong') return inRange.reduce(function (a, b) { return (b.layers > a.layers || (b.layers === a.layers && b.dist > a.dist)) ? b : a; });
     if (mode === 'weak') return inRange.reduce(function (a, b) { return (b.layers < a.layers || (b.layers === a.layers && b.dist < a.dist)) ? b : a; });
+    if (mode === 'closest') return inRange.reduce(function (a, b) { return dist(b.x, b.y, tower.x, tower.y) < dist(a.x, a.y, tower.x, tower.y) ? b : a; });
+    if (mode === 'elite') { var elites = inRange.filter(function (b) { return b.boss || b.armored || b.fortified; }); if (elites.length) return elites.reduce(function (a, b) { return b.dist > a.dist ? b : a; }); }
     return inRange.reduce(function (a, b) { return b.dist > a.dist ? b : a; }); // first
   }
   function fireTower(st, tower, target) {
@@ -633,15 +850,15 @@
         for (var k = 0; k < near.length; k++) { var nb = near[k]; if (!nb.dead && hit.indexOf(nb) < 0) { var dd = dist(cur.x, cur.y, nb.x, nb.y); if (dd < nd) { nd = dd; nx = nb; } } }
         if (!nx) break;
         addBeam(st, { x1: cur.x, y1: cur.y, x2: nx.x, y2: nx.y, life: 0.14, color: def.color });
-        damageBalloon(st, nx, Math.max(1, tower.dmg - c), tower);
+        damageBalloon(st, nx, Math.max(1, tower.dmg - c), tower); applyStatus(st, nx, 'poison', 2);
         hit.push(nx); cur = nx;
       }
       addBeam(st, { x1: tower.x, y1: tower.y - 12, x2: target.x, y2: target.y, life: 0.14, color: def.color });
-      damageBalloon(st, target, tower.dmg, tower); addLight(st, tower.x, tower.y - 12, 95, '#facc15', 0.14, 1); st.audio.zap(); return;
+      damageBalloon(st, target, tower.dmg, tower); applyStatus(st, target, 'poison', 2); addLight(st, tower.x, tower.y - 12, 95, '#facc15', 0.14, 1); st.audio.zap(); return;
     }
     if (tower.kind === 'sniper') {
       addBeam(st, { x1: tower.x, y1: tower.y - 14, x2: target.x, y2: target.y, life: 0.12, color: def.color });
-      damageBalloon(st, target, tower.dmg, tower); addLight(st, tower.x, tower.y - 14, 70, '#c792ea', 0.12, 1); st.audio.sniper();
+      damageBalloon(st, target, tower.dmg, tower); if (Math.random() < 0.12) applyStatus(st, target, 'stun', 0.8); addLight(st, tower.x, tower.y - 14, 70, '#c792ea', 0.12, 1); st.audio.sniper();
     } else if (tower.kind === 'frost') {
       addBeam(st, { x1: tower.x, y1: tower.y - 10, x2: target.x, y2: target.y, life: 0.18, color: def.color });
       target.slowUntil = st.time + (def.slowDur || 1.3); target.slowF = def.slow || 0.5;
@@ -670,10 +887,18 @@
       var b = balloons[i];
       if (b.dead) continue;
       var f = (st.time < b.slowUntil) ? b.slowF : 1;
+      if (hasStatus(st, b, 'stun')) f = 0;
       if (b.regen && !b.boss && b.layers < b.maxLayers) { b.regenT += dt; if (b.regenT >= 2) { b.regenT = 0; b.layers++; b.r = 11 + b.layers * 1.5; } }
+      if (!b.boss && b.statuses) {
+        var dot = 0;
+        if (hasStatus(st, b, 'burn')) dot += 1;
+        if (hasStatus(st, b, 'poison')) dot += 1;
+        if (dot > 0) { b.dotT = (b.dotT || 0) + dt; if (b.dotT >= 1) { b.dotT = 0; damageBalloon(st, b, dot, null); if (b.dead) continue; } }
+      }
       b.prevDist = b.dist;
       b.dist += b.speed * f * wSlow * dt;
-      if (b.dist >= totalLen) {
+      if (b.lane === 1 && b.dist >= branchTotal) { b.lane = 0; b.dist = rejoinDist; b.prevDist = rejoinDist; }
+      if (b.dist >= laneLen(b)) {
         b.dead = true; b.leaked = true;
         var dmg = b.boss ? 25 : b.layers;
         st.lives -= dmg; addShake(st, 8); st.audio.leak();
@@ -682,7 +907,7 @@
         if (st.lives <= 0) { st.lives = 0; st.lost = true; st.audio.over(); emitHud(st); }
         continue;
       }
-      var pt = pointAt(b.dist);
+      var pt = pointAtLane(b.dist, b.lane || 0);
       /* Batch 6: hazard slow + detour, wave-variant route offset.
        * The slow factor applies to the NEXT step's movement (f was
        * computed above from the previous position's slow); the
@@ -719,9 +944,10 @@
       var t = towers[i];
       t.cd -= dt; if (t.flash > 0) t.flash -= dt;
       if (t.cd > 0) continue;
+      if (t.support) continue;
       if (t.kind === 'spikes') { fireTower(st, t, null); t.cd = t.rate; continue; }
       var target = pickTarget(st, t);
-      if (target) { fireTower(st, t, target); t.cd = t.rate; }
+      if (target) { fireTower(st, t, target); t.cd = t.rate * buffFactor(st, t); }
     }
     if (st.heroPlaced && st.hero) {
       var h = st.hero;
@@ -765,7 +991,7 @@
   function FxSystem(st, dt) {
     var i;
     for (i = st.beams.length - 1; i >= 0; i--) { var bm = st.beams[i]; bm.life -= dt; if (bm.life <= 0) { if (bm.ecsId) ecsRemove(st, bm.ecsId); st.beams.splice(i, 1); } }
-    for (i = st.floaters.length - 1; i >= 0; i--) { var fl = st.floaters[i]; fl.life -= dt; fl.vy = (fl.vy == null ? -70 : fl.vy) + 160 * dt; fl.y += fl.vy * dt; if (fl.life <= 0) { if (fl.ecsId) ecsRemove(st, fl.ecsId); st.floaters.splice(i, 1); } }
+    for (i = st.floaters.length - 1; i >= 0; i--) { var fl = st.floaters[i]; fl.life -= dt; fl.vy = (fl.vy == null ? -70 : fl.vy) + 160 * dt; fl.x += (fl.vx || 0) * dt; fl.y += fl.vy * dt; if (fl.life <= 0) { if (fl.ecsId) ecsRemove(st, fl.ecsId); st.floaters.splice(i, 1); } }
     for (i = st.particles.length - 1; i >= 0; i--) {
       var pa = st.particles[i]; pa.life -= dt;
       var grav = pa.kind === 'smoke' ? -30 : (pa.kind === 'splash' ? 320 : 260);
@@ -829,7 +1055,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroGear: (st.hero && st.hero.equipment) || null, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroGear: (st.hero && st.hero.equipment) || null, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -851,7 +1077,7 @@
   function drawBalloon(ctx, b, time, alpha) {
     var wob = Math.sin(b.wob) * 2.2;
     var rd = lerp(b.prevDist == null ? b.dist : b.prevDist, b.dist, alpha == null ? 1 : alpha);
-    var rp = pointAt(rd);
+    var rp = pointAtLane(rd, b.lane || 0);
     var x = rp[0] + (b.ox || 0), y = rp[1] + (b.oy || 0) + wob;
     if (b.boss) {
       ctx.save(); ctx.translate(x, y);
@@ -863,6 +1089,7 @@
       ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.fillText('BOSS ' + b.layers, 0, 5);
       ctx.fillStyle = '#ff5a5a'; ctx.fillRect(-40, 34, 80, 6);
       ctx.fillStyle = '#3ddc5f'; ctx.fillRect(-40, 34, 80 * (b.layers / b.maxLayers), 6);
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; for (var sg = 1; sg < 5; sg++) ctx.fillRect(-40 + sg * 16 - 1, 34, 2, 6);
       if (b.shieldUntil && time < b.shieldUntil) { ctx.strokeStyle = '#00f6ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, 0, 50, 32, 0, 0, TAU); ctx.stroke(); }
       ctx.restore(); return;
     }
@@ -875,6 +1102,7 @@
       ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.fillText(String(b.layers), 0, -sz / 2 - 4);
       if (st_slow(b, time)) { ctx.strokeStyle = 'rgba(123,223,242,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, sz / 2 + 3, 0, TAU); ctx.stroke(); }
       if (b.camo) { ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = 'bold 8px Arial'; ctx.fillText('CAMO', 0, sz / 2 + 10); }
+      drawStatusDots(ctx, b, sz / 2 + 3, time);
       ctx.restore(); return;
     }
     ctx.save(); ctx.translate(x, y);
@@ -887,12 +1115,38 @@
     if (b.armored) { ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.82, b.r, 0, 0, TAU); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.fillText('LEAD', 0, 3); }
     else if (b.layers > 1) { ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.fillText(String(b.layers), 0, 4); }
     if (st_slow(b, time)) { ctx.strokeStyle = 'rgba(123,223,242,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, b.r + 3, b.r + 4, 0, 0, TAU); ctx.stroke(); }
+    drawStatusDots(ctx, b, b.r + 3, time);
     ctx.restore();
   }
   function st_slow(b, time) { return time < b.slowUntil; }
+  function drawStatusDots(ctx, b, r, time) {
+    if (!b.statuses) return;
+    var cols = [];
+    if (b.statuses.burn && time < b.statuses.burn.until) cols.push('#ff9e00');
+    if (b.statuses.poison && time < b.statuses.poison.until) cols.push('#3ddc5f');
+    if (b.statuses.stun && time < b.statuses.stun.until) cols.push('#ffffff');
+    if (b.statuses.shred && time < b.statuses.shred.until) cols.push('#c792ea');
+    for (var i = 0; i < cols.length; i++) {
+      ctx.fillStyle = cols[i];
+      ctx.beginPath(); ctx.arc((i - (cols.length - 1) / 2) * 9, -r - 8, 3.5, 0, TAU); ctx.fill();
+    }
+  }
   function drawTower(ctx, t, time) {
     var def = TOWER_DEFS[t.kind];
     var spr = SPRITES[TOWER_SPRITES[t.kind]];
+    if (t.kind === 'beacon') {
+      ctx.save(); ctx.translate(t.x, t.y);
+      var pulse = 1 + 0.12 * Math.sin(time * 3);
+      ctx.strokeStyle = 'rgba(34,211,238,.18)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, t.range * pulse, 0, TAU); ctx.stroke();
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#0e7490'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, TAU); ctx.fill();
+      ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 14, 0, TAU); ctx.stroke();
+      ctx.fillStyle = '#a5f3fc'; ctx.beginPath(); ctx.arc(0, -2, 5, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
+      for (var ub = 0; ub < t.level; ub++) ctx.fillText('★', -12 + ub * 12, 26);
+      ctx.restore(); return;
+    }
     var evo = evolutionFor(t);
     if (spriteReady(spr)) {
       ctx.save(); ctx.translate(t.x, t.y);
@@ -923,9 +1177,19 @@
     for (var u = 0; u < t.level; u++) ctx.fillText('★', -12 + u * 12, 22);
     ctx.restore();
   }
+  function drawTerrain(ctx, st) {
+    if (!st.terrain || !st.terrain.length) return;
+    for (var i = 0; i < st.terrain.length; i++) {
+      var t = st.terrain[i];
+      if (t.kind === 'tree') { ctx.fillStyle = '#6b4a2b'; ctx.fillRect(t.x - 3, t.y, 6, 14); ctx.fillStyle = '#1e6b2e'; ctx.beginPath(); ctx.arc(t.x, t.y - 8, 18, 0, TAU); ctx.fill(); }
+      else if (t.kind === 'rock') { ctx.fillStyle = '#6b7280'; ctx.beginPath(); ctx.moveTo(t.x - 14, t.y + 6); ctx.lineTo(t.x - 6, t.y - 10); ctx.lineTo(t.x + 8, t.y - 8); ctx.lineTo(t.x + 14, t.y + 6); ctx.closePath(); ctx.fill(); }
+      else if (t.kind === 'pond') { ctx.fillStyle = '#1d6fb8'; ctx.beginPath(); ctx.ellipse(t.x, t.y, 34, 18, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#7bdff2'; ctx.beginPath(); ctx.ellipse(t.x, t.y, 24, 11, 0, 0, TAU); ctx.fill(); }
+    }
+  }
   function drawScene(ctx, st) {
     ctx.drawImage(st.bg, 0, 0);
     drawWater(ctx, st);
+    drawTerrain(ctx, st);
     // placement ghost + range ring
     if (st.placing && st.mouse.x >= 0) {
       var def = TOWER_DEFS[st.placing];
@@ -949,6 +1213,7 @@
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.stroke();
       ctx.fillStyle = '#111'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.fillText('★', 0, 5);
       ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.fillText('Lv ' + (h.level || 1), 0, 30);
+      if (st.heroCd > 0) { ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 19, 0, TAU); ctx.stroke(); ctx.strokeStyle = '#ffd166'; ctx.beginPath(); ctx.arc(0, 0, 19, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - st.heroCd / 12)); ctx.stroke(); }
       if (h.patrol) { ctx.fillStyle = '#7bdff2'; ctx.font = 'bold 9px Arial'; ctx.fillText('PATROL', 0, 42); }
       ctx.restore();
     }
@@ -1174,7 +1439,7 @@
       else if (ev.key === 'Escape') { st.placing = null; st.selected = null; emitHud(st); }
       else if (ev.key === 'r' || ev.key === 'R') { reset(st); }
       else if (ev.key === 'p' || ev.key === 'P') { st.paused = !st.paused; emitHud(st); }
-      else if (ev.key >= '1' && ev.key <= '7') { var kinds = Object.keys(TOWER_DEFS); setPlacing(st, kinds[Number(ev.key) - 1]); }
+      else if (ev.key >= '1' && ev.key <= '8') { var kinds = Object.keys(TOWER_DEFS); setPlacing(st, kinds[Number(ev.key) - 1]); }
     };
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('click', onClick);
@@ -1190,7 +1455,7 @@
       setPlacing: function (kind) { setPlacing(st, kind); },
       setHero: function (hero) { st.hero = hero; st.heroPlaced = false; },
       setSession: function (sessionId, nonce) { st.sessionId = sessionId; st.sessionNonce = nonce; },
-      setTargeting: function (m) { if (['first', 'last', 'strong', 'weak'].indexOf(m) >= 0) { st.targeting = m; emitHud(st); } },
+      setTargeting: function (m) { if (['first', 'last', 'strong', 'weak', 'closest', 'elite'].indexOf(m) >= 0) { st.targeting = m; emitHud(st); } },
       setSpeed: function (s) { st.speed = clamp(Math.round(s) || 1, 1, 3); emitHud(st); },
       setAutoStart: function (v) { st.autoStart = !!v; emitHud(st); },
       startWave: function () { startWave(st); },
@@ -1214,7 +1479,15 @@
       setHeroPatrol: function (v) { if (st.hero) st.hero.patrol = !!v; emitHud(st); },
       equipHero: function (itemId) { return equipHero(st, itemId); },
       setWeather: function (kind, seconds) { return setWeather(st, kind, seconds); },
-      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, sessionId: st.sessionId, weather: (st.weather && st.weather.kind) || 'clear', heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0 }; },
+      getMap: function (name) { return exportMap(st, name); },
+      applyMap: function (map) { return applyMap(st, map); },
+      resetMap: function () { return resetMap(st); },
+      validateMap: function (map) { return validateMap(map); },
+      registerCustomTower: function (def) { return registerCustomTower(st, def); },
+      registerCustomEnemy: function (def) { return registerCustomEnemy(st, def); },
+      registerCustomWave: function (waveNum, composition) { return registerCustomWave(st, waveNum, composition); },
+      getDebugStats: function () { return getDebugStats(st); },
+      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, sessionId: st.sessionId, weather: (st.weather && st.weather.kind) || 'clear', heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, customMap: st.customMapName || null, customTowers: (st.customTowers || []).slice(), customWaves: Object.keys(st.customWaves || {}).map(Number) }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -1269,7 +1542,7 @@
     st.gold = st.challenge ? 100 : keep.gold; st.lives = st.challenge ? 20 : keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
     st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = []; st.spikes = []; st.lights = []; st.ecs = createECS(); st.acc = 0; st.alpha = 1; st.paused = false;
     st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null;
-    st.weather = { kind: 'clear', until: 0, strikeT: 0 }; st.reroutes = 0; st.hazardSlows = 0;
+    st.weather = { kind: 'clear', until: 0, strikeT: 0 }; st.reroutes = 0; st.hazardSlows = 0; st.spawnCount = 0;
     if (st.hero) { st.hero.patrol = false; st.hero.patrolDist = 0; st.hero.patrolDir = 1; st.hero.kills = 0; }
     emitHud(st);
   }
@@ -1284,7 +1557,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.3.0', description: 'Bloons-style tower defense: 50 waves + endless, 7 towers, camo/fortified/regen enemies, heroes, image sprites, ECS + spatial hash, fixed 60Hz timestep, bloom/lighting/vignette/tilt-shift/water post-processing, particle engine, Pillar 3 UI: floating combat text, inspection stat cards, settings (FPS/particles/motion blur/HiDPI), ECS-table iteration. Pillar 4: branching tower upgrade trees with Lv4/Lv5 evolutions, hero commander patrol/gear/ability tiers, hazard detours + wave-variant routing on the spline, storm/blizzard weather.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.5.0', description: 'Bloons-style tower defense: 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Dev tools: custom-track map editor, JSON mod loader, debug stats.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL };
 })(typeof window !== 'undefined' ? window : globalThis);
