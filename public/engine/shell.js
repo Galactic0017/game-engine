@@ -95,7 +95,8 @@
   async function ensurePlayer() {
     var w = ctx.wallet; if (!w.address) return;
     try {
-      var r = await api('/api/player', 'POST', { address: w.address, name: w.name });
+      var storedRef = null; try { storedRef = localStorage.getItem('game-referral') || null; } catch (e) {}
+      var r = await api('/api/player', 'POST', { address: w.address, name: w.name, referredBy: storedRef || undefined });
       ctx.player = r.player;
       ctx.host.setPlayer(r.player, r.heroes || []);
       renderHeroes(r.heroes || []);
@@ -104,22 +105,106 @@
   async function refreshState() {
     try {
       ctx.state = await api('/api/state');
-      renderLeaderMini(); renderAnnouncements(); renderProfile();
+      renderLeaderMini(); renderAnnouncements(); renderProfile(); renderChallenges(); renderReferral();
       if (ctx.player) { var mine = ctx.state.heroes.filter(function (h) { return h.owner === ctx.player.address; }); ctx.host.setPlayer(ctx.player, mine); renderHeroes(mine); }
       if (document.getElementById('view-marketplace').classList.contains('active') && window.MarketplaceUI) window.MarketplaceUI.render(document.getElementById('marketplace'), ctx);
     } catch (e) { /* state refresh is best-effort */ }
   }
   ctx.refreshState = refreshState; ctx.ensurePlayer = ensurePlayer;
   var leaderGame = '';
+  var leaderSeason = '';
   async function renderLeaderMini() {
     var el = document.getElementById('leaderMini'); if (!el) return;
-    var rows;
-    if (leaderGame) { try { var r = await api('/api/leaderboard?game=' + leaderGame); rows = r.leaderboard || []; } catch (e) { rows = []; } }
+    var rows, seasonInfo = null;
+    if (leaderSeason || leaderGame) { try { var r = await api('/api/leaderboard?game=' + leaderGame + (leaderSeason ? '&season=' + leaderSeason : '')); rows = r.leaderboard || []; seasonInfo = r.season || null; } catch (e) { rows = []; } }
     else rows = (ctx.state && ctx.state.leaderboard) || [];
+    var seasonKeyNow = new Date().toISOString().slice(0, 7);
     el.innerHTML = '<p class="small"><button data-lb="" class="ghost">All</button> <button data-lb="cosmos-btd" class="ghost">BTD</button> <button data-lb="space-shooter" class="ghost">Shooter</button></p>'
-      + (rows.length ? rows.slice(0, 5).map(function (r, i) { return '<p class="small">' + (i + 1) + '. ' + esc(r.name || shortAddr(r.address)) + ' — ' + r.bestScore + ' pts · Lv ' + r.level + '</p>'; }).join('') : '<p class="muted small">No scores yet.</p>');
+      + '<p class="small"><button data-season="" class="ghost">All-time</button> <button data-season="' + seasonKeyNow + '" class="ghost">This month (' + seasonKeyNow + ')</button>'
+      + (seasonInfo && seasonInfo.previousKey ? '<br><span class="muted">Last month (' + esc(seasonInfo.previousKey) + ') top 3: ' + esc((seasonInfo.top3 || []).map(function (t) { return '#' + t.rank + ' ' + (t.name || shortAddr(t.address)); }).join(', ') || 'none') + '</span>' : '') + '</p>'
+      + (rows.length ? rows.slice(0, 5).map(function (r, i) { return '<p class="small">' + (leaderSeason && i < 3 ? '🏆 ' : '') + (i + 1) + '. ' + esc(r.name || shortAddr(r.address)) + ' — ' + r.bestScore + ' pts · Lv ' + r.level + '</p>'; }).join('') : '<p class="muted small">No scores yet' + (leaderSeason ? ' this month' : '') + '.</p>');
     el.querySelectorAll('[data-lb]').forEach(function (btn) { btn.addEventListener('click', function () { leaderGame = btn.getAttribute('data-lb'); renderLeaderMini(); }); });
+    el.querySelectorAll('[data-season]').forEach(function (btn) { btn.addEventListener('click', function () { leaderSeason = btn.getAttribute('data-season'); renderLeaderMini(); }); });
   }
+  /* Batch 11: friend challenges (duel invites with accept/decline +
+   * async results), referral code display, and the PNG share card.
+   * All three are shell-only views over the server endpoints; the
+   * canvas snapshot is best-effort (a tainted canvas throws and
+   * only shows a toast — the game keeps running). */
+  async function renderChallenges() {
+    var box = document.getElementById('challengeBox'); if (!box) return;
+    if (!ctx.player) { box.innerHTML = '<p class="muted small">Connect your wallet to send or answer duel invites.</p>'; return; }
+    var duels = [];
+    try { var r = await api('/api/duels?address=' + encodeURIComponent(ctx.player.address)); duels = r.duels || []; } catch (e) {}
+    var me = ctx.player.address;
+    var rows = duels.slice(0, 5).map(function (d) {
+      var other = d.challenger === me ? d.rival : d.challenger;
+      var otherName = d.challenger === me ? (d.rivalName || shortAddr(d.rival)) : (d.challengerName || shortAddr(d.challenger));
+      var statusText = d.status === 'pending' ? (d.rivalResponse === 'accepted' ? 'Accepted — awaiting result' : 'Invite pending') : d.status.replace(/_/g, ' ');
+      var actions = '';
+      if (d.status === 'pending' && d.rival === me && !d.rivalResponse) actions = '<button data-accept="' + d.id + '">Accept</button> <button data-decline="' + d.id + '" class="ghost">Decline</button>';
+      else if (d.status === 'pending' && d.challenger === me) actions = '<input data-score="' + d.id + '" type="number" min="0" max="100000" placeholder="Your score" style="width:110px"> <button data-result="' + d.id + '">Submit result</button>';
+      return '<div class="questCard"><strong>' + esc(otherName) + '</strong> <span class="small muted">' + esc(shortAddr(other)) + ' · ' + esc(statusText) + (d.score != null ? ' · score ' + d.score : '') + '</span><p style="margin:6px 0 0">' + actions + '</p></div>';
+    }).join('');
+    box.innerHTML = '<label>Challenge a friend by address</label><input id="challengeAddr" type="text" placeholder="cosmos1… rival address"><p><button id="btnChallenge" class="primary">Send duel invite</button></p>' + (rows || '<p class="muted small">No duels yet.</p>');
+    var sendBtn = document.getElementById('btnChallenge');
+    if (sendBtn) sendBtn.addEventListener('click', async function () {
+      var rival = (document.getElementById('challengeAddr').value || '').trim();
+      if (!rival || rival.indexOf('cosmos1') !== 0) return toast('Enter a valid rival Cosmos address (cosmos1…).', 'warn');
+      try { await api('/api/duels', 'POST', { challengerAddress: me, rivalAddress: rival }); toast('Duel invite sent to ' + shortAddr(rival) + '.', 'ok'); renderChallenges(); } catch (e) { toast(e.message, 'err'); }
+    });
+    box.querySelectorAll('[data-accept]').forEach(function (btn) { btn.addEventListener('click', async function () { try { await api('/api/duels/respond', 'POST', { duelId: btn.getAttribute('data-accept'), address: me, accept: true }); toast('Duel accepted.', 'ok'); renderChallenges(); } catch (e) { toast(e.message, 'err'); } }); });
+    box.querySelectorAll('[data-decline]').forEach(function (btn) { btn.addEventListener('click', async function () { try { await api('/api/duels/respond', 'POST', { duelId: btn.getAttribute('data-decline'), address: me, accept: false }); toast('Duel declined.', 'ok'); renderChallenges(); } catch (e) { toast(e.message, 'err'); } }); });
+    box.querySelectorAll('[data-result]').forEach(function (btn) { btn.addEventListener('click', async function () {
+      var id = btn.getAttribute('data-result');
+      var input = box.querySelector('[data-score="' + id + '"]');
+      var score = input ? Number(input.value) : 0;
+      if (!score) return toast('Enter your score first.', 'warn');
+      try { var res = await api('/api/duels/result', 'POST', { duelId: id, address: me, score: score }); toast(res.won ? 'You won the duel! +150 credits, +100 XP.' : 'Duel decided: rival best was ' + res.rivalBest + '. +20 XP.', res.won ? 'ok' : 'warn'); renderChallenges(); refreshState(); } catch (e) { toast(e.message, 'err'); }
+    }); });
+  }
+  async function renderReferral() {
+    var box = document.getElementById('referralBox'); if (!box) return;
+    if (!ctx.player) { box.innerHTML = '<p class="muted small">Connect your wallet for your referral code.</p>'; return; }
+    try {
+      var r = await api('/api/referral?address=' + encodeURIComponent(ctx.player.address));
+      var link = window.location.origin + window.location.pathname + '?ref=' + r.referralCode;
+      box.innerHTML = '<p class="small">Your code: <b class="mono">' + esc(r.referralCode) + '</b> <button id="btnCopyRef" class="ghost">Copy link</button><br>Invited: <b>' + r.referralCount + '</b>' + (r.referrals && r.referrals.length ? ' — ' + esc(r.referrals.map(function (x) { return x.name || shortAddr(x.address); }).join(', ')) : ' · no invites yet') + '<br><span class="muted">A friend opens your link, connects Keplr, and is counted. Tracked only — referrals pay nothing.</span></p>';
+      var copyBtn = document.getElementById('btnCopyRef');
+      if (copyBtn) copyBtn.addEventListener('click', function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(function () { toast('Referral link copied.', 'ok'); }, function () { toast(link, 'ok'); });
+        else toast(link, 'ok');
+      });
+    } catch (e) { box.innerHTML = '<p class="muted small">Referral info unavailable.</p>'; }
+  }
+  function shareRunCard() {
+    var vp = document.getElementById('game-viewport'); if (!vp) return;
+    var canvas = vp.querySelector('canvas');
+    if (!canvas) { toast('No game canvas to snapshot yet — load a game first.', 'warn'); return; }
+    try {
+      var out = document.createElement('canvas'); out.width = 960; out.height = 700;
+      var c = out.getContext('2d');
+      c.fillStyle = '#070b18'; c.fillRect(0, 0, 960, 700);
+      c.drawImage(canvas, 0, 0, 960, 600);
+      c.fillStyle = 'rgba(7,11,24,.92)'; c.fillRect(0, 600, 960, 100);
+      var hud = ctx.hud || {};
+      c.fillStyle = '#e8ecf8'; c.font = 'bold 26px system-ui, sans-serif';
+      c.fillText((ctx.currentGame || 'game') + ' — GAME · game.atomstaking.app', 24, 638);
+      c.fillStyle = '#ffd166'; c.font = '18px system-ui, sans-serif';
+      c.fillText(('Score ' + (hud.score != null ? hud.score : '—') + ' · Wave ' + (hud.wave || '—') + ' · Pops ' + (hud.pops || 0) + (ctx.player ? ' · ' + (ctx.player.name || '') : '')).slice(0, 80), 24, 666);
+      c.fillStyle = '#9fb4d8'; c.font = '14px system-ui, sans-serif';
+      c.fillText(new Date().toISOString().slice(0, 10), 24, 690);
+      out.toBlob(function (blob) {
+        if (!blob) { toast('Could not create the share image.', 'err'); return; }
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = 'game-run-card.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        toast('Run card downloaded.', 'ok');
+      }, 'image/png');
+    } catch (e) { toast('Share card failed: ' + e.message, 'err'); }
+  }
+  ctx.shareRunCard = shareRunCard;
   function renderAnnouncements() {
     var el = document.getElementById('announceBar'); if (!el) return;
     var ann = (ctx.state && ctx.state.announcements) || [];
@@ -497,6 +582,7 @@
   }
   document.querySelectorAll('nav.tabs button').forEach(function (b) { b.addEventListener('click', function () { showView(b.getAttribute('data-nav')); }); });
   async function init() {
+    try { var refParam = new URLSearchParams(window.location.search).get('ref'); if (refParam) localStorage.setItem('game-referral', refParam); } catch (e) {}
     ctx.config = await api('/api/config');
     ctx.wallet = new window.WalletManager(bus, ctx.config);
     ctx.host = new window.EngineHost(bus, ctx.wallet, ctx.config);
@@ -537,6 +623,7 @@
     document.getElementById('btnDisconnect').addEventListener('click', function () { ctx.wallet.disconnect(); toast('Disconnected.'); });
     var exBtn = document.getElementById('btnExploreStore'); if (exBtn) exBtn.addEventListener('click', function () { showView('marketplace'); });
     var bellBtn = document.getElementById('btnBell'); if (bellBtn) bellBtn.addEventListener('click', function () { showView('updates'); });
+    var shareBtn = document.getElementById('btnShareCard'); if (shareBtn) shareBtn.addEventListener('click', shareRunCard);
     var pfBtn = document.getElementById('btnPlayFeatured'); if (pfBtn) pfBtn.addEventListener('click', function () { loadGame('cosmos-btd'); });
     var infBtn = document.getElementById('btnInfoFeatured'); if (infBtn) infBtn.addEventListener('click', function () { openGameInfo('cosmos-btd'); });
     var closePk = document.getElementById('btnClosePicker'); if (closePk) closePk.addEventListener('click', closeGamePicker);
