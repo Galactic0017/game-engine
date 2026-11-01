@@ -101,3 +101,23 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .statBar > div { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--violet)); transition: width .45s ease; }
 .effRow { display: grid; grid-template-columns: 92px 1fr 38px; gap: 8px; align-items: center; font-size: 12px; margin: 4px 0; }
 .effRow span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---- Batch 9: animated hub starfield + equipped-hero glow ---- */
+/* CSS-only starfield: two tiled radial-gradient star layers drifting
+ * behind the header. Low quality (body[data-quality="low"], set by
+ * the shell from the user's Graphics quality setting) and
+ * prefers-reduced-motion both freeze it to a static starfield. */
+header.topbar { overflow: hidden; }
+header.topbar > * { position: relative; z-index: 1; }
+.starfield { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .65;
+  background-image: radial-gradient(1.5px 1.5px at 18px 26px, #ffffff 50%, transparent 51%), radial-gradient(1px 1px at 74px 58px, #cfe8ff 50%, transparent 51%), radial-gradient(2px 2px at 104px 12px, #ffd166 50%, transparent 51%), radial-gradient(1px 1px at 42px 68px, #ffffff 50%, transparent 51%);
+  background-size: 120px 80px; animation: starfield-drift 90s linear infinite; }
+.starfield::after { content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(1px 1px at 30px 20px, #ffffff 50%, transparent 51%), radial-gradient(2px 2px at 130px 90px, #7bdff2 50%, transparent 51%), radial-gradient(1.5px 1.5px at 88px 44px, #ffffff 50%, transparent 51%);
+  background-size: 180px 120px; animation: starfield-drift 140s linear infinite reverse; }
+@keyframes starfield-drift { from { background-position: 0 0; } to { background-position: 240px 120px; } }
+body[data-quality="low"] .starfield, body[data-quality="low"] .starfield::after { animation: none; }
+.heroCard.equipped { border-color: var(--gold); box-shadow: 0 0 16px rgba(255, 209, 102, .45); }
+.heroCard.equipped img, .heroCard.equipped .heroDot { box-shadow: 0 0 12px rgba(255, 209, 102, .8); animation: hero-glow-pulse 2.4s ease-in-out infinite; }
+@keyframes hero-glow-pulse { 0%, 100% { box-shadow: 0 0 8px rgba(255, 209, 102, .5); } 50% { box-shadow: 0 0 18px rgba(255, 209, 102, .9); } }
+@media (prefers-reduced-motion: reduce) { .starfield, .starfield::after, .heroCard.equipped img, .heroCard.equipped .heroDot { animation: none; } }
