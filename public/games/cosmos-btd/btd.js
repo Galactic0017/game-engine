@@ -76,6 +76,27 @@
   function isFastBalloon(b) { return !!b && !b.boss && (b.speed || 0) >= FAST_BALLOON_SPEED; }
   function heroCooldownMax(tier) { return tier >= 3 ? 7 : tier >= 2 ? 9 : 12; }
 
+  /* ---- Batch 9: visuals — muzzle flash/recoil, leak warning, run summary ----
+   * Recoil is 1 on fire and decays in CombatSystem; the draw code kicks
+   * the barrel back along the firing angle by recoilOffset() px. Flash
+   * reuses the existing tower.flash timer (0.12s). Leak progress is the
+   * furthest balloon's fraction along its lane; >=80% flashes the
+   * screen edge. runSummary() freezes the run clock when the run ends
+   * (markRunEnded) so the end screen shows the real run time. */
+  var LEAK_WARNING_FRAC = 0.8;
+  function balloonProgress(b) { if (!b) return 0; var len = laneLen(b) || 1; return clamp((b.dist || 0) / len, 0, 1); }
+  function leakProgress(st) { var max = 0; for (var i = 0; i < st.balloons.length; i++) { var b = st.balloons[i]; if (!b.dead) max = Math.max(max, balloonProgress(b)); } return max; }
+  function leakWarningActive(st) { return !!(st && !st.won && !st.lost && leakProgress(st) >= LEAK_WARNING_FRAC); }
+  function recoilOffset(t) { return (t && t.recoil > 0) ? t.recoil * 5 : 0; }
+  function muzzleFlashActive(t) { return !!(t && t.flash > 0); }
+  function formatRunTime(sec) { sec = Math.max(0, Math.floor(sec || 0)); var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
+  function runSummary(st) {
+    if (!st || (!st.won && !st.lost)) return null;
+    var dur = st.runDuration != null ? st.runDuration : (st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : st.time);
+    return { outcome: st.won ? 'victory' : 'defeat', waves: st.wave, pops: st.pops, score: st.score, gold: st.gold, lives: st.lives, timeSec: Math.floor(dur), time: formatRunTime(dur), heroKills: (st.hero && st.hero.kills) || 0 };
+  }
+  function markRunEnded(st) { if (st.runDuration == null) st.runDuration = st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : st.time; }
+
   /* ---- Batch 6 (Pillar 4): branching upgrade trees ----
    * Each tower may commit to ONE branch (locked on first choice) with
    * up to 3 branch points. Speed: faster shots + range. Power: more
@@ -575,7 +596,7 @@
       skipBonuses: 0, skipBonusTotal: 0,
       fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', _lastFrameT: 0,
       sessionId: null, sessionNonce: null, pendingReports: [],
-      shake: 0, waveActive: false, won: false, lost: false,
+      shake: 0, waveActive: false, won: false, lost: false, runStartedAt: null, runDuration: null,
       mouse: { x: -999, y: -999 },
       audio: makeAudio(),
       grid: new Map(), ecs: createECS(),
@@ -759,6 +780,8 @@
   }
   function startWave(st, opts) {
     if (st.waveActive || st.won || st.lost) return;
+    /* Batch 9: the run clock starts with the first wave. */
+    if (st.runStartedAt == null) st.runStartedAt = st.time;
     /* Batch 8: wave-skip bonus — a manual start between waves, after
      * at least one wave has cleared, pays +25g for skipping the wait.
      * Auto-start (opts absent) never pays it; wave 1 never pays it. */
@@ -850,6 +873,9 @@
   }
   function fireTower(st, tower, target) {
     var def = TOWER_DEFS[tower.kind];
+    /* Batch 9: every shot kicks the barrel back (recoil decays in
+     * CombatSystem) and lights the muzzle flash timer. */
+    tower.recoil = 1;
     if (tower.kind === 'spikes') {
       if (st.spikes.length > 60) { var oldSp = st.spikes.shift(); if (oldSp && oldSp.ecsId) ecsRemove(st, oldSp.ecsId); }
       var a = Math.random() * TAU, rr = Math.random() * tower.range * 0.7;
@@ -921,7 +947,7 @@
         st.lives -= dmg; addShake(st, 8); st.audio.leak();
         spawnParticle(st, W - 90, 400, '#7bdff2', 8, 90, 'splash');
         floater(st, W - 90, 400, '-' + dmg + ' HP', '#ff5a5a');
-        if (st.lives <= 0) { st.lives = 0; st.lost = true; st.audio.over(); emitHud(st); }
+        if (st.lives <= 0) { st.lives = 0; st.lost = true; markRunEnded(st); st.audio.over(); emitHud(st); }
         continue;
       }
       var pt = pointAtLane(b.dist, b.lane || 0);
@@ -959,7 +985,7 @@
     var towers = ecsEntitiesOfKind(st, 'tower');
     for (var i = 0; i < towers.length; i++) {
       var t = towers[i];
-      t.cd -= dt; if (t.flash > 0) t.flash -= dt;
+      t.cd -= dt; if (t.flash > 0) t.flash -= dt; if (t.recoil > 0) t.recoil = Math.max(0, t.recoil - dt * 5);
       if (t.cd > 0) continue;
       if (t.support) continue;
       if (t.kind === 'spikes') { fireTower(st, t, null); t.cd = t.rate; continue; }
@@ -1057,7 +1083,7 @@
       st.audio.clear();
       floater(st, W / 2, 90, 'WAVE CLEAR  +' + bonus + 'g', '#3ddc5f');
       reportWave(st);
-      if (st.wave >= 50 && !st.endless) { st.won = true; st.audio.clear(); }
+      if (st.wave >= 50 && !st.endless) { st.won = true; markRunEnded(st); st.audio.clear(); }
       else if (st.autoStart) startWave(st);
       emitHud(st);
     }
@@ -1072,7 +1098,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -1188,10 +1214,15 @@
     }
     var evo = evolutionFor(t);
     if (spriteReady(spr)) {
-      ctx.save(); ctx.translate(t.x, t.y);
+      /* Batch 9: barrel kick shifts the sprite back along the firing
+       * angle while recoil decays; a muzzle star shows while flash>0. */
+      var kick = recoilOffset(t);
+      var kx = Math.cos(t.angle || 0) * kick, ky = Math.sin(t.angle || 0) * kick;
+      ctx.save(); ctx.translate(t.x - kx, t.y - ky);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
       var sz = t.level >= 5 ? 60 : t.level >= 4 ? 52 : 44;
       ctx.drawImage(spr, -sz / 2, -sz / 2, sz, sz);
+      if (muzzleFlashActive(t)) { var fx = Math.cos(t.angle || 0) * 28, fy = -2 + Math.sin(t.angle || 0) * 28; ctx.fillStyle = 'rgba(255,240,180,.95)'; ctx.beginPath(); ctx.arc(fx, fy, 7, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,240,180,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(fx - 12, fy); ctx.lineTo(fx + 12, fy); ctx.moveTo(fx, fy - 12); ctx.lineTo(fx, fy + 12); ctx.stroke(); }
       if (t.maxed) { ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.stroke(); }
       if (evo) { ctx.strokeStyle = evo === 'Ascended' ? '#c792ea' : '#00f6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 28, 0, TAU); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.fillText(evo.toUpperCase(), 0, -30); }
       ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
@@ -1203,6 +1234,7 @@
     ctx.fillStyle = '#3a4356'; ctx.beginPath(); ctx.arc(0, 4, 16, 0, TAU); ctx.fill();
     ctx.strokeStyle = def.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 4, 16, 0, TAU); ctx.stroke();
     ctx.save(); ctx.rotate(t.angle || 0);
+    ctx.translate(-recoilOffset(t), 0);
     ctx.fillStyle = def.color;
     if (t.kind === 'cannon' || t.kind === 'mortar') { ctx.fillRect(0, -5, 24, 10); ctx.fillStyle = '#202634'; ctx.fillRect(18, -6, 8, 12); }
     else if (t.kind === 'sniper') { ctx.fillRect(0, -2, 30, 4); ctx.fillStyle = '#202634'; ctx.fillRect(26, -3, 6, 6); }
@@ -1290,14 +1322,25 @@
     }
     for (var i = 0; i < st.floaters.length; i++) { var fl = st.floaters[i]; ctx.globalAlpha = Math.max(0, Math.min(1, fl.life / 0.3)); ctx.fillStyle = fl.color; ctx.font = 'bold ' + (fl.size || 16) + 'px Arial'; ctx.textAlign = 'center'; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 3; if (ctx.strokeText) ctx.strokeText(fl.text, fl.x, fl.y); ctx.fillText(fl.text, fl.x, fl.y); }
     ctx.globalAlpha = 1;
+    /* Batch 9: leak warning — pulsing red edge + banner when any live
+     * balloon is >=80% along its lane. */
+    if (leakWarningActive(st)) {
+      var pulse = 0.28 + 0.2 * Math.sin(st.time * 6);
+      ctx.save(); ctx.strokeStyle = 'rgba(255,60,60,' + pulse.toFixed(2) + ')'; ctx.lineWidth = 6; if (ctx.strokeRect) ctx.strokeRect(3, 3, W - 6, H - 6); ctx.restore();
+      ctx.fillStyle = '#ff5a5a'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('⚠ BALLOON NEAR THE EXIT — ' + Math.round(leakProgress(st) * 100) + '% ALONG THE PATH', W / 2, 40);
+    }
     if (st.won || st.lost) {
+      var sum = runSummary(st) || { waves: st.wave, pops: st.pops, score: st.score, gold: st.gold, time: formatRunTime(st.time), heroKills: (st.hero && st.hero.kills) || 0 };
       ctx.fillStyle = 'rgba(5,8,20,.72)'; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = st.won ? '#3ddc5f' : '#ff5a5a'; ctx.font = 'bold 44px Arial'; ctx.textAlign = 'center';
       ctx.fillText(st.won ? '🏆 YOU WIN — 50 WAVES!' : '💥 GAME OVER', W / 2, H / 2 - 10);
       ctx.fillStyle = '#fff'; ctx.font = '18px Arial';
-      ctx.fillText('Score ' + st.score + '  •  Pops ' + st.pops + '  •  Gold ' + st.gold, W / 2, H / 2 + 26);
+      ctx.fillText('Waves ' + sum.waves + '  •  Pops ' + sum.pops + '  •  Score ' + sum.score, W / 2, H / 2 + 26);
+      ctx.fillStyle = '#fff'; ctx.font = '18px Arial';
+      ctx.fillText('Gold ' + sum.gold + '  •  Time ' + sum.time + '  •  Hero kills ' + sum.heroKills, W / 2, H / 2 + 52);
       ctx.fillStyle = '#9fb4d8'; ctx.font = '14px Arial';
-      ctx.fillText('Press R to restart, or switch games in the sidebar.', W / 2, H / 2 + 52);
+      ctx.fillText('Press R to restart, or switch games in the sidebar.', W / 2, H / 2 + 78);
     }
     if (st.paused) { ctx.fillStyle = 'rgba(5,8,20,.6)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.font = 'bold 36px Arial'; ctx.textAlign = 'center'; ctx.fillText('PAUSED', W / 2, H / 2); ctx.font = '16px Arial'; ctx.fillText('Press P to resume', W / 2, H / 2 + 30); }
   }
@@ -1428,7 +1471,7 @@
     if (distToPath(x, y) <= 34) { if (st.opts.onToast) st.opts.onToast('Too close to the path.', 'warn'); return false; }
     for (var i = 0; i < st.towers.length; i++) if (dist(x, y, st.towers[i].x, st.towers[i].y) < 30) { if (st.opts.onToast) st.opts.onToast('Too close to another tower.', 'warn'); return false; }
     st.gold -= def.cost;
-    st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, level: 1, canSeeCamo: !!def.camo, maxed: false, branch: null, paths: { speed: 0, power: 0 }, splashBonus: 0, evolved: false });
+    st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, recoil: 0, level: 1, canSeeCamo: !!def.camo, maxed: false, branch: null, paths: { speed: 0, power: 0 }, splashBonus: 0, evolved: false });
     var tw0 = st.towers[st.towers.length - 1]; tw0.ecsId = ecsAdd(st, 'tower', { position: tw0, combat: tw0, render: tw0 });
     st.audio.place(); st.placing = null; emitHud(st);
     return true;
@@ -1537,7 +1580,7 @@
       registerCustomEnemy: function (def) { return registerCustomEnemy(st, def); },
       registerCustomWave: function (waveNum, composition) { return registerCustomWave(st, waveNum, composition); },
       getDebugStats: function () { return getDebugStats(st); },
-      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, sessionId: st.sessionId, weather: (st.weather && st.weather.kind) || 'clear', heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, customMap: st.customMapName || null, customTowers: (st.customTowers || []).slice(), customWaves: Object.keys(st.customWaves || {}).map(Number) }; },
+      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, sessionId: st.sessionId, weather: (st.weather && st.weather.kind) || 'clear', heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, customMap: st.customMapName || null, customTowers: (st.customTowers || []).slice(), customWaves: Object.keys(st.customWaves || {}).map(Number), leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st) }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -1591,7 +1634,7 @@
     var keep = { gold: 650, lives: 100, wave: 0, score: 0, pops: 0, heroXp: 0 };
     st.gold = st.challenge ? 100 : keep.gold; st.lives = st.challenge ? 20 : keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
     st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = []; st.spikes = []; st.lights = []; st.ecs = createECS(); st.acc = 0; st.alpha = 1; st.paused = false;
-    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null;
+    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null; st.runStartedAt = null; st.runDuration = null;
     st.weather = { kind: 'clear', until: 0, strikeT: 0 }; st.reroutes = 0; st.hazardSlows = 0; st.spawnCount = 0; st.skipBonuses = 0; st.skipBonusTotal = 0;
     if (st.hero) { st.hero.patrol = false; st.hero.patrolDist = 0; st.hero.patrolDir = 1; st.hero.kills = 0; }
     emitHud(st);
@@ -1607,7 +1650,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.6.0', description: 'Bloons-style tower defense: 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Dev tools: custom-track map editor, JSON mod loader, debug stats.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.7.0', description: 'Bloons-style tower defense: 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. Dev tools: custom-track map editor, JSON mod loader, debug stats.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded };
 })(typeof window !== 'undefined' ? window : globalThis);
