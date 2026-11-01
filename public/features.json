@@ -515,9 +515,39 @@
    "id": "keplr-only-wallet",
    "tested": "wallet harness: Keplr-only providers list, other wallet extensions ignored, connect with another provider name rejected, stored Leap sessions not restored",
    "title": "Keplr-only wallet — the other wallet option was removed; connect, signing and sends use Keplr only"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-powerups",
+   "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
+   "title": "Shooter power-ups — shield (absorbs one hit), rapid fire (6s), spread shot (8s) and extra life drop from drones (22%) and bosses; distinct on-canvas icons"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-boss",
+   "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
+   "title": "Shooter boss drone every 5 waves — 20+2/wave HP, 3-bolt fan, health bar, 500 pts, drops 2 power-ups; wave cannot clear while the boss lives"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-combo",
+   "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
+   "title": "Shooter combo multiplier — bullet kills build combo, +0.5x per 5 kills up to x3, shown in HUD/top bar; a lost life resets it, a shield block preserves it"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-touch",
+   "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
+   "title": "Shooter touch controls — virtual joystick on the left half + FIRE button on the right half, drawn on canvas, multi-touch tracked by identifier; removed with the module"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-leaderboard",
+   "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
+   "title": "Shooter leaderboard — game-over scores post to /api/progress with game=space-shooter (per-game bests, BTD bests untouched) and the Top Players rail has a Shooter filter; duplicate game-over emits deduped"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.8.1"
+ "version": "3.9.0"
 }
