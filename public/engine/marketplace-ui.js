@@ -6,6 +6,7 @@
 (function (global) {
   'use strict';
   var timer = null;
+  var mkQ = '', mkRarity = '', mkSort = 'price-asc';
   function fmtLeft(sec) { if (sec <= 0) return 'expired'; var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + String(s).padStart(2, '0'); }
   function startTimer(el, ctx) {
     if (timer) clearInterval(timer);
@@ -21,13 +22,15 @@
     var state = ctx.state || (await ctx.api('/api/state'));
     ctx.state = state;
     var me = ctx.player && ctx.player.address;
-    var listings = state.listings || [];
+    var listings = (state.listings || []).filter(function (l) { var q = mkQ.toLowerCase(); return (!q || (l.heroName || '').toLowerCase().indexOf(q) >= 0) && (!mkRarity || l.rarity === mkRarity); });
+    listings.sort(function (a, b) { if (mkSort === 'price-desc') return b.priceAtom - a.priceAtom; if (mkSort === 'level') return b.level - a.level; if (mkSort === 'name') return (a.heroName || '').localeCompare(b.heroName || ''); return a.priceAtom - b.priceAtom; });
+    var rarities = []; (state.listings || []).forEach(function (l) { if (rarities.indexOf(l.rarity) < 0) rarities.push(l.rarity); });
     var myOrders = (state.sales || []).filter(function (s) { return me && (s.buyerAddress === me || s.sellerAddress === me); }).slice().reverse();
     var myHeroes = (state.heroes || []).filter(function (h) { return me && h.owner === me; });
     var fee = state.feePercent;
     var ceo = state.ceoAddress;
     el.innerHTML = '<p>CEO fee <strong>' + fee + '%</strong> · CEO address <code>' + ctx.esc(ceo) + '</code> · Orders close after <strong>' + state.orderTtlMinutes + ' min</strong> if not completed.</p>'
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button id="mkRefresh">↻ Refresh</button><span class="muted small">Send EXACTLY the full price. Memo must be exactly the listing ID. Wrong amount or memo = no hero moves.</span></div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button id="mkRefresh">↻ Refresh</button><input id="mkSearch" placeholder="Search heroes…" style="width:170px" value="' + ctx.esc(mkQ) + '"><select id="mkRarity" style="width:auto"><option value="">All rarities</option>' + rarities.map(function (r) { return '<option' + (mkRarity === r ? ' selected' : '') + '>' + ctx.esc(r) + '</option>'; }).join('') + '</select><select id="mkSort" style="width:auto"><option value="price-asc"' + (mkSort === 'price-asc' ? ' selected' : '') + '>Price ↑</option><option value="price-desc"' + (mkSort === 'price-desc' ? ' selected' : '') + '>Price ↓</option><option value="level"' + (mkSort === 'level' ? ' selected' : '') + '>Level</option><option value="name"' + (mkSort === 'name' ? ' selected' : '') + '>Name</option></select><span class="muted small">Send EXACTLY the full price. Memo must be exactly the listing ID.</span></div>'
       + '<h4>For sale</h4>'
       + (listings.length ? '<div class="listingGrid">' + listings.map(function (l) {
         return '<div class="listing"><h4>' + ctx.esc(l.heroName) + ' <span class="pill">' + ctx.esc(l.rarity) + '</span></h4>'
@@ -49,6 +52,9 @@
       }).join('')) + '</div>';
     startTimer(el, ctx);
     el.querySelector('#mkRefresh').addEventListener('click', async function () { await ctx.refreshState(); render(el, ctx); });
+    el.querySelector('#mkSearch').addEventListener('change', function (ev) { mkQ = ev.target.value; render(el, ctx); });
+    el.querySelector('#mkRarity').addEventListener('change', function (ev) { mkRarity = ev.target.value; render(el, ctx); });
+    el.querySelector('#mkSort').addEventListener('change', function (ev) { mkSort = ev.target.value; render(el, ctx); });
     var priceInput = el.querySelector('#mkPrice');
     if (priceInput) {
       var upd = function () { var p = Number(priceInput.value); var prev = el.querySelector('#mkPreview'); if (prev) prev.textContent = p > 0 ? 'You will get ' + (p * (1 - fee / 100)).toFixed(6) + ' ATOM after the ' + fee + '% CEO fee. Buyer sends the full ' + p + ' ATOM to the CEO address.' : ''; };
