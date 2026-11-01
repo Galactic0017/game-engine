@@ -13,14 +13,17 @@
  * /api/config (lcdUrls). If every LCD is unreachable the balance is
  * reported as null, never as 0 — 0 would be a lie.
  *
- * Demo mode: if no wallet extension is present the user may enter a
- * valid cosmos1 address manually. Demo addresses are clearly labelled
- * in the UI and can never open the CEO panel (the server checks the
- * ADR-36 signature against CEO_ADDRESS).
+ * Real wallets only: Keplr or Leap, chosen explicitly. No demo
+ * address entry. The chosen provider is captured at connect time and
+ * reused for every signing call, so a second installed wallet can
+ * never hijack a session.
  */
 (function (global) {
   'use strict';
 
+  var STORAGE_PROVIDER = 'game_provider';
+  var STORAGE_PROVIDER = 'game_provider';
+  var STORAGE_PROVIDER = 'game_provider';
   var STORAGE_ADDRESS = 'game_address';
   var STORAGE_NAME = 'game_name';
   var LEGACY_ADDRESS = 'voidfall_address';
@@ -38,24 +41,38 @@
     this.bus = bus;
     this.config = config || {};
     this.chainId = this.config.chainId || 'cosmoshub-4';
-    this.provider = null;       // 'keplr' | 'leap' | 'demo' | null
+    this.provider = null;       // 'keplr' | 'leap' | null
     this.address = null;
     this.name = 'Player';
     this.balanceUatom = null;   // string of uatom, or null when unknown
     this._balanceTimer = null;
+    this._ext = null;           // captured extension {kind, api} from connect()
+    this._ext = null;           // captured extension {kind, api} from connect()
+    this._ext = null;           // captured extension {kind, api} from connect()
   }
 
-  WalletManager.prototype._extension = function () {
+  WalletManager.prototype._extension = function (kind) {
+    if (kind === 'keplr' && global.keplr) return { kind: 'keplr', api: global.keplr };
+    if (kind === 'leap' && global.leap) return { kind: 'leap', api: global.leap };
+    if (kind) return null;
     if (global.keplr) return { kind: 'keplr', api: global.keplr };
     if (global.leap) return { kind: 'leap', api: global.leap };
     return null;
   };
 
+  WalletManager.prototype.availableProviders = function () {
+    var out = [];
+    if (global.keplr) out.push('keplr');
+    if (global.leap) out.push('leap');
+    return out;
+  };
+
   WalletManager.prototype.hasExtension = function () { return !!this._extension(); };
 
-  WalletManager.prototype.connect = async function () {
-    var ext = this._extension();
-    if (!ext) throw new Error('No wallet extension found. Install Keplr or Leap on desktop, or use a demo address.');
+  WalletManager.prototype.connect = async function (kind) {
+    var ext = this._extension(kind);
+    if (!ext) throw new Error(kind ? ('No ' + kind + ' wallet extension found. Install ' + kind + ' on desktop.') : 'No wallet extension found. Install Keplr or Leap on desktop.');
+    this._ext = ext;
     await ext.api.enable(this.chainId);
     var key = await ext.api.getKey(this.chainId);
     if (!key || !isAddress(key.bech32Address)) throw new Error('Wallet returned an invalid Cosmos address.');
@@ -68,22 +85,11 @@
     return { address: this.address, name: this.name, provider: this.provider, balanceUatom: this.balanceUatom };
   };
 
-  WalletManager.prototype.useDemoAddress = function (address, name) {
-    if (!isAddress(address)) throw new Error('Need a valid Cosmos address (cosmos1 + 38-45 lowercase letters/numbers).');
-    this.provider = 'demo';
-    this.address = address;
-    this.name = name || 'Demo Player';
-    this.balanceUatom = null;
-    this._persist();
-    this.bus.emit('wallet:connected', this.address, null);
-    return { address: this.address, name: this.name, provider: 'demo', balanceUatom: null };
-  };
-
   WalletManager.prototype.restore = function () {
     try {
       var addr = global.localStorage && (global.localStorage.getItem(STORAGE_ADDRESS) || global.localStorage.getItem(LEGACY_ADDRESS));
       if (addr && isAddress(addr)) {
-        this.provider = 'demo';
+        this.provider = (global.localStorage.getItem(STORAGE_PROVIDER) || null);
         this.address = addr;
         this.name = (global.localStorage.getItem(STORAGE_NAME) || global.localStorage.getItem(LEGACY_NAME)) || 'Player';
         this.refreshBalance();
@@ -96,9 +102,10 @@
 
   WalletManager.prototype.disconnect = function () {
     this.provider = null;
+    this._ext = null;
     this.address = null;
     this.balanceUatom = null;
-    try { if (global.localStorage) { global.localStorage.removeItem(STORAGE_ADDRESS); global.localStorage.removeItem(STORAGE_NAME); } } catch (e) {}
+    try { if (global.localStorage) { global.localStorage.removeItem(STORAGE_ADDRESS); global.localStorage.removeItem(STORAGE_NAME); global.localStorage.removeItem(STORAGE_PROVIDER); } } catch (e) {}
     this.stopBalancePolling();
     this.bus.emit('wallet:disconnected');
   };
@@ -108,6 +115,7 @@
       if (global.localStorage) {
         global.localStorage.setItem(STORAGE_ADDRESS, this.address);
         global.localStorage.setItem(STORAGE_NAME, this.name);
+        if (this.provider) global.localStorage.setItem(STORAGE_PROVIDER, this.provider);
       }
     } catch (e) {}
   };
@@ -151,8 +159,8 @@
   // key (ADR-36). The server verifies the signature and that the signer
   // is CEO_ADDRESS. Every CEO action signs its own message.
   WalletManager.prototype.ceoSign = async function (message) {
-    if (this.provider === 'demo' || !this.address) throw new Error('CEO sign-in needs a real wallet connected with the CEO address.');
-    var ext = this._extension();
+    if (!this.address) throw new Error('CEO sign-in needs a real wallet connected with the CEO address.');
+    var ext = this._ext || this._extension(this.provider);
     if (!ext) throw new Error('Keplr / Leap not found.');
     await ext.api.enable(this.chainId);
     var key = await ext.api.getKey(this.chainId);
@@ -166,11 +174,9 @@
   };
 
   // Sign any game-result hash with the connected key (anti-cheat binding).
-  // Returns null for demo addresses — the server accepts unsigned claims
-  // but flags them as weaker evidence.
   WalletManager.prototype.signMessage = async function (message) {
-    if (this.provider === 'demo' || !this.address) return null;
-    var ext = this._extension();
+    if (!this.address) return null;
+    var ext = this._ext || this._extension(this.provider);
     if (!ext) return null;
     await ext.api.enable(this.chainId);
     var key = await ext.api.getKey(this.chainId);
@@ -192,8 +198,8 @@
     if (!isFinite(amountAtom) || amountAtom <= 0) throw new Error('Amount must be > 0 ATOM.');
     var uatom = String(Math.round(amountAtom * 1e6));
     if (uatom === '0') throw new Error('Amount is too small (rounds to 0 uatom).');
-    if (this.provider === 'demo' || !this.address) throw new Error('Connect a real wallet (Keplr/Leap) to send ATOM.');
-    var ext = this._extension();
+    if (!this.address) throw new Error('Connect a real wallet (Keplr/Leap) to send ATOM.');
+    var ext = this._ext || this._extension(this.provider);
     if (!ext) throw new Error('Keplr / Leap not found.');
     await ext.api.enable(this.chainId);
     var key = await ext.api.getKey(this.chainId);
