@@ -1,1 +1,1 @@
-{"canvas":false,"description":"Build mining rigs, hire overseers, earn while away. Local save.","entry":"tycoon.js","id":"space-tycoon","name":"Space Tycoon","version":"1.0.0"}
+{"canvas":false,"description":"Build mining rigs, hire overseers, earn while away. Local save.", "image": "assets/sprites/tower-validator.png","entry":"tycoon.js","id":"space-tycoon","name":"Space Tycoon","version":"1.0.0"}
