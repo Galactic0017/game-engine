@@ -5,90 +5,130 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GAME — game.atomstaking.app</title>
 <meta name="description" content="GAME by GalacticTools: Cosmos BTD, Space Tycoon, ATOM Core Clicker. Real wallet, no contracts. CEO-escrow hero marketplace.">
+<meta property="og:title" content="GAME \u2014 game.atomstaking.app">
+<meta property="og:description" content="GAME by GalacticTools: Cosmos BTD, Space Tycoon, ATOM Core Clicker. Real wallet, no contracts. CEO-escrow hero marketplace.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://game.atomstaking.app/">
+<meta property="og:site_name" content="GAME by GalacticTools">
+<meta property="og:image" content="https://game.atomstaking.app/assets/sprites/battlefield.jpg">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="900">
+<meta property="og:image:alt" content="Cosmos BTD battlefield under a nebula sky">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="GAME \u2014 game.atomstaking.app">
+<meta name="twitter:description" content="GAME by GalacticTools: Cosmos BTD, Space Tycoon, ATOM Core Clicker. Real wallet, no contracts. CEO-escrow hero marketplace.">
+<meta name="twitter:image" content="https://game.atomstaking.app/assets/sprites/battlefield.jpg">
 <link rel="stylesheet" href="hub.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="starfield" aria-hidden="true"></div>
-  <div class="logo">🌌 GAME <span>game.atomstaking.app</span><small>by GalacticTools · Swap · AtomStaking · GAME</small></div>
-  <nav class="tabs" aria-label="Main">
-    <button data-nav="games" class="active">🎮 Games</button>
-    <button data-nav="marketplace">🛒 Marketplace</button>
-    <button data-nav="updates">🆕 Updates</button>
-    <button data-nav="devtools">🛠 Dev Tools</button>
-    <button data-nav="ceo">👑 CEO Panel</button>
-  </nav>
-  <div class="wallet" id="walletWidget">
-    <span id="walletStatus">Not connected</span>
-    <span class="bal" id="walletBalance"></span>
-    <button id="btnSettings" class="ghost" title="Display, audio and theme settings">⚙ Settings</button>
-    <button id="btnConnect" class="primary">Connect Keplr / Leap</button>
-    <button id="btnDemo" class="ghost">Demo address</button>
-    <button id="btnDisconnect" class="ghost" hidden>Disconnect</button>
-  </div>
-</header>
-
-<div id="announceBar" class="banner" hidden></div>
-
-<div class="layout">
-  <aside class="sidebar">
+<div class="launcher">
+  <aside class="rail rail-left">
+    <div class="logo">🌌 GAME <span>game.atomstaking.app</span><small>by GalacticTools · Swap · AtomStaking · GAME</small></div>
+    <nav class="tabs" aria-label="Main">
+      <button data-nav="games" class="active">🎮 Game Library</button>
+      <button data-nav="marketplace">🛒 Store</button>
+      <button data-nav="updates">🆕 Updates</button>
+      <button data-nav="devtools">🛠 Dev Tools</button>
+      <button data-nav="ceo">👑 CEO Panel</button>
+    </nav>
     <h3>Games</h3>
     <div id="gameList"></div>
+    <button id="btnExploreStore" class="primary" style="width:100%">Explore Store</button>
+    <h3>Settings</h3>
+    <p><button id="btnSettings" class="ghost">⚙ Settings</button></p>
+    <h3>Links</h3>
+    <p class="small"><a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a></p>
+    <p class="small muted">Real wallet sends only. No contracts. Buyer sends full price to the CEO address; CEO moves the item, then sends the seller their cut after the fee. Always check the address and memo in your wallet before signing. Test with a tiny amount first.</p>
+  </aside>
+
+  <div class="centerCol">
+    <div class="searchbar">
+      <input id="gameSearch" type="search" placeholder="Find Games" aria-label="Find games">
+      <button id="btnBell" class="ghost" title="Announcements and updates">🔔</button>
+    </div>
+    <div id="announceBar" class="banner" hidden></div>
+    <main class="stage">
+      <section class="view active" id="view-games">
+        <div class="featured" id="featuredHero">
+          <img src="assets/sprites/battlefield.jpg" alt="Cosmos BTD battlefield under a nebula sky">
+          <span class="featuredBadge">Featured</span>
+          <div class="featuredBody">
+            <h2>Cosmos BTD</h2>
+            <p><span class="pill">Tower Defense</span> <span class="pill">Space</span> <span class="pill">Heroes</span> <span class="pill">50 Waves</span></p>
+            <p>Protect the ATOM orb at the end of the glowing energy lane. 8 towers, heroes, targeting modes, bosses every 10 waves, endless mode.</p>
+            <p><button id="btnPlayFeatured" class="primary">▶ Play Cosmos BTD</button> <button id="btnInfoFeatured" class="ghost">About this game</button></p>
+          </div>
+        </div>
+        <h3 class="sectionTitle">Your games</h3>
+        <div id="gameCards" class="gameCards"></div>
+        <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>
+        <div class="actionbar" id="actionBar"></div>
+        <div class="card inspectCard" id="inspectCard" hidden style="margin-top:12px"></div>
+        <div class="card" id="helpCard" hidden style="margin-top:12px">
+          <h3>Shortcuts</h3>
+          <p class="small"><b>1–8</b> pick tower · <b>Space</b> start wave · <b>P</b> pause · <b>R</b> restart · <b>Esc</b> cancel placement · <b>Click</b> place / select tower · <b>~</b> debug console · <b>Touch</b> works on mobile.</p>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <h3>How to play — Cosmos BTD</h3>
+          <p class="small">Click a tower, then click the board to place it (not on the path). Press <b>1–8</b> to pick towers, <b>Space</b> to start a wave, <b>P</b> to pause, <b>R</b> to restart. Place your equipped hero by clicking the board. 50 waves + endless mode — boss every 10. Speed 1x–3x, auto-start, and targeting (First / Last / Strong / Weak / Closest / Elite) are in the bar above. Protect the ATOM orb at the end of the lane.</p>
+          <p class="small muted">Wave reports are hashed and checked server-side (session hash + XP caps). Cheated claims get flagged for CEO audit and earn nothing.</p>
+        </div>
+      </section>
+
+      <section class="view" id="view-updates">
+        <div class="card"><h3>What's New — Feature Tracker</h3><div id="updatesList"><p class="muted">Loading…</p></div></div>
+      </section>
+
+      <section class="view" id="view-marketplace">
+        <div class="card"><h3>Marketplace — CEO escrow, no contracts</h3><div id="marketplace"></div></div>
+      </section>
+
+      <section class="view" id="view-devtools">
+        <div class="card"><h3>Dev Tools — map editor, mods, debug console</h3><div id="devToolsBox"><p class="muted">Loading…</p></div></div>
+      </section>
+
+      <section class="view" id="view-ceo">
+        <div class="card">
+          <h3>CEO Panel — advanced</h3>
+          <p class="small muted">Opens only with the CEO wallet: connect Keplr/Leap with the CEO address and sign each action (ADR-36). No password, no ADMIN_KEY in the UI.</p>
+          <div id="ceoGate"></div>
+          <div id="ceoPanel" hidden></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <aside class="rail rail-right">
+    <div class="wallet" id="walletWidget">
+      <span id="walletStatus">Not connected</span>
+      <span class="bal" id="walletBalance"></span>
+      <button id="btnConnectKeplr" class="primary">Connect Keplr</button>
+      <button id="btnConnectLeap" class="primary">Connect Leap</button>
+      <button id="btnDisconnect" class="ghost" hidden>Disconnect</button>
+    </div>
+    <h3>Profile</h3>
+    <div id="profileBox"><p class="muted small">Connect your wallet.</p></div>
+    <h3>Top Players</h3>
+    <div id="leaderMini"></div>
+    <h3>Recently Played</h3>
+    <div id="recentBox"><p class="muted small">No games played yet.</p></div>
     <h3>My Heroes</h3>
     <div id="heroList"><p class="muted small">Connect your wallet to see heroes.</p></div>
     <div id="heroActions"></div>
-    <h3>Leaderboard</h3>
-    <div id="leaderMini"></div>
-    <h3>Profile</h3>
-    <div id="profileBox"><p class="muted small">Connect your wallet.</p></div>
     <h3>Daily Quests</h3>
     <div id="questBox"></div>
     <h3>Achievements</h3>
     <div id="achBox"></div>
     <h3>Settings</h3>
     <div id="settingsBox"></div>
-    <h3>Links</h3>
-    <p class="small"><a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a></p>
-    <p class="small muted">Real wallet sends only. No contracts. Buyer sends full price to the CEO address; CEO moves the item, then sends the seller their cut after the fee. Always check the address and memo in your wallet before signing. Test with a tiny amount first.</p>
   </aside>
+</div>
 
-  <main class="stage">
-    <section class="view active" id="view-games">
-      <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>
-      <div class="actionbar" id="actionBar"></div>
-      <div class="card inspectCard" id="inspectCard" hidden style="margin-top:12px"></div>
-      <div class="card" id="helpCard" hidden style="margin-top:12px">
-        <h3>Shortcuts</h3>
-        <p class="small"><b>1–8</b> pick tower · <b>Space</b> start wave · <b>P</b> pause · <b>R</b> restart · <b>Esc</b> cancel placement · <b>Click</b> place / select tower · <b>~</b> debug console · <b>Touch</b> works on mobile.</p>
-      </div>
-      <div class="card" style="margin-top:12px">
-        <h3>How to play — Cosmos BTD</h3>
-        <p class="small">Click a tower, then click the board to place it (not on the path). Press <b>1–8</b> to pick towers, <b>Space</b> to start a wave, <b>P</b> to pause, <b>R</b> to restart. Place your equipped hero by clicking the board. 50 waves + endless mode — boss every 10. Speed 1x–3x, auto-start, and targeting (First / Last / Strong / Weak / Closest / Elite) are in the bar above.</p>
-        <p class="small muted">Wave reports are hashed and checked server-side (session hash + XP caps). Cheated claims get flagged for CEO audit and earn nothing.</p>
-      </div>
-    </section>
-
-    <section class="view" id="view-updates">
-      <div class="card"><h3>What's New — Feature Tracker</h3><div id="updatesList"><p class="muted">Loading…</p></div></div>
-    </section>
-
-    <section class="view" id="view-marketplace">
-      <div class="card"><h3>Marketplace — CEO escrow, no contracts</h3><div id="marketplace"></div></div>
-    </section>
-
-    <section class="view" id="view-devtools">
-      <div class="card"><h3>Dev Tools — map editor, mods, debug console</h3><div id="devToolsBox"><p class="muted">Loading…</p></div></div>
-    </section>
-
-    <section class="view" id="view-ceo">
-      <div class="card">
-        <h3>CEO Panel — advanced</h3>
-        <p class="small muted">Opens only with the CEO wallet: connect Keplr/Leap with the CEO address and sign each action (ADR-36). No password, no ADMIN_KEY in the UI.</p>
-        <div id="ceoGate"></div>
-        <div id="ceoPanel" hidden></div>
-      </div>
-    </section>
-  </main>
+<div id="gamePicker" class="modalOverlay" hidden>
+  <div class="card modalCard pickerWrap" role="dialog" aria-modal="true" aria-label="Game info">
+    <div id="gamePickerBody"></div>
+    <p><button id="btnClosePicker">Close</button> <button id="btnPlayPicker" class="primary">▶ Play</button></p>
+  </div>
 </div>
 
 <div id="settingsModal" class="modalOverlay" hidden>
