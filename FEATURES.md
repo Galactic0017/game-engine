@@ -4,6 +4,27 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.6.0 — 2026-11-01 — 5 features (71 total)
+
+| Area | Features |
+|---|---|
+| Cosmos BTD (5) | Mortar splash preview ring, Sell refund preview, Hero cooldown bar, Wave-skip bonus (+25g), Fast-balloon speed lines |
+
+Honest limits: splash ring + speed lines + cooldown bar are canvas/DOM
+draw code, harness-verified via state/HUD helpers only (no browser
+screenshot check); skip bonus pays only on manual starts between
+waves, never on auto-start or wave 1.
+
+## v3.5.0 — 2026-11-01 — 3 features (66 total)
+
+| Area | Features |
+|---|---|
+| Engine Tools (3) | Map editor, Debug console + perf monitor, JSON mod loader |
+
+Honest limits: editor/mod/overlay DOM wiring code-reviewed only (no
+browser/DOM harness for the shell); custom tracks keep the fixed
+branch-lane shape.
+
 ## v3.4.0 — 2026-11-01 — 9 features (63 total)
 
 | Area | Features |
