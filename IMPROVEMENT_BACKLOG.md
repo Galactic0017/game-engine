@@ -59,15 +59,26 @@ a cap only, display refresh limits it; motion blur is projectile/beam
 streaks, not a frame-blur pass; strokeText guarded for minimal canvas
 impls. CEO panel itself unchanged (glass applies via shared hub.css).
 
-## Batch 6 — Pillar 4: Deep Gameplay & Progression
-- [ ] Branching tower upgrade trees: 2 paths per tower (e.g. Speed/Fire
-      Rate vs Splash/Armor Shred), dramatic sprite evolutions at T4/T5.
-- [ ] Hero Commander system: field-deployable heroes that walk paths
-      freely, gain XP per kill, unlock abilities, carry equipment slots.
-- [ ] Adaptive AI pathfinding: curved Bezier spline pathing with dynamic
-      rerouting around player-placed obstacles / terrain hazards.
-- [ ] Environment & weather hazards: thunderstorm strikes on towers,
-      blizzard slows enemies map-wide, as global state triggers.
+## Batch 6 — DONE 2026-11-01 — v3.3.0 (4 features, 54 total)
+Pillar 4: Deep Gameplay & Progression
+- [x] Branching tower upgrade trees: 2 paths per tower (Rapid Fire /
+      Heavy Impact, 3 points, one locked path, Lv2+ to choose),
+      Evolved at Lv4 / Ascended at Lv5 (larger sprite + ring).
+- [x] Hero Commander system: patrol mode walks the spline, XP per
+      hero kill (+3), ability tiers 1-3 by run level, weapon/charm
+      equipment slots (in-run only, no server persistence).
+- [x] Adaptive AI pathfinding: mud/bramble hazard zones on the
+      Catmull-Rom spline slow balloons + trigger lateral detours;
+      every 10th wave takes a wide high-road offset. Not A*; towers
+      cannot block the path, so no tower-avoidance reroute.
+- [x] Environment & weather hazards: thunderstorm lightning strikes
+      near towers every 2s, blizzard slows all balloons to 70%;
+      auto-triggered on waves %5 (storm) / %10 (blizzard), 8s.
+Tests: server 25/25, BTD 59/59, shooter pass; serve 200s.
+Limits: branch buttons are API + inspect-card only (no dedicated
+shell buttons yet); gear/patrol visuals are labels + movement only;
+weather visuals are HUD label + lightning effects, no rain/snow
+particle layer; hazard detour is a lateral offset, not replanning.
 
 ## Batch 7 — Pillar 5: Runtime & Developer Tools
 - [ ] Level / map editor mode: dev tab to draw custom tracks, place
@@ -156,3 +167,6 @@ impls. CEO panel itself unchanged (glass applies via shared hub.css).
 - 2026-11-01 ~14:14: v3.0.0 push started (browser task, 13 files) — result pending at time of Batch 4 build; v3.1.0 push waits for it.
 - 2026-11-01 ~14:19: Batch 4 built locally (v3.1.0): server 25/25, BTD 27/27, shooter pass. Push queued after the v3.0.0 upload finishes.
 - 2026-11-01 14:29 EST: Batch 5 built locally (v3.2.0, Pillar 3): server 25/25, BTD 34/34, shooter pass. Health 200 (3.1.0) at run start. Push via browser task; verify /api/config shows 3.2.0.
+- 2026-11-01 ~14:36 EST: Batch 5 pushed (browser task, saved GitHub login, no challenge): 9 files, 5 commits fc0265e, 8a2ed59, a57f5ab, 8cd01eb, 39e71ef (HEAD, 45 commits total). server.js at HEAD shows VERSION 3.2.0. Live /api/config verification pending after auto-deploy.
+- 2026-11-01 14:39 EST: VERIFIED LIVE — text fetches served stale crawls, so a live browser reload was used: /api/config version 3.2.0 (real CEO address, 5% fee, 30-min orders) and /api/health version 3.2.0 at 2026-11-01T19:39:26Z. Batch 5 shipped.
+- 2026-11-01 14:40 EST: Batch 6 built locally (v3.3.0, Pillar 4): server 25/25, BTD 59/59, shooter pass. Health/config 200 at run start (stale crawls showed 3.1.0/3.0.0; live 3.2.0 verified previous run). Push via browser task; verify /api/config shows 3.3.0.
