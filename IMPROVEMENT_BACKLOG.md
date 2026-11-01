@@ -144,12 +144,15 @@ BTD depth II
 Tests: server 25/25, BTD 129/129, shooter pass; serve 200s (server test covers homepage/config/features/shooter).
 Limits: splash ring + speed lines are canvas draw code, harness-verified via helpers/state only (no browser screenshot check); cooldown bar + sell label are shell DOM, code-reviewed only.
 
-## Batch 9 — Visuals (was Batch 5)
-- [ ] Tower muzzle flash + recoil animation on fire (barrel kick).
-- [ ] Leak warning: screen edge flashes red at 80% path progress.
-- [ ] Victory/defeat end screens with run stats (waves, pops, score, gold, time).
-- [ ] Animated starfield behind the hub header (CSS only, respects Low quality).
-- [ ] Hero portrait glow for the equipped hero in the sidebar.
+## Batch 9 — DONE 2026-11-01 — v3.7.0 (5 features, 76 total)
+Visuals
+- [x] Tower muzzle flash + recoil animation on fire (barrel kick): recoil=1 on every shot, decays in CombatSystem, 5px kick along the firing angle + muzzle star while flash>0; sprite + procedural branches.
+- [x] Leak warning: screen edge flashes red at 80% path progress: furthest live balloon's lane fraction; pulsing red border + banner; suppressed once won/lost; `leakWarning`/`leakProgress` in HUD + state.
+- [x] Victory/defeat end screens with run stats (waves, pops, score, gold, time, hero kills): run clock starts at wave 1, freezes on win/loss; `runSummary` in HUD + state; R restart clears it.
+- [x] Animated starfield behind the hub header (CSS only, respects Low quality): two tiled gradient star layers drifting; `body[data-quality="low"]` (set by the shell from Graphics quality) + prefers-reduced-motion freeze the animation.
+- [x] Hero portrait glow for the equipped hero in the sidebar: `.equipped` class on the hero card + pulsing gold glow on the portrait.
+Tests: server 25/25, BTD 146/146, shooter pass; serve 200s (server test covers homepage/config/features/shooter).
+Limits: flash/recoil + leak edge + end-screen panel are canvas draw code, harness-verified via helpers/state only (no browser screenshot check); starfield + hero glow are CSS/DOM, code-reviewed only.
 
 ## Batch 10 — Space Shooter depth (was Batch 6)
 - [ ] Power-ups: shield, rapid fire, spread shot, dropping from drones.
@@ -224,3 +227,5 @@ Limits: splash ring + speed lines are canvas draw code, harness-verified via hel
 - 2026-11-01 ~14:53 EST: Track 3 gaps built locally (v3.4.0, 9 features, 63 total): BTD 86/86, server 25/25, shooter pass. Batch 6 verified live 3.3.0 before this push. Push via browser task; verify /api/config shows 3.4.0.
 - 2026-11-01 15:05 EST: VERIFIED LIVE — push 9 files / 9 commits (HEAD 7221b4b, 65 commits total; GitHub server.js was 3.4.0 before replace). Fresh live-browser reload: /api/config version 3.5.0 (real CEO address, 5% fee, 30-min orders), /api/health version 3.5.0 at 2026-11-01T20:05:08Z. Batch 7 shipped. Correction to the reconciliation note above: per the memory record, the v3.4.0 Track 3 push had landed 5 of 8 files (HEAD 9b9554a) before this run, not zero; the complete v3.4.0 + v3.5.0 set shipped together in this push.
 - 2026-11-01 15:07 EST: Batch 8 built locally (v3.6.0, BTD depth II): health/config 200 at run start (live 3.5.0). Tests: server 25/25, BTD 129/129, shooter pass. Push via browser task; verify /api/config shows 3.6.0.
+- 2026-11-01 15:20 EST: VERIFIED LIVE — push 8 files / 8 commits (HEAD dd10ddc, 73 commits total; previous HEAD 7221b4b). Fresh live-browser reload: /api/config version 3.6.0 (real CEO address, 5% fee, 30-min orders), /api/health version 3.6.0 at 2026-11-01T20:19:45Z (timestamp advanced on reload, live not cached). Batch 8 shipped.
+- 2026-11-01 15:24 EST: Batch 9 built locally (v3.7.0, Visuals): health/config 200 at run start (live 3.6.0; crawls stale at 3.5.0/3.3.0). Tests: server 25/25, BTD 146/146, shooter pass. Push via browser task; verify /api/config shows 3.7.0.
