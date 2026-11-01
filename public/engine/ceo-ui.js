@@ -32,9 +32,9 @@
     if (rel) rel.addEventListener('click', function () { renderPanel(panelEl, ctx); });
   }
   async function renderPanel(panelEl, ctx) {
-    panelEl.innerHTML = '<div class="ceoTabs">'
+    panelEl.innerHTML = '<div class="ceoLayout"><div class="ceoTabs">'
       + ['orders', 'ledger', 'users', 'flags', 'settings', 'announce', 'audit'].map(function (t) { return '<button data-ceotab="' + t + '" class="' + (activeTab === t ? 'active' : '') + '">' + t[0].toUpperCase() + t.slice(1) + (t === 'flags' && cache.flags.length ? ' (' + cache.flags.length + ')' : '') + '</button>'; }).join('')
-      + '</div><div id="ceoTabBody"></div><p class="small muted" id="ceoWatcherStatus"></p>';
+      + '</div><div class="ceoMain"><div id="ceoTabBody"></div></div></div><p class="small muted" id="ceoWatcherStatus"></p>';
     setWatcherStatus(watcherStatus);
     panelEl.querySelectorAll('[data-ceotab]').forEach(function (b) { b.addEventListener('click', function () { activeTab = b.getAttribute('data-ceotab'); renderPanel(panelEl, ctx); }); });
     var body = panelEl.querySelector('#ceoTabBody');
@@ -175,7 +175,7 @@
     var payout = sale.sellerPayout || { status: 'pending' };
     if (payout.status !== 'paid') {
       if (ctx.wallet.address !== ctx.config.ceoAddress) { ctx.toast('Payout must be sent from the CEO wallet. Connect the CEO address.', 'err'); return; }
-      if (ctx.wallet.provider === 'demo') { ctx.toast('Real payout needs a real wallet.', 'err'); return; }
+      if (!ctx.wallet.address) { ctx.toast('Real payout needs a real wallet.', 'err'); return; }
       setStep(card, 'send', 'busy');
       var ok = confirm('Send seller payout: ' + sale.sellerAmount + ' ATOM to ' + sale.sellerAddress + '?\nMemo: Payout ' + sale.id + '\n\nYou will review this in your wallet before signing.');
       if (!ok) { setStep(card, 'send', ''); return; }
