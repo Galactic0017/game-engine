@@ -14,7 +14,7 @@
   function mountGate(gateEl, panelEl, ctx) {
     if (authed) { gateEl.innerHTML = '<p class="ok">Signed in as CEO: <code>' + ctx.esc(ctx.wallet.address || '') + '</code></p><button id="ceoReload">↻ Reload panel</button>'; panelEl.hidden = false; renderPanel(panelEl, ctx); }
     else {
-      gateEl.innerHTML = '<p>CEO address: <code>' + ctx.esc(ctx.config.ceoAddress) + '</code></p><button id="ceoSignIn" class="primary">Sign in as CEO &amp; load panel</button><p class="small muted">Connect Keplr/Leap with the CEO address first. Each action signs in your wallet.</p>';
+      gateEl.innerHTML = '<p>CEO address: <code>' + ctx.esc(ctx.config.ceoAddress) + '</code></p><button id="ceoSignIn" class="primary">Sign in as CEO &amp; load panel</button><p class="small muted">Connect Keplr with the CEO address first. Each action signs in your wallet.</p>';
       panelEl.hidden = true;
     }
     var btn = document.getElementById('ceoSignIn');
