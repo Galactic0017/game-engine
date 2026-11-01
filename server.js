@@ -62,7 +62,7 @@ function isCeoRequest(req, bodyForMessage) {
   const message = effPath + '\n' + canonicalJson(bodyForMessage || {}) + '\n' + String(ts);
   return verifyAdr36(address, message, sig, pub);
 }
-const VERSION = '3.6.0';
+const VERSION = '3.7.0';
 const MODE = (process.env.MODE || 'demo').toLowerCase();
 const EXPLORER = process.env.EXPLORER_TX_URL || 'https://www.mintscan.io/cosmos/txs/';
 const CHAIN_ID = process.env.CHAIN_ID || 'cosmoshub-4';
