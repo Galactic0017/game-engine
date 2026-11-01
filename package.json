@@ -1,0 +1,13 @@
+{
+  "name": "game-engine",
+  "version": "1.0.0",
+  "description": "GAME - game.atomstaking.app - game engine/platform by GalacticTools. Game 1: Defend ATOM. DEMO ONLY, no real ATOM.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
