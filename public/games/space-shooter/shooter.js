@@ -119,7 +119,7 @@
       st.particles.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.35 + Math.random() * 0.35, max: 0.7, color: color, size: 2 + Math.random() * 3 });
     }
   }
-  function floater(st, x, y, text, color) { st.floaters.push({ x: x, y: y, text: text, color: color || '#ffd166', life: 0.9 }); }
+  function floater(st, x, y, text, color, opts) { opts = opts || {}; st.floaters.push({ x: x, y: y, text: text, color: color || '#ffd166', life: 0.9, vy: -70, size: (opts.kind === 'crit' ? 22 : 16), kind: opts.kind || 'info' }); }
   function fireInterval(st) {
     var base = 0.16;
     if (st.time < st.rapidUntil) base = 0.08;
@@ -345,7 +345,7 @@
     }
     for (i = st.floaters.length - 1; i >= 0; i--) {
       var fl = st.floaters[i];
-      fl.life -= dt; fl.y -= 34 * dt;
+      fl.life -= dt; fl.vy = (fl.vy == null ? -70 : fl.vy) + 160 * dt; fl.y += fl.vy * dt;
       if (fl.life <= 0) st.floaters.splice(i, 1);
     }
     // wave clear
@@ -483,8 +483,9 @@
     ctx.globalAlpha = 1;
     for (i = 0; i < st.floaters.length; i++) {
       var fl = st.floaters[i];
-      ctx.globalAlpha = Math.min(1, fl.life);
-      ctx.fillStyle = fl.color; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+      ctx.globalAlpha = Math.max(0, Math.min(1, fl.life / 0.3));
+      ctx.fillStyle = fl.color; ctx.font = 'bold ' + (fl.size || 16) + 'px Arial'; ctx.textAlign = 'center';
+      ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 3; if (ctx.strokeText) ctx.strokeText(fl.text, fl.x, fl.y);
       ctx.fillText(fl.text, fl.x, fl.y);
     }
     ctx.globalAlpha = 1;
