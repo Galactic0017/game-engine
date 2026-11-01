@@ -1,12 +1,13 @@
 /* CEO Panel — advanced. One-click execute, order timer, ban/remove,
- * ledger, flags, settings, audit. Every action is signed with the CEO
+ * ledger, flags, settings, audit, dispute queue, fee analytics,
+ * scheduled announcements, full ledger export. Every action is signed with the CEO
  * wallet (ADR-36); the server re-verifies. The CEO wallet also sends
  * the seller payout — the server never holds keys or ATOM.
  */
 (function (global) {
   'use strict';
   var authed = false;
-  var cache = { sales: [], rentals: [], ledger: null, users: null, flags: [], settings: null, audit: [], state: null };
+  var cache = { sales: [], rentals: [], ledger: null, users: null, flags: [], settings: null, audit: [], state: null, disputes: null, analytics: null, scheduled: [], openDisputes: 0 };
   var tickTimer = null, refreshTimer = null, watcherStatus = null, activeTab = 'orders';
   function fmtLeft(sec) { if (sec == null || sec <= 0) return '0:00'; var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + String(s).padStart(2, '0'); }
   function explorer(ctx, txid) { return '<a href="' + ctx.config.explorerTxUrl + txid + '" target="_blank" rel="noopener">Explorer ↗</a>'; }
@@ -33,7 +34,7 @@
   }
   async function renderPanel(panelEl, ctx) {
     panelEl.innerHTML = '<div class="ceoLayout"><div class="ceoTabs">'
-      + ['orders', 'ledger', 'users', 'flags', 'settings', 'announce', 'audit'].map(function (t) { return '<button data-ceotab="' + t + '" class="' + (activeTab === t ? 'active' : '') + '">' + t[0].toUpperCase() + t.slice(1) + (t === 'flags' && cache.flags.length ? ' (' + cache.flags.length + ')' : '') + '</button>'; }).join('')
+      + ['orders', 'disputes', 'analytics', 'ledger', 'users', 'flags', 'settings', 'announce', 'audit'].map(function (t) { return '<button data-ceotab="' + t + '" class="' + (activeTab === t ? 'active' : '') + '">' + t[0].toUpperCase() + t.slice(1) + (t === 'flags' && cache.flags.length ? ' (' + cache.flags.length + ')' : '') + (t === 'disputes' && cache.openDisputes ? ' (' + cache.openDisputes + ')' : '') + '</button>'; }).join('')
       + '</div><div class="ceoMain"><div id="ceoTabBody"></div></div></div><p class="small muted" id="ceoWatcherStatus"></p>';
     setWatcherStatus(watcherStatus);
     panelEl.querySelectorAll('[data-ceotab]').forEach(function (b) { b.addEventListener('click', function () { activeTab = b.getAttribute('data-ceotab'); renderPanel(panelEl, ctx); }); });
@@ -51,14 +52,19 @@
       await refreshOrders(ctx);
       renderOrders(body, ctx);
       refreshTimer = setInterval(async function () { if (document.getElementById('ceoTabBody')) { await refreshOrders(ctx); renderOrders(document.getElementById('ceoTabBody'), ctx); } }, 20000);
-    } else if (activeTab === 'ledger') { await refreshLedger(ctx); renderLedger(body, ctx); }
+    } else if (activeTab === 'disputes') { await refreshDisputes(ctx); renderDisputes(body, ctx); }
+    else if (activeTab === 'analytics') { await refreshAnalytics(ctx, 14); renderAnalytics(body, ctx); }
+    else if (activeTab === 'ledger') { await refreshLedger(ctx); renderLedger(body, ctx); }
     else if (activeTab === 'users') { await refreshUsers(ctx); renderUsers(body, ctx); }
     else if (activeTab === 'flags') { await refreshFlags(ctx); renderFlags(body, ctx); }
     else if (activeTab === 'settings') { await refreshSettings(ctx); renderSettings(body, ctx); }
-    else if (activeTab === 'announce') { renderAnnounce(body, ctx); }
+    else if (activeTab === 'announce') { await renderAnnounce(body, ctx); }
     else if (activeTab === 'audit') { await refreshAudit(ctx); renderAudit(body, ctx); }
   }
-  async function refreshOrders(ctx) { try { var r = await ctx.ceoGet('/api/admin/pending'); cache.sales = r.sales || []; cache.rentals = r.rentals || []; cache.flags = r.flags || []; cache.settings = r.settings || null; } catch (e) { ctx.toast(e.message, 'err'); } }
+  async function refreshOrders(ctx) { try { var r = await ctx.ceoGet('/api/admin/pending'); cache.sales = r.sales || []; cache.rentals = r.rentals || []; cache.flags = r.flags || []; cache.settings = r.settings || null; cache.openDisputes = r.openDisputes || 0; } catch (e) { ctx.toast(e.message, 'err'); } }
+  async function refreshDisputes(ctx) { try { cache.disputes = await ctx.ceoGet('/api/admin/disputes'); cache.openDisputes = (cache.disputes && cache.disputes.count) || 0; } catch (e) { ctx.toast(e.message, 'err'); } }
+  async function refreshAnalytics(ctx, days) { try { cache.analytics = await ctx.ceoGet('/api/admin/analytics?days=' + (days || 14)); } catch (e) { ctx.toast(e.message, 'err'); } }
+  async function refreshScheduled(ctx) { try { cache.scheduled = (await ctx.ceoGet('/api/admin/announce/scheduled')).scheduled || []; } catch (e) { cache.scheduled = []; } }
   async function refreshLedger(ctx) { try { cache.ledger = await ctx.ceoGet('/api/admin/ledger'); } catch (e) { ctx.toast(e.message, 'err'); } }
   async function refreshUsers(ctx) { try { cache.users = await ctx.ceoGet('/api/admin/users'); cache.state = await ctx.api('/api/state'); } catch (e) { ctx.toast(e.message, 'err'); } }
   async function refreshFlags(ctx) { try { var r = await ctx.ceoGet('/api/admin/flags'); cache.flags = r.flags || []; } catch (e) { ctx.toast(e.message, 'err'); } }
@@ -84,7 +90,8 @@
         var pct = Math.min(100, Math.round(elapsed / ttlSec * 100));
         var payout = s.sellerPayout || { amount: s.sellerAmount, to: s.sellerAddress, status: 'pending' };
         return '<div class="card" style="margin-bottom:12px" data-sale="' + s.id + '">'
-          + '<h4>' + ctx.esc(s.heroName) + ' — ' + s.priceAtom + ' ATOM <span class="pill pending">' + s.status + '</span></h4>'
+          + '<h4>' + ctx.esc(s.heroName) + ' — ' + s.priceAtom + ' ATOM <span class="pill pending">' + s.status + '</span>' + (s.dispute && !s.dispute.resolved ? ' <span class="pill rejected">DISPUTED</span>' : '') + '</h4>'
+          + (s.dispute && !s.dispute.resolved ? '<p class="small bad">Dispute: ' + ctx.esc(s.dispute.reason || '') + '</p>' : '')
           + '<p class="small">Order <code>' + ctx.esc(s.id) + '</code> · Listing <code>' + ctx.esc(s.listingId) + '</code><br>Buyer <code>' + ctx.esc(s.buyerAddress) + '</code><br>Seller <code>' + ctx.esc(s.sellerAddress) + '</code> gets <strong>' + s.sellerAmount + ' ATOM</strong> · CEO fee <strong>' + s.ceoFee + ' ATOM</strong><br>Buyer TX: <code>' + ctx.esc(s.txid) + '</code> ' + explorer(ctx, s.txid) + '</p>'
           + '<p>Closes in <span class="timer" data-expires="' + (s.secondsLeft || 0) + '" data-now="' + Date.now() + '">' + fmtLeft(s.secondsLeft || 0) + '</span></p>'
           + '<div class="progress"><div style="width:' + pct + '%"></div></div>'
@@ -100,6 +107,7 @@
           + '<button data-approve="' + s.id + '">Approve (manual checks)</button>'
           + '<button data-payout="' + s.id + '" class="ghost">Record payout TXID</button>'
           + '<button data-reject="' + s.id + '" class="danger">Reject order</button>'
+          + '<button data-dispute="' + s.id + '" class="ghost">Flag dispute</button>'
           + '<button data-banbuyer="' + s.buyerAddress + '" class="ghost">Ban buyer</button>'
           + '</div><p class="small muted" data-verify-result></p></div>';
       }).join('') : '<p class="muted">No pending orders. New orders appear here with a live countdown.</p>'
@@ -129,6 +137,7 @@
     body.querySelectorAll('[data-verify]').forEach(function (b) { b.addEventListener('click', async function () { await verifyOrder(b.getAttribute('data-verify'), body, ctx); }); });
     body.querySelectorAll('[data-approve]').forEach(function (b) { b.addEventListener('click', async function () { await approveOrder(b.getAttribute('data-approve'), body, ctx); }); });
     body.querySelectorAll('[data-reject]').forEach(function (b) { b.addEventListener('click', async function () { await rejectOrder(b.getAttribute('data-reject'), ctx); }); });
+    body.querySelectorAll('[data-dispute]').forEach(function (b) { b.addEventListener('click', async function () { await disputeOrder(b.getAttribute('data-dispute'), ctx); }); });
     body.querySelectorAll('[data-execute]').forEach(function (b) { b.addEventListener('click', async function () { await executeOrder(b.getAttribute('data-execute'), body, ctx); }); });
     body.querySelectorAll('[data-payout]').forEach(function (b) { b.addEventListener('click', async function () { await recordPayout(b.getAttribute('data-payout'), ctx); }); });
     body.querySelectorAll('[data-banbuyer]').forEach(function (b) { b.addEventListener('click', async function () { await banAddress(b.getAttribute('data-banbuyer'), ctx); }); });
@@ -164,6 +173,11 @@
     var reason = prompt('Reject reason (buyer/seller can see this):', 'Rejected by CEO');
     if (reason === null) return;
     try { await ctx.ceoFetch('/api/admin/reject', { saleId: saleId, reason: reason }); ctx.toast('Order rejected. Listing re-opened.', 'ok'); await refreshOrders(ctx); var b = document.getElementById('ceoTabBody'); if (b) renderOrders(b, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
+  }
+  async function disputeOrder(saleId, ctx) {
+    var reason = prompt('Dispute reason (kept in the Disputes queue for review):', 'Buyer reports a problem with this order');
+    if (reason === null) return;
+    try { await ctx.ceoFetch('/api/admin/orders/dispute', { saleId: saleId, reason: reason }); ctx.toast('Order flagged as disputed. See the Disputes tab.', 'ok'); await refreshOrders(ctx); var b = document.getElementById('ceoTabBody'); if (b) renderOrders(b, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
   }
   async function recordPayout(saleId, ctx) {
     var txid = prompt('Paste the seller payout TX hash (64 hex):');
@@ -272,12 +286,75 @@
       await ctx.refreshState();
     } catch (e) { ctx.toast('Execute failed: ' + e.message + (payoutTxid ? ' Payout TX ' + payoutTxid + ' was already sent — record it with "Record payout TXID" after checking.' : ''), 'err'); setStep(card, 'move', 'fail'); }
   }
+  function renderDisputes(body, ctx) {
+    var d = cache.disputes;
+    if (!d) { body.innerHTML = '<p class="muted">Loading disputes…</p>'; return; }
+    var list = d.disputes || [];
+    body.innerHTML = '<h4>Dispute queue — flagged orders, one review view</h4>'
+      + '<p class="small muted">A dispute is a review marker only: it does not stop the order timer and does not move heroes or ATOM. Resolve the order itself from the Orders tab (execute / reject), then mark the dispute resolved here.</p>'
+      + (list.length ? '<table><tr><th>Order</th><th>Hero / Price</th><th>Parties</th><th>Reason</th><th>Action</th></tr>' + list.map(function (s) {
+        return '<tr><td class="small mono">' + ctx.esc(s.id) + '<br><span class="pill pending">' + ctx.esc(s.status) + '</span></td><td>' + ctx.esc(s.heroName) + '<br>' + s.priceAtom + ' ATOM · fee ' + s.ceoFee + '</td><td class="small mono">Buyer ' + ctx.esc(s.buyerAddress) + '<br>Seller ' + ctx.esc(s.sellerAddress) + '</td><td class="small">' + ctx.esc((s.dispute && s.dispute.reason) || '') + '<br><span class="muted">' + ctx.esc(((s.dispute && s.dispute.at) || '').replace('T', ' ').slice(0, 19)) + '</span></td><td><button data-resolve-dispute="' + s.id + '">Resolve dispute</button></td></tr>';
+      }).join('') + '</table>' : '<p class="muted">No open disputes. Flag one from any pending order card.</p>')
+      + ((d.flags || []).length ? '<h4 style="margin-top:18px">Unresolved dispute flags</h4><table><tr><th>Time</th><th>Order</th><th>Reason</th></tr>' + d.flags.map(function (f) { return '<tr><td class="small">' + ctx.esc((f.ts || '').replace('T', ' ').slice(0, 19)) + '</td><td class="small mono">' + ctx.esc(f.saleId || '') + '</td><td class="small">' + ctx.esc(f.reason || '') + '</td></tr>'; }).join('') + '</table>' : '');
+    body.querySelectorAll('[data-resolve-dispute]').forEach(function (b) { b.addEventListener('click', async function () {
+      var note = prompt('Resolution note:', 'Resolved by CEO'); if (note === null) return;
+      try { await ctx.ceoFetch('/api/admin/orders/dispute/resolve', { saleId: b.getAttribute('data-resolve-dispute'), note: note }); ctx.toast('Dispute resolved.', 'ok'); await refreshDisputes(ctx); renderDisputes(body, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
+    }); });
+  }
+  // Fee analytics chart: canvas bars for daily volume + gold bars for
+  // daily fees. No dependencies; the same numbers are listed in the
+  // table below so the chart is never the only copy.
+  function drawFeeChart(canvas, days) {
+    if (!canvas || !canvas.getContext) return;
+    var g = canvas.getContext('2d'); if (!g) return;
+    var W = canvas.width, H = canvas.height, padL = 44, padB = 24, padT = 12, padR = 8;
+    g.clearRect(0, 0, W, H);
+    var maxV = 0; days.forEach(function (d) { if (d.volume > maxV) maxV = d.volume; });
+    if (maxV <= 0) maxV = 1;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    g.strokeStyle = '#3a4a6b'; g.fillStyle = '#8fa3c8'; g.font = '11px sans-serif'; g.textAlign = 'right';
+    for (var i = 0; i <= 4; i++) { var y = padT + plotH - plotH * i / 4; g.beginPath(); g.moveTo(padL, y); g.lineTo(W - padR, y); g.stroke(); g.fillText((maxV * i / 4).toFixed(1), padL - 6, y + 4); }
+    var bw = plotW / Math.max(1, days.length);
+    g.textAlign = 'center';
+    days.forEach(function (d, idx) {
+      var x = padL + idx * bw;
+      var vh = plotH * d.volume / maxV, fh = plotH * d.fees / maxV;
+      g.fillStyle = '#4d7cfe'; g.fillRect(x + bw * 0.18, padT + plotH - vh, bw * 0.32, vh);
+      g.fillStyle = '#ffd166'; g.fillRect(x + bw * 0.52, padT + plotH - fh, bw * 0.32, fh);
+      if (idx % Math.ceil(days.length / 7) === 0) g.fillText(d.date.slice(5), x + bw / 2, H - 8);
+    });
+    g.fillStyle = '#8fa3c8'; g.textAlign = 'left'; g.fillText('■ Volume (ATOM)', padL, 12); g.fillStyle = '#ffd166'; g.fillText('■ Fees (ATOM)', padL + 120, 12);
+  }
+  function renderAnalytics(body, ctx) {
+    var a = cache.analytics;
+    if (!a) { body.innerHTML = '<p class="muted">Loading analytics…</p>'; return; }
+    var t = a.totals || {};
+    body.innerHTML = '<h4>Fee analytics — fees &amp; volume by day</h4>'
+      + '<p><label class="small" style="display:inline">Window: </label><select id="anDays" style="width:auto"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select> <span class="small muted">Closed sales + started rentals only; pending orders count for nothing until the CEO closes them.</span></p>'
+      + '<div class="statRow"><div class="stat"><b>' + t.volume + ' ATOM</b><span>Volume</span></div><div class="stat"><b>' + t.fees + ' ATOM</b><span>Fees earned</span></div><div class="stat"><b>' + t.orders + '</b><span>Orders closed</span></div><div class="stat"><b>' + t.rentals + '</b><span>Rentals started</span></div><div class="stat"><b>' + t.payouts + ' ATOM</b><span>Payouts paid</span></div></div>'
+      + '<canvas id="feeChart" width="720" height="260" style="width:100%;background:#0d1424;border-radius:8px"></canvas>'
+      + '<table style="margin-top:12px"><tr><th>Day</th><th>Volume</th><th>Fees</th><th>Orders</th><th>Rentals</th><th>Payouts</th></tr>'
+      + (a.days || []).map(function (d) { return '<tr><td>' + d.date + '</td><td>' + d.volume + ' ATOM</td><td>' + d.fees + ' ATOM</td><td>' + d.orders + '</td><td>' + d.rentals + '</td><td>' + d.payouts + ' ATOM</td></tr>'; }).join('') + '</table>';
+    drawFeeChart(body.querySelector('#feeChart'), a.days || []);
+    var sel = body.querySelector('#anDays');
+    sel.value = String(a.windowDays || 14);
+    sel.addEventListener('change', async function () { await refreshAnalytics(ctx, Number(sel.value)); renderAnalytics(body, ctx); });
+  }
+  function ledgerToCsv(entries) {
+    var keys = [];
+    entries.forEach(function (e) { Object.keys(e).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); }); });
+    var esc = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+    return keys.map(esc).join(',') + '\n' + entries.map(function (e) { return keys.map(function (k) { var v = e[k]; return esc(typeof v === 'object' ? JSON.stringify(v) : v); }).join(','); }).join('\n');
+  }
+  function downloadCsv(csv, filename) {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = filename; a.click();
+  }
   function renderLedger(body, ctx) {
     var led = cache.ledger;
     if (!led) { body.innerHTML = '<p class="muted">Loading ledger…</p>'; return; }
     var t = led.totals || {};
     body.innerHTML = statsBar(ctx)
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button id="ledExport">⬇ Export CSV</button><button id="ledRefresh">↻ Refresh</button><select id="ledKind" style="width:auto"><option value="">All kinds</option>' + (led.kinds || []).map(function (k) { return '<option>' + ctx.esc(k) + '</option>'; }).join('') + '</select></div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button id="ledExport">⬇ Export CSV (shown)</button><button id="ledExportAll">⬇ Export FULL ledger (all kinds)</button><button id="ledRefresh">↻ Refresh</button><select id="ledKind" style="width:auto"><option value="">All kinds</option>' + (led.kinds || []).map(function (k) { return '<option>' + ctx.esc(k) + '</option>'; }).join('') + '</select></div>'
       + '<table><tr><th>Time</th><th>Kind</th><th>Hero / Order</th><th>Amounts</th><th>Parties / TX</th></tr>'
       + led.entries.map(function (e) {
         return '<tr><td class="small">' + ctx.esc((e.ts || '').replace('T', ' ').slice(0, 19)) + '</td><td><span class="pill">' + ctx.esc(e.kind) + '</span></td><td>' + ctx.esc(e.heroName || e.listingId || e.saleId || '—') + '</td><td>' + (e.priceAtom != null ? e.priceAtom + ' ATOM · fee ' + (e.ceoFee || 0) : (e.amount != null ? e.amount + ' ATOM' : '—')) + '</td><td class="small mono">' + ctx.esc(e.buyerAddress || e.address || '') + (e.txid ? '<br>' + explorer(ctx, e.txid) : '') + '</td></tr>';
@@ -291,7 +368,14 @@
     });
     body.querySelector('#ledExport').addEventListener('click', function () {
       var csv = 'time,kind,hero,priceAtom,ceoFee,sellerAmount,buyer,seller,txid\n' + led.entries.map(function (e) { return [e.ts, e.kind, e.heroName || '', e.priceAtom || '', e.ceoFee || '', e.sellerAmount || e.amount || '', e.buyerAddress || '', e.sellerAddress || '', e.txid || ''].map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
-      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'game-ledger.csv'; a.click();
+      downloadCsv(csv, 'game-ledger.csv');
+    });
+    body.querySelector('#ledExportAll').addEventListener('click', async function () {
+      try {
+        var all = await ctx.ceoGet('/api/admin/ledger?limit=5000');
+        downloadCsv(ledgerToCsv(all.entries || []), 'game-ledger-full.csv');
+        ctx.toast('Full ledger exported: ' + (all.entries || []).length + ' entries, all kinds.', 'ok');
+      } catch (e) { ctx.toast(e.message, 'err'); }
     });
   }
   function renderUsers(body, ctx) {
@@ -338,14 +422,29 @@
       if (ctx.watcher) { (cache.sales || []).forEach(function (s) { try { ctx.watcher.watch(s.txid, { listingId: s.listingId }); } catch (e) {} }); ctx.toast('Watcher started for pending TXs. Confirmations still need server auto-verify.', 'ok'); }
     });
   }
-  function renderAnnounce(body, ctx) {
+  async function renderAnnounce(body, ctx) {
+    await refreshScheduled(ctx);
+    var sched = cache.scheduled || [];
     body.innerHTML = '<h4>Post an announcement</h4><p class="small muted">Shows as a banner at the top of the hub for all players.</p>'
       + '<label>Title</label><input id="annTitle" maxlength="80" placeholder="e.g. Double XP weekend">'
       + '<label>Message</label><textarea id="annBody" rows="3" maxlength="500" placeholder="What should players know?"></textarea>'
-      + '<p><button id="annPost" class="primary">Post announcement</button></p><div id="annList"></div>';
+      + '<p><button id="annPost" class="primary">Post now</button></p><div id="annList"></div>'
+      + '<h4 style="margin-top:18px">Schedule for later</h4><p class="small muted">Scheduled posts publish automatically when their time comes (checked on every request, and every minute on the live server).</p>'
+      + '<label>Publish at</label><input id="annWhen" type="datetime-local">'
+      + '<p><button id="annSchedule">Schedule announcement</button></p>'
+      + '<h4 style="margin-top:18px">Scheduled</h4>'
+      + (sched.length ? '<table><tr><th>Publish at</th><th>Title</th><th>Status</th><th>Action</th></tr>' + sched.map(function (s) {
+        return '<tr><td class="small">' + ctx.esc((s.publishAtIso || '').replace('T', ' ').slice(0, 16)) + '</td><td>' + ctx.esc(s.title) + '</td><td><span class="pill ' + (s.status === 'scheduled' ? 'pending' : 'closed') + '">' + ctx.esc(s.status) + '</span></td><td>' + (s.status === 'scheduled' ? '<button data-cancel-sched="' + s.id + '">Cancel</button>' : '—') + '</td></tr>';
+      }).join('') + '</table>' : '<p class="muted">Nothing scheduled.</p>');
     body.querySelector('#annPost').addEventListener('click', async function () {
       try { var r = await ctx.ceoFetch('/api/admin/announce', { title: body.querySelector('#annTitle').value, body: body.querySelector('#annBody').value }); ctx.toast('Announcement posted.', 'ok'); body.querySelector('#annList').innerHTML = '<p class="small">Latest: <strong>' + ctx.esc(r.announcements[0].title) + '</strong></p>'; if (ctx.refreshState) ctx.refreshState(); } catch (e) { ctx.toast(e.message, 'err'); }
     });
+    body.querySelector('#annSchedule').addEventListener('click', async function () {
+      var when = body.querySelector('#annWhen').value;
+      if (!when) { ctx.toast('Pick a publish date and time first.', 'err'); return; }
+      try { await ctx.ceoFetch('/api/admin/announce/schedule', { title: body.querySelector('#annTitle').value, body: body.querySelector('#annBody').value, publishAt: new Date(when).toISOString() }); ctx.toast('Announcement scheduled.', 'ok'); await renderAnnounce(body, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
+    });
+    body.querySelectorAll('[data-cancel-sched]').forEach(function (b) { b.addEventListener('click', async function () { try { await ctx.ceoFetch('/api/admin/announce/schedule/cancel', { id: b.getAttribute('data-cancel-sched') }); ctx.toast('Scheduled announcement cancelled.', 'ok'); await renderAnnounce(body, ctx); } catch (e) { ctx.toast(e.message, 'err'); } }); });
   }
   function renderAudit(body, ctx) {
     var audit = cache.audit || [];
