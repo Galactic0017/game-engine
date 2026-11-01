@@ -106,6 +106,20 @@ payout sent, order closes.
 - Live serve check: `/`, `/api/config`, `/api/state`, hub CSS/JS and
   game files all return 200; config shows the real CEO address.
 
+## v3.6.0 — 2026-11-01 (5 more, 71 tracked features)
+
+Batch 8 (BTD depth II): mortar/cannon splash preview ring while
+placing, Sell button shows the exact refund, hero ability cooldown bar
+with seconds left, +25g wave-skip bonus for manual early starts
+(auto-start never pays), motion streaks on fast Pink/Zebra balloons.
+Tests: server 25/25, BTD 129/129, shooter pass.
+
+## v3.5.0 — 2026-11-01 (3 more, 66 tracked features)
+
+Pillar 5 (runtime & dev tools): custom-track map editor, debug
+console + performance monitor, JSON mod loader. Tests: server 25/25,
+BTD 116/116, shooter pass.
+
 ## v3.4.0 — 2026-11-01 (9 more, 63 tracked features)
 
 Track 3 items 141–150 (mega-list), gaps only — branching trees (143)
