@@ -176,11 +176,14 @@ Space Shooter depth (was Batch 6)
 Tests: server 29/29 (25 prior + 4 shooter), BTD 146/146, shooter harness pass incl. Batch 10 checks (combo 275, shield block, 4 power-up kinds, boss kill 750+350 wave-clear, joystick + fire). Serve check pending at push time; live /api/config verification after push.
 Limits: power-up/boss/combo/touch visuals are canvas code, harness-verified via state/HUD only (no browser screenshot or real-device touch check); shooter submission uses legacy /api/progress, not the hashed secure path (BTD-only); shell submission + leaderboard filter are code-reviewed only (no shell DOM harness).
 
-## Batch 11 — Platform & social (was Batch 7)
-- [ ] Friend challenges: send a duel invite by address, async results.
-- [ ] Seasonal ladder: monthly leaderboard reset + badge for top 3.
-- [ ] Share card: PNG snapshot of a run (canvas toDataURL) to download.
-- [ ] Referral code in profile: track invited addresses (no payouts).
+## Batch 11 — DONE 2026-11-01 — v3.10.0 (4 features, 95 total)
+Platform & social (was Batch 7)
+- [x] Friend challenges: send a duel invite by address, async results.
+- [x] Seasonal ladder: monthly leaderboard reset + badge for top 3.
+- [x] Share card: PNG snapshot of a run (canvas toDataURL) to download.
+- [x] Referral code in profile: track invited addresses (no payouts).
+Tests: server 48/48, BTD 146/146, shooter pass; serve 200s.
+Limits: season bests recorded only from v3.10.0 on (no backfill); share card canvas code code-reviewed only, tainted canvas fails with a toast; Challenges/season/referral shell UI code-reviewed only (no browser/DOM harness); referral grants no credits to either side by design.
 
 ## Batch 12 — Marketplace depth (was Batch 8)
 - [ ] Price history sparkline per hero (last 10 sales).
@@ -251,3 +254,5 @@ Limits: power-up/boss/combo/touch visuals are canvas code, harness-verified via 
 - 2026-11-01 15:47 EST: VERIFIED LIVE — v3.8.0 push 16 files / 16 commits (HEAD 9a607c0, 98 commits total). Fresh curl: /api/config version 3.8.0 (real CEO address, mode demo via Vercel env), /api/health 200, homepage 200. Batch v3.8.0 shipped.
 - 2026-11-01 15:54 EST: VERIFIED LIVE — v3.8.1 (Keplr only) push 10 files / 10 commits (HEAD dbed350, 108 commits total). Fresh curl: /api/config version 3.8.1 (real CEO address, mode demo via Vercel env), homepage 200, no Leap button in served HTML, no global.leap in served wallet.js. Overlap lock deleted; cron resumes with Batch 10 next.
 - 2026-11-01 16:00 EST: Batch 10 built locally (v3.9.0, Space Shooter depth): health/config 200 at run start (live 3.8.1). Tests: server 29/29, BTD 146/146, shooter pass incl. Batch 10 checks. Push via browser task; verify /api/config shows 3.9.0. NOTE: a separate staged tags/cleanup patch (~/workspace/levelup-patch/patch_tags_cleanup382.py, per MEMORY.md) was NOT applied in this run — it must wait until this run's lock is gone.
+- 2026-11-01 16:17 EST: VERIFIED LIVE — push 8 files / 8 commits (HEAD 911fe04, 116 commits total). Fresh live-browser reload: /api/config version 3.9.0 (real CEO address, 5% fee, 30-min orders), /api/health version 3.9.0 at 2026-11-01T21:17:44Z (timestamp advanced across reloads, live not cached). Batch 10 shipped. Overlap lock deleted; cron resumes with Batch 11 next. The tags/cleanup patch remains unapplied (staged elsewhere, waits for lock release).
+- 2026-11-01 16:20 EST: Batch 11 built locally (v3.10.0, Platform & social): health/config 200 at run start (text-fetch crawls stale at 3.8.1; live 3.9.0 verified previous run). Tests: server 48/48, BTD 146/146, shooter pass. Push via browser task; verify /api/config shows 3.10.0. NOTE: the staged tags/cleanup patch was NOT applied in this run either — it is separate from Batch 11 and asserts no lock exists; this run holds the loop lock. It stays staged for a separate run.
