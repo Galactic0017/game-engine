@@ -1,1 +1,1 @@
-{"canvas": true, "description": "Bloons-style tower defense: 50 waves, 5 towers, heroes, targeting, 1x-3x speed.", "entry": "btd.js", "id": "cosmos-btd", "maxWaves": 50, "name": "Cosmos BTD", "version": "3.2.0"}
+{"canvas": true, "description": "Bloons-style tower defense: 50 waves, 5 towers, heroes, targeting, 1x-3x speed.", "entry": "btd.js", "id": "cosmos-btd", "maxWaves": 50, "name": "Cosmos BTD", "version": "3.3.0"}
