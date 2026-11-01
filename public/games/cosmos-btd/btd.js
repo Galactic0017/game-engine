@@ -164,6 +164,50 @@
   var TOWER_SPRITES = { dart: 'tower-validator', cannon: 'tower-railgun', sniper: 'tower-nova', frost: 'tower-cryo', mortar: 'tower-ion', tesla: 'tower-nova', spikes: 'tower-validator', beacon: 'tower-validator' };
   var HERO_SPRITES = { astra: 'hero-astra', lyra: 'hero-lyra', koda: 'hero-koda', nova7: 'hero-nova7', vex: 'hero-vex', orin: 'hero-orin' };
   function spriteReady(img) { return !!(img && img.complete && img.naturalWidth > 0); }
+  /* ---- Batch 15: offscreen sprite pre-rendering (Performance) ----
+   * Static tower/balloon bodies are drawn once per key onto an
+   * offscreen canvas; per-frame drawing becomes one drawImage plus
+   * the dynamic overlays (angle, flash, stars, layer text, status
+   * dots). No canvas API (e.g. a bare Node harness) -> prerender()
+   * returns null and every draw path falls back to its existing
+   * direct drawing. Keys cover only static parameters, so the cache
+   * survives resets and mod-added defs get fresh keys automatically.
+   * Bosses and the pulsing beacon stay live-drawn (one entity /
+   * animated). */
+  var _spriteCache = {}, _spriteCacheHits = 0, _spriteCacheMisses = 0;
+  function prerender(key, w, h, drawFn) {
+    if (_spriteCache[key]) { _spriteCacheHits++; return _spriteCache[key]; }
+    _spriteCacheMisses++;
+    if (typeof document === 'undefined' || !document.createElement) return null;
+    var cv;
+    try { cv = document.createElement('canvas'); cv.width = Math.max(1, Math.ceil(w)); cv.height = Math.max(1, Math.ceil(h)); } catch (e) { return null; }
+    var c = null;
+    try { c = cv.getContext('2d'); } catch (e) { return null; }
+    if (!c) return null;
+    try { drawFn(c, cv.width, cv.height); } catch (e) { return null; }
+    _spriteCache[key] = cv;
+    return cv;
+  }
+  function spriteCacheStats() { return { entries: Object.keys(_spriteCache).length, hits: _spriteCacheHits, misses: _spriteCacheMisses }; }
+  function clearSpriteCache() { _spriteCache = {}; _spriteCacheHits = 0; _spriteCacheMisses = 0; }
+  /* ---- Batch 15: dynamic quality — particle cap follows FPS ----
+   * Drop the cap as soon as measured FPS sags; step back up only
+   * after a sample at >=95% of target, so the cap never oscillates. */
+  function dynFactorFor(fps, fpsTarget) {
+    if (!fps || fps <= 0) return 1;
+    var ratio = fps / (fpsTarget || 60);
+    return ratio >= 0.9 ? 1 : ratio >= 0.6 ? 0.6 : 0.35;
+  }
+  function particleCapFor(fps, fpsTarget, baseCap) {
+    return Math.max(40, Math.round(baseCap * dynFactorFor(fps, fpsTarget)));
+  }
+  function updateDynFactor(st) {
+    var nf = dynFactorFor(st.fps, st.fpsTarget);
+    var cur = st._dynFactor || 1;
+    if (nf < cur) st._dynFactor = nf;
+    else if (nf > cur && st.fps >= 0.95 * (st.fpsTarget || 60)) st._dynFactor = nf;
+    return st._dynFactor;
+  }
   /* ---- Asset pipeline: central load queue, pre-decode, one retry ---- */
   var AssetManager = {
     total: 0, loaded: 0, failed: 0, queue: [],
@@ -459,6 +503,7 @@
       entities: Object.keys(st.ecs.entities).length, balloons: st.balloons.length, towers: st.towers.length,
       projectiles: st.projectiles.length, particles: st.particles.length, floaters: st.floaters.length, spikes: st.spikes.length, lights: st.lights.length,
       gridCells: st.grid.size, gridQueries: st.gridQueries, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total,
+      particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCache: spriteCacheStats(),
       wave: st.wave, gold: st.gold, lives: st.lives, trackLength: Math.round(totalLen), customMap: st.customMapName || null,
       customTowers: (st.customTowers || []).slice(), customWaves: Object.keys(st.customWaves || {}).map(Number), memoryMB: mem,
       weather: (st.weather && st.weather.kind) || 'clear', paused: !!st.paused
@@ -608,7 +653,7 @@
       speed: 1, autoStart: false, targeting: 'first', placing: null,
       selected: null, hoverTower: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
       skipBonuses: 0, skipBonusTotal: 0,
-      fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', _lastFrameT: 0,
+      fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', _lastFrameT: 0, _dynFactor: 1,
       sessionId: null, sessionNonce: null, pendingReports: [],
       shake: 0, waveActive: false, won: false, lost: false, runStartedAt: null, runDuration: null,
       mouse: { x: -999, y: -999 },
@@ -729,8 +774,9 @@
   function spawnParticle(st, x, y, color, n, speed, kind) {
     if (st.quality === 'low') return;
     var densityMul = st.particleDensity === 'low' ? 0.35 : st.particleDensity === 'med' ? 0.65 : 1;
+    densityMul *= (st._dynFactor || 1);
     n = Math.max(1, Math.ceil((n || 8) * densityMul));
-    var cap = st.particleDensity === 'low' ? 150 : 400;
+    var cap = Math.max(40, Math.round((st.particleDensity === 'low' ? 150 : 400) * (st._dynFactor || 1)));
     kind = kind || 'spark';
     for (var i = 0; i < (n || 8); i++) {
       if (st.particles.length > cap) { var old = st.particles.shift(); if (old && old.ecsId) ecsRemove(st, old.ecsId); }
@@ -1112,7 +1158,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -1156,7 +1202,9 @@
       drawSpeedLines(ctx, b, x, y, rd);
       ctx.save(); ctx.translate(x, y);
       var sz = b.r * 2.8;
-      ctx.drawImage(spr, -sz / 2, -sz / 2, sz, sz);
+      var preSpr = prerender('balloon-spr:' + b.sprite + ':' + Math.round(sz), sz, sz, function (c) { c.drawImage(spr, 0, 0, sz, sz); });
+      if (preSpr) ctx.drawImage(preSpr, -sz / 2, -sz / 2, sz, sz);
+      else ctx.drawImage(spr, -sz / 2, -sz / 2, sz, sz);
       ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.fillText(String(b.layers), 0, -sz / 2 - 4);
       if (st_slow(b, time)) { ctx.strokeStyle = 'rgba(123,223,242,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, sz / 2 + 3, 0, TAU); ctx.stroke(); }
       if (b.camo) { ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = 'bold 8px Arial'; ctx.fillText('CAMO', 0, sz / 2 + 10); }
@@ -1165,13 +1213,30 @@
     }
     drawSpeedLines(ctx, b, x, y, rd);
     ctx.save(); ctx.translate(x, y);
-    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(2, b.r * 0.9, b.r * 0.8, 4, 0, 0, TAU); ctx.fill();
-    var g2 = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.4, 2, 0, 0, b.r * 1.2);
-    g2.addColorStop(0, '#ffffff'); g2.addColorStop(0.25, t.color); g2.addColorStop(1, t.dark);
-    ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.82, b.r, 0, 0, TAU); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, b.r); ctx.quadraticCurveTo(2, b.r + 8, 0, b.r + 12); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.ellipse(-b.r * 0.3, -b.r * 0.4, b.r * 0.24, b.r * 0.16, -0.5, 0, TAU); ctx.fill();
-    if (b.armored) { ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.82, b.r, 0, 0, TAU); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.fillText('LEAD', 0, 3); }
+    /* Batch 15: pre-rendered static body (shadow, gradient, tail,
+     * highlight, armored ring); layer text / slow ring / status dots
+     * stay dynamic. Falls back to direct drawing without a canvas. */
+    var br = b.r, bcx = br + 4, bcy = br + 4;
+    var body = prerender('balloon:' + t.color + ':' + t.dark + ':' + Math.round(br * 10) + ':' + (b.armored ? 1 : 0), br * 2 + 8, br * 2 + 16, function (c) {
+      c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(bcx + 2, bcy + br * 0.9, br * 0.8, 4, 0, 0, TAU); c.fill();
+      var g2 = c.createRadialGradient(bcx - br * 0.35, bcy - br * 0.4, 2, bcx, bcy, br * 1.2);
+      g2.addColorStop(0, '#ffffff'); g2.addColorStop(0.25, t.color); g2.addColorStop(1, t.dark);
+      c.fillStyle = g2; c.beginPath(); c.ellipse(bcx, bcy, br * 0.82, br, 0, 0, TAU); c.fill();
+      c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1; c.beginPath(); c.moveTo(bcx, bcy + br); c.quadraticCurveTo(bcx + 2, bcy + br + 8, bcx, bcy + br + 12); c.stroke();
+      c.fillStyle = 'rgba(255,255,255,.9)'; c.beginPath(); c.ellipse(bcx - br * 0.3, bcy - br * 0.4, br * 0.24, br * 0.16, -0.5, 0, TAU); c.fill();
+      if (b.armored) { c.strokeStyle = '#6b7280'; c.lineWidth = 2; c.beginPath(); c.ellipse(bcx, bcy, br * 0.82, br, 0, 0, TAU); c.stroke(); }
+    });
+    if (body) ctx.drawImage(body, -bcx, -bcy);
+    else {
+      ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(2, b.r * 0.9, b.r * 0.8, 4, 0, 0, TAU); ctx.fill();
+      var g2f = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.4, 2, 0, 0, b.r * 1.2);
+      g2f.addColorStop(0, '#ffffff'); g2f.addColorStop(0.25, t.color); g2f.addColorStop(1, t.dark);
+      ctx.fillStyle = g2f; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.82, b.r, 0, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, b.r); ctx.quadraticCurveTo(2, b.r + 8, 0, b.r + 12); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.ellipse(-b.r * 0.3, -b.r * 0.4, b.r * 0.24, b.r * 0.16, -0.5, 0, TAU); ctx.fill();
+      if (b.armored) { ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.82, b.r, 0, 0, TAU); ctx.stroke(); }
+    }
+    if (b.armored) { ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.fillText('LEAD', 0, 3); }
     else if (b.layers > 1) { ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.fillText(String(b.layers), 0, 4); }
     if (st_slow(b, time)) { ctx.strokeStyle = 'rgba(123,223,242,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, b.r + 3, b.r + 4, 0, 0, TAU); ctx.stroke(); }
     drawStatusDots(ctx, b, b.r + 3, time);
@@ -1235,7 +1300,9 @@
       ctx.save(); ctx.translate(t.x - kx, t.y - ky);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
       var sz = t.level >= 5 ? 60 : t.level >= 4 ? 52 : 44;
-      ctx.drawImage(spr, -sz / 2, -sz / 2, sz, sz);
+      var preT = prerender('tower-spr:' + TOWER_SPRITES[t.kind] + ':' + sz, sz, sz, function (c) { c.drawImage(spr, 0, 0, sz, sz); });
+      if (preT) ctx.drawImage(preT, -sz / 2, -sz / 2, sz, sz);
+      else ctx.drawImage(spr, -sz / 2, -sz / 2, sz, sz);
       if (muzzleFlashActive(t)) { var fx = Math.cos(t.angle || 0) * 28, fy = -2 + Math.sin(t.angle || 0) * 28; ctx.fillStyle = 'rgba(255,240,180,.95)'; ctx.beginPath(); ctx.arc(fx, fy, 7, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,240,180,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(fx - 12, fy); ctx.lineTo(fx + 12, fy); ctx.moveTo(fx, fy - 12); ctx.lineTo(fx, fy + 12); ctx.stroke(); }
       if (t.maxed) { ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.stroke(); }
       if (evo) { ctx.strokeStyle = evo === 'Ascended' ? '#c792ea' : '#00f6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 28, 0, TAU); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.fillText(evo.toUpperCase(), 0, -30); }
@@ -1244,9 +1311,19 @@
       ctx.restore(); return;
     }
     ctx.save(); ctx.translate(t.x, t.y);
-    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#3a4356'; ctx.beginPath(); ctx.arc(0, 4, 16, 0, TAU); ctx.fill();
-    ctx.strokeStyle = def.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 4, 16, 0, TAU); ctx.stroke();
+    /* Batch 15: pre-rendered static base (shadow, disc, color ring);
+     * barrel, hub, flash and stars stay dynamic (angle-dependent). */
+    var tBase = prerender('tower-base:' + t.kind + ':' + def.color, 48, 48, function (c) {
+      c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(27, 34, 18, 6, 0, 0, TAU); c.fill();
+      c.fillStyle = '#3a4356'; c.beginPath(); c.arc(24, 28, 16, 0, TAU); c.fill();
+      c.strokeStyle = def.color; c.lineWidth = 2; c.beginPath(); c.arc(24, 28, 16, 0, TAU); c.stroke();
+    });
+    if (tBase) ctx.drawImage(tBase, -24, -24);
+    else {
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#3a4356'; ctx.beginPath(); ctx.arc(0, 4, 16, 0, TAU); ctx.fill();
+      ctx.strokeStyle = def.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 4, 16, 0, TAU); ctx.stroke();
+    }
     ctx.save(); ctx.rotate(t.angle || 0);
     ctx.translate(-recoilOffset(t), 0);
     ctx.fillStyle = def.color;
@@ -1464,7 +1541,7 @@
     var dt = 0.016;
     if (st.lastT) dt = Math.min(0.1, Math.max(0, (now - st.lastT) / 1000));
     st.lastT = now;
-    st._fpsN++; st._fpsT += dt; if (st._fpsT >= 0.5) { st.fps = Math.round(st._fpsN / st._fpsT); st._fpsN = 0; st._fpsT = 0; }
+    st._fpsN++; st._fpsT += dt; if (st._fpsT >= 0.5) { st.fps = Math.round(st._fpsN / st._fpsT); st._fpsN = 0; st._fpsT = 0; updateDynFactor(st); }
     if (st.running && !st.paused && !st.won && !st.lost) {
       st.acc += dt * st.speed;
       var steps = 0;
@@ -1664,7 +1741,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.8.0', description: 'Space tower defense: protect the ATOM orb across 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. v3.8.0: space ATOM-orb battlefield with glowing energy lane. Dev tools: custom-track map editor, JSON mod loader, debug stats.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.9.0', description: 'Space tower defense: protect the ATOM orb across 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. v3.8.0: space ATOM-orb battlefield with glowing energy lane. Dev tools: custom-track map editor, JSON mod loader, debug stats.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded, _spriteCacheStats: spriteCacheStats, _clearSpriteCache: clearSpriteCache, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
 })(typeof window !== 'undefined' ? window : globalThis);
