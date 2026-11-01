@@ -14,6 +14,7 @@
     <button data-nav="games" class="active">🎮 Games</button>
     <button data-nav="marketplace">🛒 Marketplace</button>
     <button data-nav="updates">🆕 Updates</button>
+    <button data-nav="devtools">🛠 Dev Tools</button>
     <button data-nav="ceo">👑 CEO Panel</button>
   </nav>
   <div class="wallet" id="walletWidget">
@@ -57,7 +58,7 @@
       <div class="card inspectCard" id="inspectCard" hidden style="margin-top:12px"></div>
       <div class="card" id="helpCard" hidden style="margin-top:12px">
         <h3>Shortcuts</h3>
-        <p class="small"><b>1–8</b> pick tower · <b>Space</b> start wave · <b>P</b> pause · <b>R</b> restart · <b>Esc</b> cancel placement · <b>Click</b> place / select tower · <b>Touch</b> works on mobile.</p>
+        <p class="small"><b>1–8</b> pick tower · <b>Space</b> start wave · <b>P</b> pause · <b>R</b> restart · <b>Esc</b> cancel placement · <b>Click</b> place / select tower · <b>~</b> debug console · <b>Touch</b> works on mobile.</p>
       </div>
       <div class="card" style="margin-top:12px">
         <h3>How to play — Cosmos BTD</h3>
@@ -72,6 +73,10 @@
 
     <section class="view" id="view-marketplace">
       <div class="card"><h3>Marketplace — CEO escrow, no contracts</h3><div id="marketplace"></div></div>
+    </section>
+
+    <section class="view" id="view-devtools">
+      <div class="card"><h3>Dev Tools — map editor, mods, debug console</h3><div id="devToolsBox"><p class="muted">Loading…</p></div></div>
     </section>
 
     <section class="view" id="view-ceo">
@@ -106,6 +111,8 @@
 <script src="games/space-shooter/shooter.js"></script>
 <script src="engine/marketplace-ui.js"></script>
 <script src="engine/ceo-ui.js"></script>
+<script src="engine/mod-loader.js"></script>
+<script src="engine/devtools.js"></script>
 <script src="engine/shell.js"></script>
 </body>
 </html>
