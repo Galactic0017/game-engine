@@ -4,6 +4,17 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.1.0 — 2026-11-01 — 11 features (45 total)
+
+| Area | Features |
+|---|---|
+| Engine Visuals (7) | Bloom glow pass, Dynamic 2D lighting, Vignette + danger pulse, Tilt-shift DoF bands, Water shader, Particle engine, Contextual shake |
+| Engine Core (4) | ECS architecture, Fixed 60Hz timestep, Asset pipeline manager, Spatial-hash stats |
+
+Honest limits: DoF/water/lighting visual quality not browser-verified
+(harness only); danger pulse code-reviewed; normal maps + true GPU
+particles deferred to WebGL research — not claimed.
+
 ## v3.0.0 — 2026-11-01 — 34 features (this release)
 
 | Area | Features |
