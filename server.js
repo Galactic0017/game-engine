@@ -98,7 +98,7 @@ function save(db) { if (IS_VERCEL) return; fs.writeFileSync(DB_FILE, JSON.string
 let db = load();
 function send(res, code, obj) { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); }
 function readBody(req) { return new Promise((resolve) => { let s=''; req.on('data', c=>s+=c); req.on('end', ()=>{ try{ resolve(s?JSON.parse(s):{}); }catch{ resolve({}); } }); }); }
-const MIME = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.json':'application/json', '.png':'image/png' };
+const MIME = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.json':'application/json', '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg' };
 function leaderboard() { return Object.values(db.players).map(p=>({ address: p.address, name: p.name, level: levelForXp(p.xp||0), xp: p.xp||0, bestScore: p.bestScore||0, wins: p.wins||0, losses: p.losses||0, games: p.gamesPlayed||0, heroes: db.heroes.filter(h=>h.owner===p.address).length })).sort((a,b)=> b.bestScore-a.bestScore || b.level-a.level); }
 async function handle(req, res) {
   const u = new URL(req.url, 'http://x'); let p = u.pathname;
