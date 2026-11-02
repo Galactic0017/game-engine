@@ -226,3 +226,9 @@ works through them top-down, tests each batch, and pushes to GitHub
 
 - Library ... menu closes on outside click and Escape (menu-outside-close)
 - Placing a tower selects it so the Entity Inspector opens at once (place-selects-tower)
+
+## v3.49.10 — Deck below board, realistic animated map, inspector heroes, no-wallet play, CEO password, payout addresses
+
+- Bottom deck below the board; pseudo-3D depth + animated map life (deck-below-board, map-depth-3d, map-life-animated)
+- Inspector upgrade panel, enemy intel, hero unlock/upgrade/list, head + scroll fixes (upgrade-panel-side, enemy-intel, heroes-lifecycle, inspector-head-fix)
+- Local player identity with no wallet; CEO password A007; payout address at listing; buy flow shows everything ready (local-player-no-wallet, ceo-password, payout-address-listing, buy-ready-details)

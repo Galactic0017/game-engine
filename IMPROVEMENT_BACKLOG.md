@@ -746,3 +746,6 @@ Live status: see Run log.
 
 ## Menu + inspector fix-ups 3.49.9 (live browser check found the open ... menu intercepting clicks, inspector not opening on place)
 - DONE 3.49.9: menu closes on outside click/Escape; placing selects the tower. Auto-improve loop stays DISABLED.
+
+## Deck/map/inspector/heroes/no-wallet/CEO-password 3.49.10 (user photos: deck over map, inspector broken, no way to get heroes)
+- DONE 3.49.10: deck below board; realistic animated map; inspector upgrades + heroes + enemy intel; local play without wallet; CEO password; payout addresses. Auto-improve loop stays DISABLED.
