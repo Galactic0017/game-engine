@@ -1,14 +1,14 @@
 {
  "canvas": false,
- "description": "Build mining rigs, hire overseers, earn while away. Prestige for a permanent multiplier, rig skins. Local save. Batch 23: prestige progress. Batch 24: earnings rate (credits/sec after prestige + overseer boost) in state.",
- "image": "assets/sprites/tower-validator.png",
+ "description": "Build mining rigs, hire overseers, earn while away. Prestige for a permanent multiplier, rig skins. Local save. Batch 23: prestige progress. Batch 24: earnings rate (credits/sec after prestige + overseer boost) in state. Batch 26: seconds to prestige at the current earnings rate, in state + panel.",
  "entry": "tycoon.js",
  "id": "space-tycoon",
+ "image": "assets/sprites/tower-validator.png",
  "name": "Space Tycoon",
- "version": "3.23.0",
  "tags": [
   "Idle",
   "Tycoon",
   "Space"
- ]
+ ],
+ "version": "3.25.0"
 }
