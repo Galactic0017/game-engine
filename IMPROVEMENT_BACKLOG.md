@@ -724,3 +724,6 @@ Live status: see Run log.
 
 ## Hero economy 3.49.2 (main chat, user concept 2026-11-02)
 - DONE 3.49.2: hero buy-with-credits, Lv 100 cap, listing level sync, waves 26-50 ramp, Hero Shop buy UI. CEO-escrow marketplace flow unchanged (buyer sends full ATOM to CEO address, CEO verifies, takes fee, pays seller, moves hero). Auto-improve loop stays DISABLED.
+
+## Deep-link fix 3.49.3 (main chat, live 404 found during verification)
+- DONE 3.49.3: vercel.json __path-preserving catch-all + server.js fallback safety net. Local harness passed because direct node serving keeps req.url; the bug only showed on Vercel. Auto-improve loop stays DISABLED.

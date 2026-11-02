@@ -188,3 +188,6 @@ works through them top-down, tests each batch, and pushes to GitHub
 - Buy any hero with in-game credits (Common 2,500 / Rare 5,000 / Epic 9,000 / Legendary 15,000) — no unlock-level gate when paying. Free claim at unlock level stays.
 - Hero cap Lv 100 on upgrade and XP paths; upgrade costs 200 x level. Active marketplace listings follow the hero's level.
 - Waves 26-50 ramp: extra balloon layers + speed; boss layers scale (wave-40 boss 90 layers). Late waves need leveled heroes + maxed towers.
+
+## v3.49.3 — Deep-link fix
+- /game/cosmos-btd returned 404 on Vercel: the catch-all rewrite dropped the original path. The rewrite now carries `?__path=/$1` and the SPA fallback also covers a bare GET /api/index.
