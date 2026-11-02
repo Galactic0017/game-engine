@@ -1,6 +1,6 @@
 {
  "canvas": true,
- "description": "Arcade space shooter: dodge asteroids, blast drones, survive the waves. Batch 21: graze bonus for skimming asteroids. Batch 22: shot accuracy stat. Batch 23: best wave tracked. Batch 24: kills per wave average. Batch 25: bosses-defeated counter. Batch 26: shots-per-kill average. Batch 27: score-per-wave average. Batch 28: grazes-per-wave average. Batch 29: power-ups-per-wave average. Batch 30: shots-per-wave average. Batch 31: bosses-per-wave average. Batch 32: score-per-kill average. Batch 33: grazes-per-kill average. Batch 34: score-per-shot average. Batch 35: grazes-per-shot average. Batch 36: power-ups-per-kill average. Batch 37: boss-share percent. Batch 38: kills-per-minute average.",
+ "description": "Arcade space shooter: dodge asteroids, blast drones, survive the waves. Batch 21: graze bonus for skimming asteroids. Batch 22: shot accuracy stat. Batch 23: best wave tracked. Batch 24: kills per wave average. Batch 25: bosses-defeated counter. Batch 26: shots-per-kill average. Batch 27: score-per-wave average. Batch 28: grazes-per-wave average. Batch 29: power-ups-per-wave average. Batch 30: shots-per-wave average. Batch 31: bosses-per-wave average. Batch 32: score-per-kill average. Batch 33: grazes-per-kill average. Batch 34: score-per-shot average. Batch 35: grazes-per-shot average. Batch 36: power-ups-per-kill average. Batch 37: boss-share percent. Batch 38: kills-per-minute average. Batch 39: score-per-minute average.",
  "entry": "shooter.js",
  "id": "space-shooter",
  "image": "assets/sprites/monster-1.png",
@@ -10,5 +10,5 @@
   "Shooter",
   "Space"
  ],
- "version": "1.16.0"
+ "version": "1.17.0"
 }
