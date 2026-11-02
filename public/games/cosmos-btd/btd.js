@@ -2128,7 +2128,7 @@
     st.gold -= def.cost;
     st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, recoil: 0, level: 1, canSeeCamo: !!def.camo, maxed: false, branch: null, paths: { speed: 0, power: 0 }, splashBonus: 0, evolved: false, invested: def.cost });
     var tw0 = st.towers[st.towers.length - 1]; tw0.ecsId = ecsAdd(st, 'tower', { position: tw0, combat: tw0, render: tw0 }); st.lastPlaced = tw0;
-    st.audio.place(); st.placing = null; emitHud(st);
+    st.audio.place(); st.placing = null; st.selected = tw0; if (st.opts.onTowerSelect) st.opts.onTowerSelect(tw0); emitHud(st);
     return true;
   }
   function init(viewport, opts) {
