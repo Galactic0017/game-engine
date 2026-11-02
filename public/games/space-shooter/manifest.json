@@ -5,5 +5,10 @@
  "entry": "shooter.js",
  "id": "space-shooter",
  "name": "Space Shooter",
- "version": "1.2.0"
+ "version": "1.2.0",
+ "tags": [
+  "Arcade",
+  "Shooter",
+  "Space"
+ ]
 }
