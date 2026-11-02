@@ -150,6 +150,26 @@
     for (var i = 0; i < ORES.length; i++) v += (st.ore[ORES[i].id] || 0) * ORES[i].value;
     return Math.round(v * oreValueMult(st.scannerLevel));
   }
+  /* ---- Batch 22: cargo breakdown ---- * Per-ore counts and base
+   * values for what is in cargo, richest first. Values here are
+   * base ore values (before the uniform scanner multiplier in
+   * cargoValue), so the ordering is the same with or without the
+   * multiplier. richestOre is the id with the highest total base
+   * value in cargo, or null when cargo is empty. Exposed in the
+   * HUD/state as cargoBreakdown / richestOre. */
+  function cargoBreakdown(st) {
+    var rows = [];
+    for (var i = 0; i < ORES.length; i++) {
+      var count = st.ore[ORES[i].id] || 0;
+      if (count > 0) rows.push({ id: ORES[i].id, name: ORES[i].name, count: count, unitValue: ORES[i].value, totalValue: count * ORES[i].value });
+    }
+    rows.sort(function (a, b) { return b.totalValue - a.totalValue; });
+    return rows;
+  }
+  function richestOre(st) {
+    var rows = cargoBreakdown(st);
+    return rows.length ? rows[0].id : null;
+  }
   /* Batch 15: dynamic quality — particle cap follows measured FPS.
    * Same mapping as BTD/Shooter (1 / 0.6 / 0.35, step-up hysteresis). */
   function dynFactorFor(fps, fpsTarget) {
@@ -343,7 +363,7 @@
   function getHud(st) {
     return {
       belt: st.belt, mined: st.mined, quota: st.quota, totalMined: st.totalMined, richVeins: st.richVeins,
-      ore: st.ore, cargoValue: cargoValue(st), credits: st.credits,
+      ore: st.ore, cargoValue: cargoValue(st), cargoBreakdown: cargoBreakdown(st), richestOre: richestOre(st), credits: st.credits,
       bankedValue: st.bankedValue, powerLevel: st.powerLevel, autoLevel: st.autoLevel,
       scannerLevel: st.scannerLevel, bestBelt: st.bestBelt, bestValue: st.bestValue,
       shiftEnded: st.shiftEnded, asteroids: st.asteroids.length,
@@ -354,7 +374,7 @@
   function getState(st) {
     return {
       belt: st.belt, mined: st.mined, quota: st.quota, totalMined: st.totalMined, richVeins: st.richVeins,
-      ore: st.ore, cargoValue: cargoValue(st), credits: st.credits,
+      ore: st.ore, cargoValue: cargoValue(st), cargoBreakdown: cargoBreakdown(st), richestOre: richestOre(st), credits: st.credits,
       bankedValue: st.bankedValue, powerLevel: st.powerLevel, autoLevel: st.autoLevel,
       scannerLevel: st.scannerLevel, bestBelt: st.bestBelt, bestValue: st.bestValue,
       shiftEnded: st.shiftEnded, shiftCount: st.shiftCount, asteroids: st.asteroids.length,
@@ -583,7 +603,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'asteroid-miner', { score: st.bankedValue, wave: st.belt, kills: st.totalMined });
   }
 
-  var manifest = { id: 'asteroid-miner', name: 'Asteroid Miner', version: '1.2.0', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock.', entry: 'miner.js', canvas: true };
+  var manifest = { id: 'asteroid-miner', name: 'Asteroid Miner', version: '1.3.0', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock. Batch 22: cargo breakdown + richest ore.', entry: 'miner.js', canvas: true };
 
-  global.AsteroidMiner = { manifest: manifest, init: init, _createState: createState, _ORES: ORES, _pickOre: pickOre, _beltQuota: beltQuota, _upgradeCost: upgradeCost, _cargoValue: cargoValue, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
+  global.AsteroidMiner = { manifest: manifest, init: init, _createState: createState, _ORES: ORES, _pickOre: pickOre, _beltQuota: beltQuota, _upgradeCost: upgradeCost, _cargoValue: cargoValue, _cargoBreakdown: cargoBreakdown, _richestOre: richestOre, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
 })(typeof window !== 'undefined' ? window : globalThis);
