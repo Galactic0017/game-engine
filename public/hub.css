@@ -185,3 +185,6 @@ body[data-reduced-motion="on"] .heroCard.equipped img, body[data-reduced-motion=
   .towerThumb, .towerDot { width: 44px; height: 44px; }
   nav.tabs button, .gameItem { min-height: 44px; }
 }
+.tagRow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.tagChip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;background:rgba(11,17,36,.8);color:var(--text);cursor:pointer}
+button.tagChip.active{background:#7c3aed;border-color:#7c3aed;color:#fff}

@@ -683,9 +683,33 @@
    "id": "large-touch-targets",
    "title": "Larger touch targets — 44px+ action-bar buttons/selects and 52px tower tiles on small screens and coarse pointers; desktop layout unchanged",
    "tested": "CSS media query code-reviewed only (no real-device touch check)"
+  },
+  {
+   "category": "Hub UI",
+   "id": "game-tags",
+   "tested": "serve check: /api/config games carry tags, manifests carry tags, served shell renders tag chips (code-reviewed, no browser screenshot)",
+   "title": "Game tags on every game — tag chips on game cards, the info window and search, stored in manifests and the server config"
+  },
+  {
+   "category": "Hub UI",
+   "id": "tag-filter",
+   "tested": "serve check: tag filter row in served HTML, tag chips filter cards by data-tags (code-reviewed, no browser screenshot)",
+   "title": "Tag filter — tap a tag to filter the game list; Find Games search also matches tags"
+  },
+  {
+   "category": "Engine",
+   "id": "engine-open-failsafe",
+   "tested": "harness: module that fails to load throws before the engine marks it open, viewport cleared, no game:start emitted",
+   "title": "Engine open fail-safe — a game that fails to load throws before opening, the viewport is cleared and the launcher stays usable"
+  },
+  {
+   "category": "Engine",
+   "id": "legacy-cleanup",
+   "tested": "serve check: no legacy entry in /api/config, dead files deleted, no references to them in index/server/shell",
+   "title": "Legacy cleanup — unreferenced Voidfall files and dead deploy configs removed, stale demo description fixed, legacy Defend ATOM entry removed from config"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.15.0"
+ "version": "3.15.2"
 }
