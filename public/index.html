@@ -50,7 +50,7 @@
   <div id="announceBar" class="banner" hidden></div>
   <div class="hubGrid">
     <section class="panel storePanel">
-      <div class="panelHead"><span>GAMES LIBRARY / STORE</span><button id="btnLibMenu" class="ghost" title="More">···</button></div><div id="libMenu" class="libMenu" hidden><button data-libmenu="updates">🆕 Updates</button><button data-libmenu="devtools">🛠 Dev Tools</button><button data-libmenu="settings">⚙ Settings</button><button data-libmenu="shortcuts">⌨ Shortcuts</button></div>
+      <div class="panelHead"><span>GAMES LIBRARY / STORE</span><button id="btnLibMenu" class="ghost" title="More">···</button></div><div id="libMenu" class="libMenu" hidden><button data-libmenu="updates">🆕 Updates</button><button data-libmenu="settings">⚙ Settings</button><button data-libmenu="shortcuts">⌨ Shortcuts</button></div>
       <div class="searchbar"><input id="gameSearch" type="search" placeholder="Search" aria-label="Search games"></div>
       <div id="storeGrid" class="storeGrid"></div>
       <p class="small muted" id="libNote" hidden>1 active game in your library.</p>
@@ -101,11 +101,26 @@
     <span class="waveChip" id="gameWaveChip">[WAVE 0/50]</span>
     <span class="goldChip">🪙 GOLD: <b id="gameGold">650</b></span>
     <span class="shieldPill">ATOM SHIELD: <b id="gameShield">100</b></span>
+    <span class="small">👾 Left: <b id="gameFoes">—</b></span>
+    <span class="small">💥 Pops: <b id="gamePops">0</b></span>
     <span class="spacer"></span>
+    <button id="btnCallWave" class="primary" style="display:none">▶ Call Wave</button>
     <button id="btnGamePause" class="ghost">⏸ Pause</button>
     <span class="small">Auto-Wave: <button id="btnGameAuto" class="ghost">OFF</button></span>
-    <span class="small">Speed: <select id="gameSpeed" style="width:auto"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option></select></span> <span class="small">Map: <span id="mapSeg"><button type="button" data-map-skin="space" class="ghost">Space</button><button type="button" data-map-skin="jungle" class="ghost on">Jungle</button></span></span>
+    <span class="small">Speed: <select id="gameSpeed" style="width:auto"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option></select></span>
+    <button id="btnGameMute" class="ghost" title="Sound on/off">🔊</button> <span class="small">Map: <span id="mapSeg"><button type="button" data-map-skin="space" class="ghost">Space</button><button type="button" data-map-skin="jungle" class="ghost on">Jungle</button></span></span>
     <button id="btnExitGame" class="primary">Exit to Home Hub</button>
+  </div>
+  <div class="modalOverlay" id="pauseMenu" hidden>
+    <div class="modalCard" role="dialog" aria-label="Paused">
+      <h3 style="margin-top:0">⏸ Paused</h3>
+      <p class="small muted">Wave <span id="pmWave">0</span> · Gold <span id="pmGold">0</span> · Shield <span id="pmShield">0</span></p>
+      <p><button id="pmResume" class="primary" style="width:100%">▶ Resume</button></p>
+      <p><button id="pmRestart" style="width:100%">↻ Restart run</button></p>
+      <p><span class="small">Map:</span> <button type="button" data-pm-map="space" class="ghost">Space</button> <button type="button" data-pm-map="jungle" class="ghost">Jungle</button></p>
+      <p><button id="pmSettings" style="width:100%">⚙ Settings</button></p>
+      <p><button id="pmExit" style="width:100%">Exit to Home Hub</button></p>
+    </div>
   </div>
   <div class="gameStage" id="gameStage">
     <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>

@@ -1781,10 +1781,94 @@
       "category": "Cosmos BTD",
       "title": "Sharp board by default: tilt-shift blur bands default OFF so the whole map is crisp like the game-screen look; still re-enableable in Settings",
       "tested": "live browser check: top of board sharp on jungle map"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "realistic-jungle",
+      "tested": "harness: jungle background paints without errors; browser-checked on desktop + phone widths",
+      "title": "Realistic jungle map: meadow patches, rocky cliff borders, pond shores with reeds and lily pads, pebble-edged stone path"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "tower-pedestals",
+      "tested": "harness: towers render in waves; browser-checked",
+      "title": "Towers sit on stone (jungle) / metal (space) pedestals with a shadow base"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "range-polish",
+      "tested": "harness: selection renders; browser-checked",
+      "title": "Selected tower shows a soft range fill plus an outer ring, like the reference look"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "pause-menu",
+      "tested": "editor harness: menu markup + wiring present; browser-checked",
+      "title": "Pause menu: Resume, Restart run, Map switch, Settings, Exit to Home Hub"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "call-wave-early",
+      "tested": "harness: skip bonus logic covered; editor harness: button + wiring present",
+      "title": "Call Wave button in the top deck between waves (manual start, +25g skip bonus after wave 1)"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "undo-placement",
+      "tested": "harness: place/undo/refund/guard checks pass",
+      "title": "Undo last placement: full refund, only between waves; placements lock when the wave starts"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "speed-4x",
+      "tested": "harness: setSpeed(4) and clamp checks pass",
+      "title": "4x game speed option (clamped 1-4x)"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "mute-toggle",
+      "tested": "editor harness: button + wiring present; browser-checked",
+      "title": "Top-deck sound on/off toggle (restores the volume setting on unmute)"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "foes-pops-chips",
+      "tested": "editor harness: chips + live updates present",
+      "title": "Top deck shows enemies left and total pops live"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "next-wave-preview",
+      "tested": "editor harness: preview line present",
+      "title": "Inspector shows the next wave's composition, danger rating, and boss warning"
+    },
+    {
+      "category": "Marketplace",
+      "id": "marketplace-cards",
+      "tested": "editor harness: card markup + stats present; browser-checked",
+      "title": "Marketplace redesign: hero portrait cards, level badges, rarity edges, big ATOM price, live for-sale/floor/average stats, scrolling tables"
+    },
+    {
+      "category": "Marketplace",
+      "id": "skins-removed",
+      "tested": "editor harness: no Skins section or skin buy binding remains",
+      "title": "Skins section removed from the marketplace (skins changed nothing visible)"
+    },
+    {
+      "category": "Hub",
+      "id": "dev-setup-removed",
+      "tested": "editor harness: no dev-setup markup or binding remains",
+      "title": "DEV STUDIO SETUP button and Dev Tools menu entry removed"
+    },
+    {
+      "category": "Hub",
+      "id": "responsive-phone",
+      "tested": "editor harness: phone media query present; browser-checked at phone width",
+      "title": "Phone + desktop polish: 560px layout (compact top bars, smaller deck tiles, full-width inspector, 16px inputs), marketplace tables scroll"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 297,
+  "totalFeatures": 311,
   "updated": "2026-11-02",
-  "version": "3.49.7"
+  "version": "3.49.8"
 }

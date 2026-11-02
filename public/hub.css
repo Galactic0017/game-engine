@@ -337,3 +337,42 @@ body.game-mode #gameView { display: block; }
 .libMenu button { text-align: left; }
 .storeCard.soon { cursor: pointer; }
 #mapSeg button.on { background: var(--cyan); color: #062a33; border-color: var(--cyan); font-weight: 800; }
+
+/* ---- v3.49.8: marketplace cards, phone/desktop polish ---- */
+.mkHead { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; background: linear-gradient(135deg, #0f1c33, #132a3a); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+.mkStats { display: flex; gap: 14px; flex-wrap: wrap; }
+.mkStats span { font-size: 12px; color: var(--muted); }
+.mkStats b { color: #fff; font-size: 15px; }
+.mkNotice { background: rgba(0,246,255,.07); border: 1px solid rgba(0,246,255,.25); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+.mkToolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.mkToolbar input, .mkToolbar select { margin: 0; }
+.mkCard { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 12px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid #5b6b85; border-radius: 12px; padding: 12px; align-items: start; }
+.mkCard.rar-rare { border-left-color: #4da3ff; }
+.mkCard.rar-epic { border-left-color: #c792ea; }
+.mkCard.rar-legendary { border-left-color: #ffd166; }
+.mkThumb { position: relative; }
+.mkThumb img { width: 92px; height: 92px; object-fit: contain; border-radius: 10px; background: #0b1220; }
+.mkLvl { position: absolute; left: 4px; bottom: 4px; background: rgba(3,6,16,.85); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 11px; font-weight: 700; }
+.mkBody h4 { margin: 0 0 4px; }
+.mkPrice { font-size: 20px; font-weight: 800; color: var(--gold); margin: 2px 0 6px; }
+.mkPrice span { font-size: 12px; color: var(--muted); font-weight: 600; }
+.mkActions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.mkEmpty { border: 1px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; }
+.tableWrap { overflow-x: auto; }
+.tableWrap table { min-width: 560px; }
+@media (max-width: 560px) {
+  .topbar { padding: 8px 10px; gap: 8px; }
+  .topnav { gap: 8px; font-size: 12px; }
+  .gameTopbar { padding: 6px 8px; gap: 6px; font-size: 12px; }
+  .gameStage { margin: 8px; }
+  .deckTile { width: 84px; padding: 6px 2px; }
+  .deckTile img { width: 32px; height: 32px; }
+  .deckTile strong { font-size: 11px; }
+  .perfOverlay { width: 138px; font-size: 11px; padding: 8px; }
+  .slideOver { width: min(302px, 94vw); }
+  .mkCard { grid-template-columns: 76px minmax(0,1fr); padding: 10px; }
+  .mkThumb img { width: 76px; height: 76px; }
+  .modalCard { padding: 16px; }
+  input, select, textarea { font-size: 16px; }
+  .mkHead { padding: 12px; }
+}
