@@ -405,6 +405,24 @@
   }
   function openSettings() { renderSettingsPanel(); var m = document.getElementById('settingsModal'); if (m) m.hidden = false; }
   function closeSettings() { var m = document.getElementById('settingsModal'); if (m) m.hidden = true; }
+  /* ---- Batch 20: keyboard shortcuts overlay ---- * Press ? anywhere
+   * in the hub to see every game key in one place; Escape or the
+   * Close button hides it. The list mirrors the real bindings in
+   * btd.js (1-8/Space/P/R/U/X/Enter/arrows/~) — no invented keys. */
+  var SHORTCUTS_HTML = '<table class="shortcutTable">'
+    + '<tr><td><b>1–8</b></td><td>Pick a tower (Cosmos BTD)</td></tr>'
+    + '<tr><td><b>Space</b></td><td>Start the next wave</td></tr>'
+    + '<tr><td><b>Enter</b></td><td>Place / select at the keyboard cursor</td></tr>'
+    + '<tr><td><b>Arrow keys</b></td><td>Move the keyboard cursor (Shift = big step)</td></tr>'
+    + '<tr><td><b>U</b></td><td>Upgrade the selected tower</td></tr>'
+    + '<tr><td><b>X</b></td><td>Sell the selected tower</td></tr>'
+    + '<tr><td><b>P</b></td><td>Pause / resume</td></tr>'
+    + '<tr><td><b>R</b></td><td>Restart the run</td></tr>'
+    + '<tr><td><b>Esc</b></td><td>Cancel placement / close panels</td></tr>'
+    + '<tr><td><b>~</b></td><td>Debug console + performance monitor</td></tr>'
+    + '<tr><td><b>?</b></td><td>Show / hide this shortcuts panel</td></tr></table>';
+  function toggleShortcuts() { var m = document.getElementById('shortcutsOverlay'); if (!m) return; m.hidden = !m.hidden; if (!m.hidden) { var b = document.getElementById('shortcutsOverlayBody'); if (b) b.innerHTML = SHORTCUTS_HTML; } }
+  function closeShortcuts() { var m = document.getElementById('shortcutsOverlay'); if (m) m.hidden = true; }
   function renderSettingsPanel() {
     var modal = document.getElementById('settingsModalBody');
     if (modal) { modal.innerHTML = settingsFormHtml(); wireSettingsControls(modal); }
@@ -414,6 +432,10 @@
     var topBtn = document.getElementById('btnSettings'); if (topBtn) topBtn.onclick = openSettings;
     var closeBtn = document.getElementById('btnCloseSettings'); if (closeBtn) closeBtn.onclick = closeSettings;
     var overlay = document.getElementById('settingsModal'); if (overlay) overlay.onclick = function (ev) { if (ev.target === overlay) closeSettings(); };
+    /* Batch 20: shortcuts overlay wiring (same modal pattern). */
+    var scBtn = document.getElementById('btnCloseShortcuts'); if (scBtn) scBtn.onclick = closeShortcuts;
+    var scTop = document.getElementById('btnShortcuts'); if (scTop) scTop.onclick = toggleShortcuts;
+    var scOverlay = document.getElementById('shortcutsOverlay'); if (scOverlay) scOverlay.onclick = function (ev) { if (ev.target === scOverlay) closeShortcuts(); };
     applyUiPrefs();
   }
   /* Inspection stat card: hover/select a BTD tower to see animated stat
@@ -784,7 +806,7 @@
     document.addEventListener('keydown', _gestureOnce);
     document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
-    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); } });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); closeShortcuts(); } else if (ev.key === '?') { var t = ev.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return; toggleShortcuts(); } });
     /* Batch 10: record a finished Space Shooter run on the server
      * shooter leaderboard. Only the game-over emit (final:true) counts;
      * the destroy() emit has no final flag, so leaving a game or
