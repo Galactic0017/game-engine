@@ -129,27 +129,38 @@
       <button id="btnConnectKeplr" class="primary">Connect Keplr</button>
       <button id="btnDisconnect" class="ghost" hidden>Disconnect</button>
     </div>
-    <h3>Profile</h3>
-    <div id="profileBox"><p class="muted small">Connect your wallet.</p></div>
-    <h3>Friends</h3>
-    <div id="friendsBox"><p class="muted small">Connect Keplr to see players you have dueled.</p></div>
-    <h3>Referral</h3>
-    <div id="referralBox"><p class="muted small">Connect your wallet for your referral code.</p></div>
-    <h3>Top Players</h3>
-    <div id="leaderMini"></div>
-    <h3>Challenges</h3>
-    <div id="challengeBox"><p class="muted small">Connect your wallet to send or answer duel invites.</p></div>
-    <h3>Recently Played</h3>
-    <div id="recentBox"><p class="muted small">No games played yet.</p></div>
-    <h3>My Heroes</h3>
-    <div id="heroList"><p class="muted small">Connect your wallet to see heroes.</p></div>
-    <div id="heroActions"></div>
-    <h3>Daily Quests</h3>
-    <div id="questBox"></div>
-    <h3>Achievements</h3>
-    <div id="achBox"></div>
-    <h3>Settings</h3>
-    <div id="settingsBox"></div>
+    <div class="railTabs" id="railTabs" role="tablist" aria-label="Sidebar">
+      <button data-rail="social" class="active" role="tab">👥 Social</button>
+      <button data-rail="you" role="tab">👤 You</button>
+      <button data-rail="play" role="tab">🏆 Play</button>
+    </div>
+    <div class="railPane active" id="railPane-social" role="tabpanel">
+      <h3>Friends</h3>
+      <div id="friendsBox"><p class="muted small">Connect Keplr to see players you have dueled.</p></div>
+      <h3>Challenges</h3>
+      <div id="challengeBox"><p class="muted small">Connect your wallet to send or answer duel invites.</p></div>
+      <h3>Referral</h3>
+      <div id="referralBox"><p class="muted small">Connect your wallet for your referral code.</p></div>
+    </div>
+    <div class="railPane" id="railPane-you" role="tabpanel">
+      <h3>Profile</h3>
+      <div id="profileBox"><p class="muted small">Connect your wallet.</p></div>
+      <h3>My Heroes</h3>
+      <div id="heroList"><p class="muted small">Connect your wallet to see heroes.</p></div>
+      <div id="heroActions"></div>
+      <h3>Daily Quests</h3>
+      <div id="questBox"></div>
+      <h3>Achievements</h3>
+      <div id="achBox"></div>
+    </div>
+    <div class="railPane" id="railPane-play" role="tabpanel">
+      <h3>Top Players</h3>
+      <div id="leaderMini"></div>
+      <h3>Recently Played</h3>
+      <div id="recentBox"><p class="muted small">No games played yet.</p></div>
+      <h3>Settings</h3>
+      <div id="settingsBox"></div>
+    </div>
   </aside>
 </div>
 
