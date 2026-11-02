@@ -10,6 +10,12 @@ are only features actually built and tested — never claims.
 - Social (default): Friends, Challenges, Referral. You: Profile, My Heroes, Quests, Achievements. Play: Top Players, Recently Played, Settings.
 - All 10 sidebar box ids preserved; render functions untouched; tab switching mirrors the existing showView pattern.
 
+## v3.40.0 — 2026-11-02 — 5 features (230 total)
+
+Game feel XXII: gold per wave (BTD), power-ups per minute (Shooter, incl. game-over line), credits per belt (Miner), shards per milestone (Clicker, panel line), lifetime per prestige (Tycoon, panel line). All five are HUD/state ratio readouts over existing counters; no gameplay, economy, or escrow changes.
+
+Honest limits: HUD/state/panel data only, harness-verified (no browser screenshot check); the shooter game-over line and the clicker/tycoon panel lines are render-string checked in the harness; gold-per-wave and credits-per-belt use current unspent balances, not cumulative earnings; lifetime-per-prestige is 0 until the first prestige.
+
 ## v3.30.1 — 2026-11-01 — 5 features (182 total)
 
 Solo engine: in-screen game side panel (Towers/Upgrades/Hero/Play tabs + tower shop inside the screen), HUD strip, open-in-new-tab (?game=), Friends rail from real duel history, professional 1200x630 share image + description. All games shown are the user's own games, with real art and real data only.
