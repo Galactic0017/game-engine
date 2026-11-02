@@ -298,6 +298,15 @@ Tests: server 169/169 (164 prior + 5 Batch 20), BTD 192/192 (188 prior + 4 Batch
 Limits: splash ring + danger label are canvas/HUD data, harness-verified via helpers/state only (no browser screenshot check); shortcuts overlay rendering code-reviewed + marker-checked only (no browser click check).
 Live status: see Run log.
 
+## Batch 21 — Game feel II (defined by the loop; the backlog had no undone batch left)
+- [x] Sell refund counts full investment: towers track `invested` (base + linear upgrades + branch points); sell refund and inspect payload pay 70% of invested; towers without the field fall back to base cost.
+- [x] Boss-wave warning: `isBossWave(w)` (every 10th wave) exposed in HUD as `nextWaveBoss` for the wave after the current one.
+- [x] Shooter graze bonus: skimming an asteroid within 22px of contact without touching it pays +5 score once per asteroid (`grazes` counter in HUD/state, reset on restart).
+- [x] Miner rich vein: every 10th mined rock yields a bonus ore of the same type (`richVeins` counter in HUD/state, reset on restart).
+Tests: server 175/175 (169 prior + 6 Batch 21), BTD 197/197 (192 prior + 5 Batch 21), shooter pass (3 clean runs; combo test fixed to assert a score delta with the field isolated so drifting spawns cannot graze-score mid-check), miner pass, tycoon/clicker pass. Serve 200s via server test.
+Limits: graze/rich-vein/sell-refund visuals are HUD/state data, harness-verified only (no browser screenshot check); graze floater text is canvas-only.
+Live status: see Run log.
+
 ## Research (never claim as built)
 - WebGL renderer + generated normal maps for true deferred lighting.
 - GPU particle engine (WebGL points) replacing canvas pools.
@@ -361,3 +370,5 @@ Live status: see Run log.
 - 2026-11-01 21:34 EST: LIVE RE-CHECK (fresh cache-busted live-browser reloads, browser task 02:27–02:33 UTC): /api/config + /api/health LIVE at 3.18.0 (buildDate, duels entryFees, real CEO address all present; health timestamp advancing). BATCH 19 STATICS STILL LAGGING: served shell.js has no updateHubLoader/startAmbientHum/renderHubFooter (Batch 18 markers present), served features.json is 3.17.0 with no Batch 19 ids, homepage has no #hubLoader/#hubFooter. Batch 19 still NOT confirmed live. This run defines Batch 20 (no undone batch remained in the backlog) and pushes it; the Batch 20 deployment should also promote the Batch 19 statics — re-check both batches' markers after it.
 
 - 2026-11-01 21:45 EST: Batch 20 built locally (v3.19.0, QoL): server 169/169, BTD 192/192, shooter pass, miner pass (4/4 clean standalone runs), tycoon/clicker pass. Health/config 200 at run start (live 3.18.0 API; Batch 19 statics lagging — re-check after this push). Push via browser task; verify /api/config shows 3.19.0 and served shell.js/index/features.json show Batch 19 + 20 markers.
+
+- 2026-11-01 22:30 EST: Batch 20 API VERIFIED LIVE at run start (fresh crawls 03:30 UTC): /api/health + /api/config 200 at 3.19.0, real CEO address, duels entryFees, shardConversion. BUT totalFeatures is 129 (Batch 19 count, not 133) and served /features.json still ends at the Batch 15 set (lazy-game-modules) — the Batch 20 features.json never reached the served deployment (same static lag as Batches 11/13/14/15, only worse: two deployments behind). Batch 19 + 20 statics still NOT confirmed live; this run's Batch 21 push (which re-pushes features.json + the changed game files) should promote them — re-check served features.json (must show 3.20.0/137) + shell.js Batch 19/20 markers after it. Batch 21 built locally (v3.20.0, Game feel II): server 175/175, BTD 197/197, shooter pass x3, miner pass, tycoon/clicker pass. Push via browser task; verify /api/config shows 3.20.0.
