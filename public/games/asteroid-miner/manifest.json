@@ -1,6 +1,6 @@
 {
  "canvas": true,
- "description": "Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock. Batch 22: cargo breakdown + richest ore. Batch 23: belt progress percent. Batch 24: average ore value in cargo. Batch 25: cargo units total. Batch 26: ore remaining to the belt quota. Batch 27: mined-per-belt average. Batch 28: rich-veins-per-belt average. Batch 29: cargo-value-per-belt average.",
+ "description": "Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock. Batch 22: cargo breakdown + richest ore. Batch 23: belt progress percent. Batch 24: average ore value in cargo. Batch 25: cargo units total. Batch 26: ore remaining to the belt quota. Batch 27: mined-per-belt average. Batch 28: rich-veins-per-belt average. Batch 29: cargo-value-per-belt average. Batch 30: banked-per-belt average.",
  "entry": "miner.js",
  "id": "asteroid-miner",
  "image": "assets/sprites/monster-1.png",
@@ -10,5 +10,5 @@
   "Clicker",
   "Space"
  ],
- "version": "1.10.0"
+ "version": "1.11.0"
 }
