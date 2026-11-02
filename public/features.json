@@ -1583,10 +1583,40 @@
       "title": "Tycoon rig levels per overseer",
       "description": "Total rig levels per assigned overseer, in the game state and the panel.",
       "tested": "Harness: helper 0/2/2.3/zero-overseer cases; state exposes 2 with 4 total rig levels and 2 overseers; panel line render-checked."
+    },
+    {
+      "id": "btd-army-value-per-tower",
+      "title": "BTD army value per tower",
+      "description": "Total gold invested in towers per tower placed, in the HUD and game state.",
+      "tested": "Harness: helper 0/25/2.3/zero-tower cases; HUD + state expose 100 at 200 army value / 2 towers."
+    },
+    {
+      "id": "shooter-kills-per-boss",
+      "title": "Shooter kills per boss",
+      "description": "Kills per boss defeated, in the HUD, game state and the game-over screen.",
+      "tested": "Harness: helper 0/25/2.3/zero-boss cases; HUD + state 2.5 at 5 kills / 2 bosses; game-over line marker-checked."
+    },
+    {
+      "id": "miner-cargo-value-per-ore",
+      "title": "Miner cargo value per ore",
+      "description": "Scanner-adjusted cargo value held per ore mined in total, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-ore cases; HUD + state expose 60 at 120 cargo value / 2 ore mined."
+    },
+    {
+      "id": "clicker-unbanked-share",
+      "title": "Clicker unbanked share",
+      "description": "Unbanked shards as a percent of shards currently held (unbanked + banked), in the game state and the panel milestone line.",
+      "tested": "Harness: helper 0/25/30/all-unbanked cases; state matches the helper; panel line render-checked."
+    },
+    {
+      "id": "tycoon-overseers-per-level",
+      "title": "Tycoon overseers per level",
+      "description": "Assigned overseers per total rig level, in the game state and the panel.",
+      "tested": "Harness: helper 0/0.5/0.4/zero-level cases; state exposes 0.5 with 2 overseers and 4 total rig levels; panel line render-checked."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 264,
+  "totalFeatures": 269,
   "updated": "2026-11-02",
-  "version": "3.46.0"
+  "version": "3.47.0"
 }
