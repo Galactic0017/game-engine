@@ -167,3 +167,21 @@ body[data-quality="low"] .starfield, body[data-quality="low"] .starfield::after 
 .recentRow img { width: 36px; height: 36px; object-fit: cover; border-radius: 8px; }
 @media (max-width: 1100px) { .launcher { grid-template-columns: 220px minmax(0, 1fr); } .rail-right { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; } }
 @media (max-width: 700px) { .launcher { grid-template-columns: 1fr; } .ceoLayout { grid-template-columns: 1fr; } .ceoLayout .ceoTabs { flex-direction: row; flex-wrap: wrap; } }
+
+/* ---- Batch 16: accessibility & touch targets ---- */
+/* Reduced motion (setting or OS preference): freeze the CSS-only
+ * starfield drift and the equipped-hero glow pulse. Canvas shake /
+ * bursts / tilt-shift are gated in btd.js itself. */
+body[data-reduced-motion="on"] .starfield, body[data-reduced-motion="on"] .starfield::after,
+body[data-reduced-motion="on"] .heroCard.equipped img, body[data-reduced-motion="on"] .heroCard.equipped .heroDot { animation: none; }
+/* Larger touch targets on small screens / coarse pointers (phones,
+ * tablets): 44px minimum hit area on action-bar buttons and tower
+ * tiles, roomier tower grid. Desktop mouse layout is unchanged. */
+@media (max-width: 700px), (pointer: coarse) {
+  .actionbar button { min-height: 44px; padding: 10px 16px; font-size: 15px; }
+  .actionbar select { min-height: 44px; font-size: 15px; }
+  .towerGrid { grid-template-columns: 1fr; gap: 10px; }
+  .towerBtn { min-height: 52px; padding: 10px 14px; }
+  .towerThumb, .towerDot { width: 44px; height: 44px; }
+  nav.tabs button, .gameItem { min-height: 44px; }
+}
