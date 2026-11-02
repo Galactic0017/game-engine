@@ -1,11 +1,11 @@
 {
  "canvas": false,
- "description": "Tap the ATOM core, chain combo streaks, catch golden shards and surges, bank shards. Convert 100 shards to 10 credits. Local save. Batch 22: click milestones.",
+ "description": "Tap the ATOM core, chain combo streaks, catch golden shards and surges, bank shards. Convert 100 shards to 10 credits. Local save. Batch 22: click milestones. Batch 25: clicks to the next milestone.",
  "image": "assets/sprites/hero-astra.png",
  "entry": "clicker.js",
  "id": "atom-clicker",
  "name": "ATOM Core Clicker",
- "version": "3.21.0",
+ "version": "3.24.0",
  "tags": [
   "Clicker",
   "Idle",
