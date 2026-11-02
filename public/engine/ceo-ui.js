@@ -6,16 +6,17 @@
  */
 (function (global) {
   'use strict';
-  var authed = false;
+  var authed = false; var authedVia = 'wallet';
   var cache = { sales: [], rentals: [], ledger: null, users: null, flags: [], settings: null, audit: [], state: null, disputes: null, analytics: null, scheduled: [], openDisputes: 0 };
   var tickTimer = null, refreshTimer = null, watcherStatus = null, activeTab = 'orders';
   function fmtLeft(sec) { if (sec == null || sec <= 0) return '0:00'; var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + String(s).padStart(2, '0'); }
   function explorer(ctx, txid) { return '<a href="' + ctx.config.explorerTxUrl + txid + '" target="_blank" rel="noopener">Explorer ↗</a>'; }
   function setWatcherStatus(s) { watcherStatus = s; var el = document.getElementById('ceoWatcherStatus'); if (el) el.textContent = 'RPC watcher: ' + (s && s.status || 'idle') + (s && s.detail ? ' — ' + s.detail : ''); }
   function mountGate(gateEl, panelEl, ctx) {
-    if (authed) { gateEl.innerHTML = '<p class="ok">Signed in as CEO: <code>' + ctx.esc(ctx.wallet.address || '') + '</code></p><button id="ceoReload">↻ Reload panel</button>'; panelEl.hidden = false; renderPanel(panelEl, ctx); }
+    if (!authed) { var savedTok = null; try { savedTok = sessionStorage.getItem('ceo-token'); } catch (e) {} if (savedTok) { ctx.ceoGet('/api/admin/pending').then(function (r2) { cache.sales = r2.sales || []; cache.rentals = r2.rentals || []; cache.flags = r2.flags || []; cache.settings = r2.settings || null; authed = true; authedVia = 'password'; mountGate(gateEl, panelEl, ctx); }).catch(function () { try { sessionStorage.removeItem('ceo-token'); } catch (e) {} }); } }
+    if (authed) { gateEl.innerHTML = '<p class="ok">Signed in as CEO' + (authedVia === 'password' ? ' (password)' : ': <code>' + ctx.esc(ctx.wallet.address || '') + '</code>') + '</p><button id="ceoReload">↻ Reload panel</button>'; panelEl.hidden = false; renderPanel(panelEl, ctx); }
     else {
-      gateEl.innerHTML = '<p>CEO address: <code>' + ctx.esc(ctx.config.ceoAddress) + '</code></p><button id="ceoSignIn" class="primary">Sign in as CEO &amp; load panel</button><p class="small muted">Connect Keplr with the CEO address first. Each action signs in your wallet.</p>';
+      gateEl.innerHTML = '<p>CEO address: <code>' + ctx.esc(ctx.config.ceoAddress) + '</code></p><p><label class="small">CEO password</label> <input type="password" id="ceoPassword" placeholder="Password" style="width:180px"> <button id="ceoUnlock" class="primary">Unlock with password</button></p><p><button id="ceoSignIn">Sign in as CEO with wallet</button></p><p class="small muted">Password unlock, or Keplr with the CEO address. Each wallet action signs in your wallet.</p>';
       panelEl.hidden = true;
     }
     var btn = document.getElementById('ceoSignIn');
@@ -28,6 +29,19 @@
         gateEl.innerHTML = '<p class="ok">Signed in as CEO: <code>' + ctx.esc(ctx.wallet.address) + '</code></p><button id="ceoReload">↻ Reload panel</button>';
         panelEl.hidden = false; renderPanel(panelEl, ctx);
       } catch (e) { ctx.toast('CEO sign-in failed: ' + e.message, 'err'); }
+    var ubtn = document.getElementById('ceoUnlock');
+    if (ubtn) ubtn.addEventListener('click', async function () {
+      try {
+        var pwEl = document.getElementById('ceoPassword');
+        var r = await ctx.api('/api/ceo/login', 'POST', { password: (pwEl && pwEl.value) || '' });
+        try { sessionStorage.setItem('ceo-token', r.token); } catch (e) {}
+        var r2 = await ctx.ceoGet('/api/admin/pending');
+        cache.sales = r2.sales || []; cache.rentals = r2.rentals || []; cache.flags = r2.flags || []; cache.settings = r2.settings || null;
+        authed = true; authedVia = 'password'; ctx.toast('CEO unlocked with password.', 'ok');
+        gateEl.innerHTML = '<p class="ok">Signed in as CEO (password)</p><button id="ceoReload">↻ Reload panel</button>';
+        panelEl.hidden = false; renderPanel(panelEl, ctx);
+      } catch (e) { ctx.toast('CEO unlock failed: ' + e.message, 'err'); }
+    });
     });
     var rel = document.getElementById('ceoReload');
     if (rel) rel.addEventListener('click', function () { renderPanel(panelEl, ctx); });

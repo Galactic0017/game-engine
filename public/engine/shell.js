@@ -145,6 +145,8 @@
   // CEO-signed fetch: fresh ADR-36 signature over path + canonical body + ts.
   async function ceoFetch(path, body) {
     body = body || {};
+    var ceoToken = null; try { ceoToken = sessionStorage.getItem('ceo-token'); } catch (e) {}
+    if (ceoToken) { var res0 = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-ceo-token': ceoToken }, body: JSON.stringify(body) }); var json0 = null; try { json0 = await res0.json(); } catch (e) {} if (!res0.ok) throw new Error((json0 && json0.error) || ('CEO request failed: ' + res0.status)); return json0; }
     var ts = Date.now();
     var message = path + '\n' + ctx.wallet.canonicalJson(body) + '\n' + String(ts);
     var sig = await ctx.wallet.ceoSign(message);
@@ -155,6 +157,8 @@
   }
   ctx.ceoFetch = ceoFetch;
   async function ceoGet(path) {
+    var ceoToken2 = null; try { ceoToken2 = sessionStorage.getItem('ceo-token'); } catch (e) {}
+    if (ceoToken2) { var res0 = await fetch(path, { headers: { 'x-ceo-token': ceoToken2 } }); var json0 = null; try { json0 = await res0.json(); } catch (e) {} if (!res0.ok) throw new Error((json0 && json0.error) || ('CEO request failed: ' + res0.status)); return json0; }
     var ts = Date.now();
     var message = path + '\n' + ctx.wallet.canonicalJson({}) + '\n' + String(ts);
     var sig = await ctx.wallet.ceoSign(message);
@@ -167,7 +171,7 @@
 
   function renderWallet() {
     var w = ctx.wallet;
-    document.getElementById('walletStatus').textContent = w.address ? shortAddr(w.address) + (w.provider ? ' · ' + w.provider : '') : 'Not connected';
+    document.getElementById('walletStatus').textContent = w.address ? shortAddr(w.address) + (w.provider ? ' · ' + w.provider : '') : (ctx.player ? 'Local · ' + shortAddr(ctx.player.address) : 'Not connected');
     document.getElementById('walletBalance').textContent = w.address && w.balanceAtom() !== null ? w.balanceAtom() + ' ATOM' : '';
     document.getElementById('btnDisconnect').hidden = !w.address;
     var avail = (w.availableProviders ? w.availableProviders() : []);
@@ -192,7 +196,25 @@
       if (document.getElementById('view-marketplace').classList.contains('active') && window.MarketplaceUI) window.MarketplaceUI.render(document.getElementById('marketplace'), ctx);
     } catch (e) { /* state refresh is best-effort */ }
   }
-  ctx.refreshState = refreshState; ctx.ensurePlayer = ensurePlayer;
+  function localPlayerId() {
+    try {
+      var id = localStorage.getItem('game-local-id');
+      if (!id || !/^local-[0-9a-f]{16}$/.test(id)) { var hx = ''; var buf = new Uint8Array(8); if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(buf); for (var i = 0; i < 8; i++) hx += (buf[i] || Math.floor(Math.random() * 256)).toString(16).padStart(2, '0'); id = 'local-' + hx; localStorage.setItem('game-local-id', id); }
+      return id;
+    } catch (e) { return 'local-' + Math.random().toString(16).slice(2, 18); }
+  }
+  async function ensureLocalPlayer() {
+    if (ctx.player) return;
+    try {
+      var r = await api('/api/player', 'POST', { address: localPlayerId(), name: 'Player' });
+      ctx.player = r.player;
+      ctx.host.setPlayer(r.player, r.heroes || []);
+      renderHeroes(r.heroes || []);
+      renderWallet();
+      await startSession();
+    } catch (e) { /* local play still works without the server player record */ }
+  }
+  ctx.refreshState = refreshState; ctx.ensurePlayer = ensurePlayer; ctx.ensureLocalPlayer = ensureLocalPlayer;
   var leaderGame = '';
   var leaderSeason = '';
   async function renderLeaderMini() {
@@ -628,7 +650,8 @@
       sessionId: ctx.session && ctx.session.sessionId,
       sessionNonce: ctx.session && ctx.session.nonce,
       onWaveReport: submitWaveReport,
-      onTowerSelect: function (t) { ctx.selectedTower = t; renderActionBar(); setInspectorOpen(!!t); }
+      onTowerSelect: function (t) { ctx.selectedTower = t; renderActionBar(); setInspectorOpen(!!t); },
+      onEnemySelect: function (b) { ctx.selectedEnemy = b; setInspectorOpen(!!b); },
     };
     try {
       await ctx.host.loadGame(gameId, opts);
@@ -742,6 +765,9 @@
       var sprMap = (window.CosmosBTD && window.CosmosBTD.TOWER_SPRITES) || {};
       var spr = sprMap[ins.kind || ins.defId] || 'tower-validator';
       el.innerHTML = '<img src="assets/sprites/' + spr + '.png" alt="" onerror="this.style.display=\'none\'"><div><strong>' + esc(ins.name) + '</strong><br><span class="small muted">Level ' + ins.level + (ins.maxed ? ' (MAX)' : '') + ' · BTD Tower</span></div>';
+    } else if (hud.enemyInspect) {
+      var e = hud.enemyInspect;
+      el.innerHTML = '<span style="display:inline-block;width:52px;height:52px;line-height:52px;text-align:center;font-size:26px;border-radius:10px;background:' + esc(e.color || '#ff5a5a') + ';flex:none">🎈</span><div><strong>' + esc(e.name) + '</strong><br><span class="small muted">Enemy · ' + e.progress + '% to the ATOM Orb' + (e.boss ? ' · BOSS' : '') + '</span></div>';
     } else if (ctx.host && ctx.host.equippedHero) {
       var h = ctx.host.equippedHero;
       el.innerHTML = heroImg(h) + '<div><strong>' + esc(h.name) + '</strong><br><span class="small muted">Level ' + h.level + ' · ' + esc(h.rarity || '') + ' · Power ' + h.basePower + '</span></div>';
@@ -762,12 +788,16 @@
         return '<button data-branch="' + o.branch + '"' + (o.locked || o.cost == null ? ' disabled' : '') + '>' + esc(o.name) + ' ' + (o.cost != null ? o.cost + 'g' : 'MAX') + '</button>';
       }).join(' ') + '</p>';
     }
+    var dpsNow = ins ? (ins.dmg / Math.max(0.22, ins.rate)).toFixed(1) : '0';
+    var dpsNext = ins ? (ins.nextDmg / Math.max(0.22, ins.rate)).toFixed(1) : '0';
+    var upBlocked = ins ? (!ins.upgradeCost || (hud.gold || 0) < ins.upgradeCost) : true;
     var upHtml = ins
-      ? '<h4>Upgrade Paths</h4>'
-        + '<p class="small">Upgrade: ' + (ins.upgradeCost ? ins.upgradeCost + 'g → Lv ' + (ins.level + 1) + ' (dmg ' + ins.nextDmg + ', range ' + ins.nextRange + ')' : 'MAX — fully upgraded') + '</p>'
-        + '<p class="small">Sell refund ' + ins.sellRefund + 'g · Cost ' + ins.cost + 'g</p>'
-        + '<p><button id="abUpgrade">Upgrade ★</button> <button id="abSell" class="ghost">' + esc(sellLabel) + '</button></p>' + branchHtml
-      : '<p class="muted small">Click a placed tower on the board to inspect it here, then upgrade or sell it.</p>';
+      ? '<h4>⬆ Upgrade Tower</h4>'
+        + '<p><button id="abUpgrade" class="primary" style="width:100%"' + (upBlocked ? ' disabled' : '') + '>' + (ins.upgradeCost ? '⬆ Upgrade to Lv ' + (ins.level + 1) + ' — ' + ins.upgradeCost + 'g' : 'MAX — fully upgraded') + '</button></p>'
+        + '<p class="small">' + (ins.upgradeCost ? 'Now: dmg ' + ins.dmg + ' · range ' + ins.range + ' · DPS ' + dpsNow + ' → Lv ' + (ins.level + 1) + ': dmg ' + ins.nextDmg + ' · range ' + ins.nextRange + ' · DPS ' + dpsNext : 'Sell refund ' + ins.sellRefund + 'g · Cost ' + ins.cost + 'g') + '</p>'
+        + '<p class="small">Sell refund ' + ins.sellRefund + 'g · Cost ' + ins.cost + 'g · Press U to upgrade, X to sell.</p>'
+        + '<p><button id="abSell" class="ghost">' + esc(sellLabel) + '</button></p>' + branchHtml
+      : '<h4>⬆ Upgrade Tower</h4><p class="muted small">Click a placed tower on the board to inspect it here, then upgrade or sell it. Press U to upgrade the selected tower.</p>';
     var cdLeft = Math.max(0, hud.heroCd || 0);
     var cdMax = hud.heroCdMax || 12;
     var cdPct = cdLeft > 0 ? Math.max(0, Math.round(100 * (1 - cdLeft / cdMax))) : 100;
@@ -781,7 +811,46 @@
       + '<p class="small muted">Next: Wave ' + ((hud.wave || 0) + 1) + ' — ' + esc(hud.nextWave || '') + ' · Danger ' + esc(hud.nextWaveDanger || '') + (hud.nextWaveBoss ? ' · 👑 BOSS' : '') + '</p>'
       + '<p><button id="abWave" class="primary">▶ Start wave</button> <button id="abUndo" class="ghost"' + (hud.undoAvailable ? '' : ' disabled') + '>↩ Undo last</button>  <button id="abEndless">Endless: ' + (hud.endless ? 'ON' : 'OFF') + '</button> <button id="abChallenge">Challenge: ' + (hud.challenge ? 'ON' : 'OFF') + '</button></p>'
       + '<p><button id="abHelp" class="ghost">⌨ Shortcuts</button> <button id="abShareCard" class="ghost">📤 Share run card</button></p>';
-    box.innerHTML = upHtml + heroHtml + playHtml;
+    var enemyHtml = '';
+    if (hud.enemyInspect && !ins) {
+      var ei = hud.enemyInspect;
+      enemyHtml = '<h4>🎈 Enemy Intel</h4>'
+        + '<p class="small">Layers <b>' + ei.layers + ' / ' + ei.maxLayers + '</b> · Speed ' + ei.speed + ' · Reward ' + ei.reward + 'g' + (ei.armored ? ' · Armored' : '') + (ei.boss ? ' · BOSS' : '') + '</p>'
+        + '<p class="small"><span style="display:inline-block;width:100%;height:8px;background:#26314a;border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:' + ei.progress + '%;background:#ff5a5a"></span></span>Progress: ' + ei.progress + '% to the ATOM Orb</p>'
+        + '<p class="muted small">Click a tower to inspect it, or another balloon to track it.</p>';
+    }
+    var heroesHtml = '';
+    (function () {
+      var meAddr = ctx.player && ctx.player.address;
+      var defs = (ctx.config && ctx.config.heroDefs) || [];
+      var owned = ((ctx.state && ctx.state.heroes) || []).filter(function (h) { return meAddr && h.owner === meAddr; });
+      var listedIds = {};
+      ((ctx.state && ctx.state.listings) || []).forEach(function (l) { listedIds[l.heroId] = l; });
+      var rows = '';
+      if (!meAddr) { heroesHtml = '<h4>🦸 My Heroes</h4><p class="muted small">Play a wave to get your player profile, then unlock, upgrade, and sell heroes here.</p>'; return; }
+      var payoutPrefill = /^cosmos1/.test(meAddr) ? meAddr : '';
+      owned.forEach(function (h) {
+        var upCost = 200 * (h.level || 1);
+        var maxed = (h.level || 1) >= 100;
+        var lst = listedIds[h.id];
+        rows += '<div class="heroRow"><span>' + heroImg(h) + '</span><div><strong>' + esc(h.name) + '</strong> <span class="small muted">Lv ' + (h.level || 1) + ' · ' + esc(h.rarity || '') + '</span><br>'
+          + (lst ? '<span class="small">Listed: ' + lst.priceAtom + ' ATOM</span>'
+            : h.rentedTo ? '<span class="small muted">On loan</span>'
+            : '<span class="small"><input type="number" min="0.000001" step="0.000001" placeholder="Price ATOM" style="width:84px" data-list-price="' + h.id + '"> <input placeholder="Payout address cosmos1..." style="width:150px" data-list-payout="' + h.id + '" value="' + esc(payoutPrefill) + '"> <button class="ghost" data-list-hero="' + h.id + '">List for sale</button></span>')
+          + ' <button data-upgrade-hero="' + h.id + '"' + (maxed ? ' disabled' : '') + '>' + (maxed ? 'MAX' : 'Upgrade ' + upCost + ' credits') + '</button></div></div>';
+      });
+      defs.forEach(function (d) {
+        if (owned.some(function (h) { return h.defId === d.id; })) return;
+        var unlock = d.unlockLevel || 1;
+        var pLevel = (ctx.player && ctx.player.level) || 1;
+        var cost = ((ctx.config.heroBuyCosts || {})[d.rarity]) || 5000;
+        rows += '<div class="heroRow"><span>' + heroImg({ defId: d.id, color: d.color }) + '</span><div><strong>' + esc(d.name) + '</strong> <span class="small muted">' + esc(d.rarity) + ' · Unlock Lv ' + unlock + '</span><br>'
+          + (pLevel >= unlock ? '<button data-claim-hero="' + d.id + '">Claim free</button> ' : '<span class="small muted">Unlocks at player Lv ' + unlock + ' · </span>')
+          + '<button data-buy-hero="' + d.id + '">Buy ' + cost + ' credits</button></div></div>';
+      });
+      heroesHtml = '<h4>🦸 My Heroes — unlock, upgrade &amp; sell</h4>' + (rows || '<p class="muted small">No heroes yet.</p>');
+    })();
+    box.innerHTML = upHtml + enemyHtml + heroHtml + heroesHtml + playHtml;
     var ts = document.getElementById('abTarget'); if (ts) { ts.value = hud.targeting || 'first'; ts.addEventListener('change', function () { if (handle) handle.setTargeting(ts.value); }); }
     var bind = function (id, fn) { var el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
     bind('abWave', function () { if (handle) handle.startWave(); });
@@ -795,6 +864,11 @@
     bind('abChallenge', function () { if (handle && handle.setChallenge) { handle.setChallenge(!hud.challenge); toast(!hud.challenge ? 'Challenge mode: 100 gold, 20 lives. Applies on restart.' : 'Challenge mode OFF.'); } });
     bind('abHelp', function () { toggleShortcuts(); });
     bind('abShareCard', function () { shareRunCard(); });
+    var meAddr = ctx.player && ctx.player.address;
+    box.querySelectorAll('[data-upgrade-hero]').forEach(function (btn) { btn.addEventListener('click', async function () { if (!meAddr) return toast('Play a wave first to get your player profile.', 'warn'); try { var r = await api('/api/heroes/upgrade', 'POST', { address: meAddr, heroId: btn.getAttribute('data-upgrade-hero') }); toast('Upgraded to Lv ' + r.hero.level, 'ok'); await refreshState(); renderInspectorControls(); } catch (e) { toast(e.message, 'err'); } }); });
+    box.querySelectorAll('[data-claim-hero]').forEach(function (btn) { btn.addEventListener('click', async function () { if (!meAddr) return toast('Play a wave first to get your player profile.', 'warn'); try { var r = await api('/api/heroes/claim', 'POST', { address: meAddr, defId: btn.getAttribute('data-claim-hero') }); toast('Hero added: ' + r.hero.name, 'ok'); await refreshState(); renderInspectorControls(); } catch (e) { toast(e.message, 'err'); } }); });
+    box.querySelectorAll('[data-buy-hero]').forEach(function (btn) { btn.addEventListener('click', async function () { if (!meAddr) return toast('Play a wave first to get your player profile.', 'warn'); try { var r = await api('/api/heroes/buy', 'POST', { address: meAddr, defId: btn.getAttribute('data-buy-hero') }); toast('Hero bought: ' + r.hero.name + ' (' + r.credits + ' credits left)', 'ok'); await refreshState(); renderInspectorControls(); } catch (e) { toast(e.message, 'err'); } }); });
+    box.querySelectorAll('[data-list-hero]').forEach(function (btn) { btn.addEventListener('click', async function () { if (!meAddr) return toast('Play a wave first to get your player profile.', 'warn'); var hid = btn.getAttribute('data-list-hero'); var pin = box.querySelector('[data-list-price="' + hid + '"]'); var pay = box.querySelector('[data-list-payout="' + hid + '"]'); var price = pin ? Number(pin.value) : 0; var payout = pay ? pay.value.trim() : ''; if (!(price > 0)) return toast('Enter a price in ATOM.', 'warn'); if (!/^cosmos1/.test(payout)) return toast('Enter your payout address (cosmos1...) — the CEO sends your ATOM there.', 'warn'); try { var r2 = await api('/api/listings', 'POST', { heroId: hid, address: meAddr, sellerAddress: payout, priceAtom: price }); toast('Listed: ' + r2.listing.heroName + ' for ' + r2.listing.priceAtom + ' ATOM.', 'ok'); await refreshState(); renderInspectorControls(); renderInspectorMarket(); } catch (e) { toast(e.message, 'err'); } }); });
   }
 
   function renderInspectorMarket() {
@@ -1012,7 +1086,7 @@
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
     document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); closeShortcuts(); setInspectorOpen(false); var _lmEsc = document.getElementById('libMenu'); if (_lmEsc) _lmEsc.hidden = true; } else if (ev.key === '?') { var t = ev.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return; toggleShortcuts(); } });
     bus.on('wallet:connected', function () { renderWallet(); });
-    bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
+    bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); ensureLocalPlayer(); });
     bus.on('wallet:balance', function () { renderWallet(); });
     bus.on('rpc:watcher_status', function (s) { if (window.CeoUI) window.CeoUI.setWatcherStatus(s); });
     async function connectWallet() {
@@ -1028,7 +1102,7 @@
     var pkOverlay = document.getElementById('gamePicker'); if (pkOverlay) pkOverlay.addEventListener('click', function (ev) { if (ev.target === pkOverlay) closeGamePicker(); });
     var gsInput = document.getElementById('gameSearch'); if (gsInput) gsInput.addEventListener('input', function () { filterStore(gsInput.value); });
     var restored = ctx.wallet.restore();
-    if (restored) { renderWallet(); await ensurePlayer(); await startSession(); }
+    if (restored) { renderWallet(); await ensurePlayer(); await startSession(); } else { await ensureLocalPlayer(); }
     await refreshState();
     updateHubLoader(80, 'Loading Cosmos BTD…');
     if (!ctx.host.listGames().some(function (g) { return g.id === startGame; })) startGame = 'cosmos-btd';

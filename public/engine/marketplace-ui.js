@@ -111,14 +111,14 @@
         return '<label>Hero</label><select id="mkRentHero">' + eligible.map(function (h) { return '<option value="' + h.id + '">' + ctx.esc(h.name) + ' — Lv ' + h.level + '</option>'; }).join('') + '</select><label>Total price for the loan (ATOM)</label><input id="mkRentPrice" type="number" min="0.000001" step="0.000001" placeholder="e.g. 3"><label>Days (1–30)</label><input id="mkRentDays" type="number" min="1" max="30" value="7"><p class="small muted">The renter sends the full price to the CEO address (memo = rental ID). The CEO verifies, starts the loan, and sends you the price minus the ' + fee + '% fee. The hero returns automatically.</p><button id="mkRentBtn" class="primary">Offer hero for rent</button>';
       })()
       + '<h4 style="margin-top:18px">List a hero for sale</h4>'
-      + (myHeroes.length ? '<label>Hero</label><select id="mkHero">' + myHeroes.map(function (h) { return '<option value="' + h.id + '">' + ctx.esc(h.name) + ' — Lv ' + h.level + '</option>'; }).join('') + '</select><label>Price (ATOM)</label><input id="mkPrice" type="number" min="0.000001" step="0.000001" placeholder="e.g. 10"><p class="small muted" id="mkPreview"></p><button id="mkList" class="primary">List hero</button>' : '<p class="muted small">You own no heroes yet. Claim a hero from the sidebar (unlocks by level).</p>')
+      + (myHeroes.length ? '<label>Hero</label><select id="mkHero">' + myHeroes.map(function (h) { return '<option value="' + h.id + '">' + ctx.esc(h.name) + ' — Lv ' + h.level + '</option>'; }).join('') + '</select><label>Price (ATOM)</label><input id="mkPrice" type="number" min="0.000001" step="0.000001" placeholder="e.g. 10"><label>Your payout address (Cosmos — the CEO sends your ATOM here)</label><input id="mkPayout" placeholder="cosmos1..." value="' + (me && /^cosmos1/.test(me) ? ctx.esc(me) : '') + '"><p class="small muted" id="mkPreview"></p><button id="mkList" class="primary">List hero</button>' : '<p class="muted small">You own no heroes yet. Claim a hero from the sidebar (unlocks by level).</p>')
       + '<h4 style="margin-top:18px">Bulk list — several heroes at once</h4>'
       + (function () {
         var bulkHeroes = myHeroes.filter(function (h) { return !listedHeroIds[h.id] && !rentalHeroIds[h.id] && !h.rentedTo; });
         if (!bulkHeroes.length) return '<p class="muted small">No heroes available for bulk listing.</p>';
         return bulkHeroes.map(function (h) {
           return '<label class="checkRow" style="display:flex;gap:8px;align-items:center"><input type="checkbox" style="width:auto" data-bulk-hero="' + h.id + '"> ' + ctx.esc(h.name) + ' — Lv ' + h.level + ' <input type="number" min="0.000001" step="0.000001" placeholder="Price ATOM" style="width:130px" data-bulk-price="' + h.id + '"></label>';
-        }).join('') + '<button id="mkBulkList" class="primary">List selected heroes</button>';
+        }).join('') + '<label>Your payout address for all of these (Cosmos)</label><input id="mkBulkPayout" placeholder="cosmos1..." value="' + (me && /^cosmos1/.test(me) ? ctx.esc(me) : '') + '"><button id="mkBulkList" class="primary">List selected heroes</button>';
       })()
 ;
     startTimer(el, ctx);
@@ -131,7 +131,7 @@
       var upd = function () { var p = Number(priceInput.value); var prev = el.querySelector('#mkPreview'); if (prev) prev.textContent = p > 0 ? 'You will get ' + (p * (1 - fee / 100)).toFixed(6) + ' ATOM after the ' + fee + '% CEO fee. Buyer sends the full ' + p + ' ATOM to the CEO address.' : ''; };
       priceInput.addEventListener('input', upd);
       el.querySelector('#mkList').addEventListener('click', async function () {
-        try { var r = await ctx.api('/api/listings', 'POST', { heroId: el.querySelector('#mkHero').value, address: me, sellerAddress: me, priceAtom: Number(priceInput.value) }); ctx.toast('Listed: ' + r.listing.heroName + ' for ' + r.listing.priceAtom + ' ATOM.', 'ok'); await ctx.refreshState(); render(el, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
+        try { var r = await ctx.api('/api/listings', 'POST', { heroId: el.querySelector('#mkHero').value, address: me, sellerAddress: (el.querySelector('#mkPayout').value || '').trim(), priceAtom: Number(priceInput.value) }); ctx.toast('Listed: ' + r.listing.heroName + ' for ' + r.listing.priceAtom + ' ATOM.', 'ok'); await ctx.refreshState(); render(el, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
       });
     }
     el.querySelectorAll('[data-buy]').forEach(function (btn) {
@@ -171,7 +171,7 @@
         items.push({ heroId: hid, priceAtom: Number(inp ? inp.value : 0) });
       });
       if (!items.length) return ctx.toast('Tick at least one hero and set its price.', 'warn');
-      try { var br = await ctx.api('/api/listings/bulk', 'POST', { address: me, sellerAddress: me, items: items }); ctx.toast('Listed ' + br.listings.length + ' heroes in one batch.', 'ok'); await ctx.refreshState(); render(el, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
+      try { var br = await ctx.api('/api/listings/bulk', 'POST', { address: me, sellerAddress: (el.querySelector('#mkBulkPayout').value || '').trim(), items: items }); ctx.toast('Listed ' + br.listings.length + ' heroes in one batch.', 'ok'); await ctx.refreshState(); render(el, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
     });
   }
   async function makeOffer(listingId, ctx, el) {
@@ -226,7 +226,7 @@
     if (!l) return ctx.toast('Listing not found. Refresh.', 'err');
     if (!ctx.wallet || !ctx.wallet.address) return ctx.toast('Connect your wallet first.', 'warn');
     if (!ctx.wallet.hasExtension()) return ctx.toast('Real send needs Keplr.', 'err');
-    var ok = confirm('Send EXACTLY ' + l.priceAtom + ' ATOM to the CEO address?\n\nTo: ' + state.ceoAddress + '\nMemo (must be exact): ' + l.id + '\n\nYou will review this in your wallet before signing. The CEO moves "' + l.heroName + '" to you after verifying, then sends the seller ' + l.sellerAmount + ' ATOM.');
+    var ok = confirm('Send EXACTLY ' + l.priceAtom + ' ATOM to the CEO address?\n\nTo: ' + state.ceoAddress + '\nMemo (must be exact): ' + l.id + '\n\nYou will review this in your wallet before signing. The CEO moves "' + l.heroName + '" to you after verifying, then sends the seller ' + l.sellerAmount + ' ATOM to ' + l.sellerAddress + '.');
     if (!ok) return;
     try {
       ctx.toast('Waiting for your wallet signature… Check Keplr.', '');
@@ -245,7 +245,7 @@
     var txid = prompt('Paste the TX hash of your send to the CEO address (' + l.priceAtom + ' ATOM, memo ' + l.id + '):');
     if (!txid) return;
     try {
-      var r = await ctx.api('/api/buy', 'POST', { listingId: l.id, buyerAddress: ctx.wallet.address, txid: txid.trim(), amountAtom: l.priceAtom, memo: l.id });
+      var r = await ctx.api('/api/buy', 'POST', { listingId: l.id, buyerAddress: (ctx.wallet && ctx.wallet.address) || (ctx.player && ctx.player.address), txid: txid.trim(), amountAtom: l.priceAtom, memo: l.id });
       ctx.toast('Order pending CEO check.', 'ok');
       await ctx.refreshState(); render(el, ctx);
     } catch (e) { ctx.toast(e.message, 'err'); }
