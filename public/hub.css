@@ -199,3 +199,18 @@ button.tagChip.active{background:#7c3aed;border-color:#7c3aed;color:#fff}
 .hubLoaderTip{color:var(--muted);font-size:13px;min-height:36px}
 body[data-reduced-motion="on"] .hubLoaderBar>div{transition:none}
 #hubFooter a{margin:0 2px}
+
+/* ---- Solo engine: in-screen game + side panel ---- */
+.gameScreen { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; margin-bottom: 14px; background: #0a0f22; }
+.gameScreenHead { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 10px 14px; background: #101830; border-bottom: 1px solid var(--line); font-size: 14px; }
+.gameScreenBody { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: stretch; }
+.gameScreenBody #game-viewport { border: 0; border-radius: 0; min-height: 300px; }
+.gameSide { border-left: 1px solid var(--line); background: #0d1428; display: flex; flex-direction: column; min-width: 0; }
+.gameSideTabs { display: flex; gap: 4px; padding: 8px; border-bottom: 1px solid var(--line); }
+.gameSideTabs button { flex: 1; }
+.gameSideTabs button.active { border-color: var(--gold); }
+.gameSideBody { padding: 10px; overflow: auto; }
+.gameSide .towerGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gameSide .towerBtn { flex-direction: column; align-items: center; text-align: center; padding: 8px 4px; }
+.towerThumb { width: 40px; height: 40px; object-fit: contain; }
+@media (max-width: 900px) { .gameScreenBody { grid-template-columns: 1fr; } .gameSide { border-left: 0; border-top: 1px solid var(--line); } }
