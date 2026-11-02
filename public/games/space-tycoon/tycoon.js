@@ -55,6 +55,34 @@
     if (!rate || rate <= 0) return null;
     return Math.ceil((PRESTIGE_COST - c) / rate);
   }
+  /* Batch 27: next rig cost + seconds to next rig — the
+   * cheapest next buy/upgrade across RIG_DEFS (owned rigs
+   * cost floor(base * 1.8^level), the same formula render()
+   * uses for the buy buttons), and whole seconds until it
+   * is affordable at the current earnings rate. 0 when
+   * already affordable, null when the rate is zero and it
+   * is not. Exposed in state as nextRigCost {id, name,
+   * cost} and secondsToNextRig; the panel shows the next
+   * rig line. */
+  function nextRigCostFor(rigs) {
+    var best = null;
+    for (var i = 0; i < RIG_DEFS.length; i++) {
+      var d = RIG_DEFS[i];
+      var owned = null;
+      for (var j = 0; j < (rigs || []).length; j++) if (rigs[j].id === d.id) owned = rigs[j];
+      var cost = owned ? Math.floor(d.cost * Math.pow(1.8, owned.level || 1)) : d.cost;
+      if (!best || cost < best.cost) best = { id: d.id, name: d.name, cost: cost };
+    }
+    return best;
+  }
+  function secondsToNextRigFor(credits, rate, rigs) {
+    var next = nextRigCostFor(rigs);
+    if (!next) return null;
+    var c = Math.max(0, Math.floor(credits || 0));
+    if (c >= next.cost) return 0;
+    if (!rate || rate <= 0) return null;
+    return Math.ceil((next.cost - c) / rate);
+  }
   function calcOfflineEarnings(rigs, elapsedSeconds, multiplier) {
     var capped = Math.min(Math.max(0, Math.floor(elapsedSeconds)), OFFLINE_CAP_SEC);
     var total = 0;
@@ -110,6 +138,8 @@
       var skin = skinFor(state.skin);
       var prog = prestigeProgressFor(state.credits);
       var secToPrestige = secondsToPrestigeFor(state.credits, earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length));
+      var nextRig = nextRigCostFor(state.rigs);
+      var secToNextRig = secondsToNextRigFor(state.credits, earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), state.rigs);
       var html = '<div class="miniGame"><h2>🛰 Space Tycoon</h2><p class="muted">Local save only — rig earnings stay in this game.</p>'
         + '<p><strong>Credits:</strong> ' + Math.floor(state.credits) + ' &nbsp; <strong>Rate:</strong> ' + (rate * boost()).toFixed(1) + '/s'
         + ' &nbsp; <strong>Prestige:</strong> ' + state.prestigeCount + ' (x' + prestigeMultiplierFor(state.prestigeCount).toFixed(2) + ')'
@@ -127,6 +157,7 @@
         }).join('') + '</div>'
         + '<p><button id="tycCollect">Collect now</button> <button id="tycOverseer">Assign my hero as overseer (+10%)</button> <button id="tycPrestige" ' + (canPrestige(state) ? '' : 'disabled') + '>Prestige — reset for +25% forever (' + PRESTIGE_COST + ' credits)</button></p>'
         + '<p class="muted">Prestige progress: ' + prog.pct + '% — ' + (prog.remaining > 0 ? prog.remaining + ' credits to go.' : 'ready to prestige!') + (secToPrestige != null && secToPrestige > 0 ? ' About ' + secToPrestige + 's at the current rate.' : '') + '</p>'
+        + '<p class="muted">Next rig: ' + nextRig.name + ' \u2014 ' + nextRig.cost + ' credits' + (secToNextRig != null && secToNextRig > 0 ? ' About ' + secToNextRig + 's at the current rate.' : secToNextRig === 0 ? ' \u2014 affordable now!' : '') + '</p>'
         + '<p class="muted">Overseers: ' + (state.overseers.length ? state.overseers.join(', ') : 'none') + '</p></div>';
       viewport.innerHTML = html;
       viewport.querySelectorAll('[data-buy]').forEach(function (btn) {
@@ -168,12 +199,12 @@
     if (opts.bus) opts.bus.emit('game:start', 'space-tycoon', []);
     return {
       state: state,
-      getState: function () { return { credits: Math.floor(state.credits), rigs: state.rigs, overseers: state.overseers, prestigeCount: state.prestigeCount, prestigeMultiplier: prestigeMultiplierFor(state.prestigeCount), prestigeProgress: prestigeProgressFor(state.credits), earningsRate: earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), secondsToPrestige: secondsToPrestigeFor(Math.floor(state.credits), earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length)), lifetimeEarned: Math.floor(state.lifetimeEarned), skin: state.skin, skinOwned: state.skinOwned.slice() }; },
+      getState: function () { return { credits: Math.floor(state.credits), rigs: state.rigs, overseers: state.overseers, prestigeCount: state.prestigeCount, prestigeMultiplier: prestigeMultiplierFor(state.prestigeCount), prestigeProgress: prestigeProgressFor(state.credits), earningsRate: earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), secondsToPrestige: secondsToPrestigeFor(Math.floor(state.credits), earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length)), nextRigCost: nextRigCostFor(state.rigs), secondsToNextRig: secondsToNextRigFor(Math.floor(state.credits), earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), state.rigs), lifetimeEarned: Math.floor(state.lifetimeEarned), skin: state.skin, skinOwned: state.skinOwned.slice() }; },
       prestige: doPrestige,
       buySkin: buySkin,
       collectEarnings: collectEarnings,
       destroy: function () { destroyed = true; if (timer) clearInterval(timer); if (opts.bus) opts.bus.emit('game:ended', 'space-tycoon', {}); }
     };
   }
-  global.SpaceTycoon = { manifest: { id: 'space-tycoon', name: 'Space Tycoon' }, init: init, calculateOfflineEarnings: calcOfflineEarnings, RIG_DEFS: RIG_DEFS, SKIN_DEFS: SKIN_DEFS, PRESTIGE_COST: PRESTIGE_COST, _prestigeMultiplierFor: prestigeMultiplierFor, _canPrestige: canPrestige, _prestigeProgressFor: prestigeProgressFor, _earningsRateFor: earningsRateFor, _secondsToPrestigeFor: secondsToPrestigeFor, _normalizeSave: normalizeSave };
+  global.SpaceTycoon = { manifest: { id: 'space-tycoon', name: 'Space Tycoon' }, init: init, calculateOfflineEarnings: calcOfflineEarnings, RIG_DEFS: RIG_DEFS, SKIN_DEFS: SKIN_DEFS, PRESTIGE_COST: PRESTIGE_COST, _prestigeMultiplierFor: prestigeMultiplierFor, _canPrestige: canPrestige, _prestigeProgressFor: prestigeProgressFor, _earningsRateFor: earningsRateFor, _secondsToPrestigeFor: secondsToPrestigeFor, _nextRigCostFor: nextRigCostFor, _secondsToNextRigFor: secondsToNextRigFor, _normalizeSave: normalizeSave };
 })(typeof window !== 'undefined' ? window : globalThis);
