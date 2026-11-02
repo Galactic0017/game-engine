@@ -601,12 +601,12 @@
   function renderGameList() {
     var grid = document.getElementById('storeGrid'); if (!grid) return;
     var ver = (ctx.config && ctx.config.version) || '';
-    grid.innerHTML = '<article class="storeCard featured" data-search="cosmos btd orb defense tower defense space heroes">'
+    grid.innerHTML = '<article class="storeCard hl" data-search="cosmos btd orb defense tower defense space heroes">'
       + '<div class="small muted">COSMOS BTD: ORB DEFENSE' + (ver ? ' (v' + esc(ver) + ')' : '') + '</div>'
       + '<img class="thumb" src="assets/sprites/battlefield.jpg" alt="Cosmos BTD battlefield under a nebula sky" onerror="this.style.display=\'none\'">'
       + '<h3>COSMOS BTD: ORB DEFENSE' + (ver ? ' (v' + esc(ver) + ')' : '') + '</h3>'
       + '<p>Protect the ATOM Orb! Deep Strategy Tower Defense.</p>'
-      + '<p class="tagRow"><span class="tagChip">Tower Defense</span><span class="tagChip">Space</span><span class="tagChip">Heroes</span><span class="tagChip">50 Waves</span></p>'
+      + '<p class="tagRow"><span class="tagChip">Tower Defense</span><span class="tagChip">Space</span><span class="tagChip">Heroes</span><span class="tagChip">50 Waves</span><span class="tagChip">2 Maps</span></p>'
       + '<p><button class="playNow" data-play-btd style="width:100%">▶ PLAY NOW (FULLSCREEN)</button></p>'
       + '<p><button data-dev-setup class="devSetup" style="width:100%">DEV STUDIO SETUP</button></p>'
       + '</article>'
@@ -1028,6 +1028,14 @@
     if (!ctx.host.listGames().some(function (g) { return g.id === startGame; })) startGame = 'cosmos-btd';
     await loadGame(startGame);
     syncModeFromUrl();
+    /* Map skins: Space / Jungle switch in the game top bar. */
+    document.querySelectorAll('[data-map-skin]').forEach(function (btn) { btn.addEventListener('click', function () {
+      var skin = btn.getAttribute('data-map-skin');
+      var h = ctx.host && ctx.host.current && ctx.host.current.handle;
+      if (h && h.setMapSkin) h.setMapSkin(skin);
+      document.querySelectorAll('[data-map-skin]').forEach(function (x) { x.classList.toggle('on', x === btn); });
+    }); });
+    try { var mh = ctx.host.current && ctx.host.current.handle; var cur = (mh && mh.getMapSkin && mh.getMapSkin()) || 'space'; document.querySelectorAll('[data-map-skin]').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-map-skin') === cur); }); } catch (e) {}
     var _exitBtn = document.getElementById('btnExitGame'); if (_exitBtn) _exitBtn.addEventListener('click', function () { exitGameMode(); showView('store'); });
     var _pauseBtn = document.getElementById('btnGamePause'); if (_pauseBtn) _pauseBtn.addEventListener('click', function () { var h = btdHandle(); if (h && h.setPaused) h.setPaused(!(ctx.hud && ctx.hud.paused)); });
     var _autoBtn = document.getElementById('btnGameAuto'); if (_autoBtn) _autoBtn.addEventListener('click', function () { var h = btdHandle(); if (h) h.setAutoStart(!(ctx.hud && ctx.hud.autoStart)); });
