@@ -1066,31 +1066,31 @@
    "category": "Engine",
    "id": "game-side-panel",
    "tested": "serve check: #gameScreen + #gameSideTabs in served HTML, tower grid renders in the side panel (code-reviewed, no browser screenshot)",
-   "title": "In-screen game side panel — Towers / Upgrades / Hero / Play tabs beside the board; tower shop grid with sprite tiles and prices lives inside the game screen"
+   "title": "In-screen game side panel \u2014 Towers / Upgrades / Hero / Play tabs beside the board; tower shop grid with sprite tiles and prices lives inside the game screen"
   },
   {
    "category": "Engine",
    "id": "game-screen-hud",
    "tested": "serve check: #gameHud strip in served HTML with lives/gold/wave/score/pops (code-reviewed, no browser screenshot)",
-   "title": "Game screen HUD strip — lives, gold, round, score, pops and next-wave danger/boss chips above the board, inside the screen"
+   "title": "Game screen HUD strip \u2014 lives, gold, round, score, pops and next-wave danger/boss chips above the board, inside the screen"
   },
   {
    "category": "Hub UI",
    "id": "open-game-new-tab",
    "tested": "serve check: served shell opens ?game=<id> in a new tab; new tab loads that game inside the engine (code-reviewed, no browser click check)",
-   "title": "Open a game in a new tab — clicking a game opens a new tab that loads that game inside the engine with its own sidebar and tabs"
+   "title": "Open a game in a new tab \u2014 clicking a game opens a new tab that loads that game inside the engine with its own sidebar and tabs"
   },
   {
    "category": "Hub UI",
    "id": "friends-rail",
    "tested": "serve check: #friendsBox in served HTML; rivals come only from real duel history (code-reviewed, no fake friends)",
-   "title": "Friends rail — players you have actually dueled, from real duel history; honest empty state, no fake friends or presence"
+   "title": "Friends rail \u2014 players you have actually dueled, from real duel history; honest empty state, no fake friends or presence"
   },
   {
    "category": "Hub UI",
    "id": "share-image-pro",
    "tested": "serve check: og-share.jpg 1200x630 returns 200; og/twitter tags point to it with the new description",
-   "title": "Professional share image — 1200×630 OG image with GAME branding, Protect the ATOM orb, and a positive, honest description for shared links"
+   "title": "Professional share image \u2014 1200\u00d7630 OG image with GAME branding, Protect the ATOM orb, and a positive, honest description for shared links"
   },
   {
    "category": "Cosmos BTD",
@@ -1168,29 +1168,53 @@
    "category": "Cosmos BTD",
    "id": "btd-skip-bonus-per-tower",
    "tested": "BTD harness: _skipBonusPerTowerFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose skipBonusPerTower",
-   "title": "Skip bonus per tower — average wave-skip bonus gold earned per tower placed, in HUD and state"
+   "title": "Skip bonus per tower \u2014 average wave-skip bonus gold earned per tower placed, in HUD and state"
   },
   {
    "category": "Space Shooter",
    "id": "shooter-grazes-per-shot",
    "tested": "shooter harness: _grazesPerShotFor(0,0)=0, (20,10)=2, (7,3)=2.3; HUD + state expose grazesPerShot, game-over line",
-   "title": "Grazes per shot — average grazes per firing volley, in HUD, state and the game-over screen"
+   "title": "Grazes per shot \u2014 average grazes per firing volley, in HUD, state and the game-over screen"
   },
   {
    "category": "Asteroid Miner",
    "id": "miner-rich-veins-per-shift",
    "tested": "miner harness: _richVeinsPerShiftFor(0,0)=0, (20,4)=5, (7,3)=2.3; HUD + state expose richVeinsPerShift",
-   "title": "Rich veins per shift — average rich veins triggered per completed shift, in HUD and state"
+   "title": "Rich veins per shift \u2014 average rich veins triggered per completed shift, in HUD and state"
   },
   {
    "category": "Space Tycoon",
    "id": "tycoon-earnings-per-overseer",
    "tested": "tycoon/clicker harness: _earningsPerOverseerFor([],0,0)=0, (1 rig 10x2, 1 overseer)=22, (rigs 1+1+5, 2 overseers)=4.2; getState exposes earningsPerOverseer and the panel shows the Earnings per overseer line",
-   "title": "Earnings per overseer — earnings rate per assigned overseer, in state and the panel"
+   "title": "Earnings per overseer \u2014 earnings rate per assigned overseer, in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-hero-kill-share",
+   "tested": "BTD harness: _heroKillShareFor(0,0)=0, (25,100)=25, (1,3)=33.3, (150,100)=100 capped; HUD + state expose heroKillShare",
+   "title": "Hero kill share \u2014 hero kills as a percent of all pops, capped at 100, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-powerups-per-kill",
+   "tested": "shooter harness: _powerupsPerKillFor(4 pickups,4 kills)=1, (7 pickups,3 kills)=2.3, zero kills=0; HUD + state expose powerupsPerKill, game-over line",
+   "title": "Power-ups per kill \u2014 average power-ups collected per kill, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-banked-per-rich-vein",
+   "tested": "miner harness: _bankedPerRichVeinFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose bankedPerRichVein",
+   "title": "Banked per rich vein \u2014 average banked credits per rich-vein trigger, in HUD and state"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-shards-per-golden",
+   "tested": "tycoon/clicker harness: _shardsPerGoldenFor(10,20,2)=15, (7,0,3)=2.3, (5,5,0)=0; getState exposes shardsPerGolden and the panel shows the Shards/golden line",
+   "title": "Shards per golden \u2014 held shards per golden shard event, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 198,
+ "totalFeatures": 202,
  "updated": "2026-11-02",
- "version": "3.34.0"
+ "version": "3.35.0"
 }
