@@ -187,7 +187,7 @@
   async function refreshState() {
     try {
       ctx.state = await api('/api/state');
-      renderLeaderMini(); renderAnnouncements(); renderProfile(); renderChallenges(); renderReferral(); renderFriends();
+      renderLeaderMini(); renderAnnouncements(); renderProfile(); renderChallenges(); renderReferral(); renderFriends(); renderMarketPreview(); renderInspectorMarket();
       if (ctx.player) { var mine = ctx.state.heroes.filter(function (h) { return h.owner === ctx.player.address; }); ctx.host.setPlayer(ctx.player, mine); renderHeroes(mine); }
       if (document.getElementById('view-marketplace').classList.contains('active') && window.MarketplaceUI) window.MarketplaceUI.render(document.getElementById('marketplace'), ctx);
     } catch (e) { /* state refresh is best-effort */ }
@@ -201,7 +201,7 @@
     if (leaderSeason || leaderGame) { try { var r = await api('/api/leaderboard?game=' + leaderGame + (leaderSeason ? '&season=' + leaderSeason : '')); rows = r.leaderboard || []; seasonInfo = r.season || null; } catch (e) { rows = []; } }
     else rows = (ctx.state && ctx.state.leaderboard) || [];
     var seasonKeyNow = new Date().toISOString().slice(0, 7);
-    el.innerHTML = '<p class="small"><button data-lb="" class="ghost">All</button> <button data-lb="cosmos-btd" class="ghost">BTD</button> <button data-lb="space-shooter" class="ghost">Shooter</button> <button data-lb="asteroid-miner" class="ghost">Miner</button> <button data-lb="atom-clicker" class="ghost">Clicker</button></p>'
+    el.innerHTML = '<p class="small"><span class="muted">Cosmos BTD leaderboard</span></p>'
       + '<p class="small"><button data-season="" class="ghost">All-time</button> <button data-season="' + seasonKeyNow + '" class="ghost">This month (' + seasonKeyNow + ')</button>'
       + (seasonInfo && seasonInfo.previousKey ? '<br><span class="muted">Last month (' + esc(seasonInfo.previousKey) + ') top 3: ' + esc((seasonInfo.top3 || []).map(function (t) { return '#' + t.rank + ' ' + (t.name || shortAddr(t.address)); }).join(', ') || 'none') + '</span>' : '') + '</p>'
       + (rows.length ? rows.slice(0, 5).map(function (r, i) { return '<p class="small">' + (leaderSeason && i < 3 ? '🏆 ' : '') + (i + 1) + '. ' + esc(r.name || shortAddr(r.address)) + ' — ' + r.bestScore + ' pts · Lv ' + r.level + '</p>'; }).join('') : '<p class="muted small">No scores yet' + (leaderSeason ? ' this month' : '') + '.</p>');
@@ -454,7 +454,7 @@
    * the CSS bar transitions actually animate. */
   var _inspectKey = '';
   function renderInspectCard() {
-    var card = document.getElementById('inspectCard'); if (!card) return;
+    var card = document.getElementById('inspectBars'); if (!card) return;
     var hud = ctx.hud || {};
     var ins = ctx.currentGame === 'cosmos-btd' ? hud.inspect : null;
     if (!ins) { if (!card.hidden || card.innerHTML) { card.hidden = true; card.innerHTML = ''; _inspectKey = ''; } return; }
@@ -466,7 +466,6 @@
       return '<div class="effRow"><span>' + esc(label) + '</span><div class="statBar"><div style="width:' + Math.round(100 * Math.max(0, Math.min(max, val)) / max) + '%;' + (color ? 'background:' + color + ';' : '') + '"></div></div><span>' + val + '</span></div>';
     };
     card.hidden = false;
-    if (typeof showCenterTab === 'function') showCenterTab('details');
     card.innerHTML = '<h3>🔍 ' + esc(ins.name) + ' — Lv ' + ins.level + (ins.maxed ? ' (MAX)' : '') + '</h3>'
       + bar('Damage', ins.dmg, 10, '#ff6b35')
       + bar('Range', ins.range, 350, '#00f6ff')
@@ -510,8 +509,13 @@
     });
     var actions = document.getElementById('heroActions');
     var defs = (ctx.config && ctx.config.heroDefs) || [];
+    var buyCosts = (ctx.config && ctx.config.heroBuyCosts) || {};
+    var buyOpts = defs.map(function (d) { var c = buyCosts[d.rarity] || 5000; return '<option value="' + d.id + '">' + esc(d.name) + ' — ' + c + ' credits</option>'; }).join('');
+    var bal = ctx.player ? (ctx.player.credits || 0) : 0;
     actions.innerHTML = '<label>Claim hero (if unlocked)</label><select id="claimHeroSel">' + defs.map(function (d) { return '<option value="' + d.id + '">' + esc(d.name) + ' — Lv ' + d.unlockLevel + '+</option>'; }).join('') + '</select>'
-      + '<div style="display:flex;gap:6px;margin-top:6px"><button id="btnGetHero">Get hero</button><button id="btnUpgradeHero" class="ghost">Upgrade equipped (200×Lv)</button></div>';
+      + '<div style="display:flex;gap:6px;margin-top:6px"><button id="btnGetHero">Get hero</button><button id="btnUpgradeHero" class="ghost">Upgrade equipped (200×Lv)</button></div>'
+      + '<label style="margin-top:8px">Buy hero with in-game credits (any player level — costs a lot)</label><select id="buyHeroSel">' + buyOpts + '</select>'
+      + '<div style="display:flex;gap:6px;margin-top:6px;align-items:center"><button id="btnBuyHero">Buy hero</button><span class="small muted">Your credits: ' + bal + '</span></div>';
     document.getElementById('btnGetHero').addEventListener('click', async function () {
       if (!ctx.player) return toast('Connect your wallet first.', 'warn');
       try { var r = await api('/api/heroes/claim', 'POST', { address: ctx.player.address, defId: document.getElementById('claimHeroSel').value }); toast('Hero added: ' + r.hero.name, 'ok'); refreshState(); } catch (e) { toast(e.message, 'err'); }
@@ -520,8 +524,12 @@
       var h = ctx.host.equippedHero; if (!h) return toast('Equip a hero first.', 'warn');
       try { var r = await api('/api/heroes/upgrade', 'POST', { address: ctx.player.address, heroId: h.id }); toast('Upgraded to Lv ' + r.hero.level, 'ok'); refreshState(); } catch (e) { toast(e.message, 'err'); }
     });
+    document.getElementById('btnBuyHero').addEventListener('click', async function () {
+      if (!ctx.player) return toast('Connect your wallet first.', 'warn');
+      try { var r = await api('/api/heroes/buy', 'POST', { address: ctx.player.address, defId: document.getElementById('buyHeroSel').value }); toast('Hero bought: ' + r.hero.name + ' (' + r.credits + ' credits left)', 'ok'); refreshState(); } catch (e) { toast(e.message, 'err'); }
+    });
   }
-  var GAME_IMAGES = { 'cosmos-btd': 'assets/sprites/battlefield.jpg', 'space-tycoon': 'assets/sprites/tower-validator.png', 'atom-clicker': 'assets/sprites/hero-astra.png', 'space-shooter': 'assets/sprites/monster-1.png', 'asteroid-miner': 'assets/sprites/monster-1.png' };
+  var GAME_IMAGES = { 'cosmos-btd': 'assets/sprites/battlefield.jpg' };
   function gameMeta(g) {
     return { id: g.id, name: g.name, tagline: g.tagline || '', status: g.status || 'playable',
       image: g.image || GAME_IMAGES[g.id] || 'assets/sprites/battlefield.jpg',
@@ -591,31 +599,22 @@
     });
   }
   function renderGameList() {
-    renderTagFilter();
-    var el = document.getElementById('gameList');
-    var games = ctx.host.listGames();
-    if (el) {
-      el.innerHTML = games.map(function (g) {
-        var m = gameMeta(g);
-        return '<button class="gameItem ' + (ctx.currentGame === g.id ? 'active' : '') + '" data-game="' + g.id + '"><strong>' + esc(g.name) + '</strong><small>' + esc(g.tagline || '') + '</small></button>';
-      }).join('');
-      el.querySelectorAll('[data-game]').forEach(function (btn) {
-        btn.addEventListener('click', function () { openGameInfo(btn.getAttribute('data-game')); });
-      });
-    }
-    var cards = document.getElementById('gameCards');
-    if (cards) {
-      cards.innerHTML = games.map(function (g) {
-        var m = gameMeta(g);
-        return '<div class="gameCard" data-search="' + esc((m.name + ' ' + m.description + ' ' + m.tagline + ' ' + m.tags.join(' ')).toLowerCase()) + '" data-tags="' + esc(m.tags.join(',').toLowerCase()) + '">'
-          + '<img class="gameThumb" src="' + m.image + '" alt="" onerror="this.style.display=\'none\'">'
-          + '<div class="gameMeta"><strong>' + esc(m.name) + '</strong> <span class="pill">' + esc(m.status) + '</span>' + tagChipsHtml(m.tags)
-          + '<p class="gameDesc">' + esc(m.description) + '</p></div>'
-          + '<div class="gameRow"><button data-info="' + m.id + '">About</button><button data-play="' + m.id + '" class="primary"' + (m.status !== 'playable' ? ' disabled' : '') + '>▶ Play</button></div></div>';
-      }).join('');
-      cards.querySelectorAll('[data-info]').forEach(function (btn) { btn.addEventListener('click', function () { openGameInfo(btn.getAttribute('data-info')); }); });
-      cards.querySelectorAll('[data-play]').forEach(function (btn) { btn.addEventListener('click', function () { openGameInTab(btn.getAttribute('data-play')); }); });
-    }
+    var grid = document.getElementById('storeGrid'); if (!grid) return;
+    var ver = (ctx.config && ctx.config.version) || '';
+    grid.innerHTML = '<article class="storeCard featured" data-search="cosmos btd orb defense tower defense space heroes">'
+      + '<div class="small muted">COSMOS BTD: ORB DEFENSE' + (ver ? ' (v' + esc(ver) + ')' : '') + '</div>'
+      + '<img class="thumb" src="assets/sprites/battlefield.jpg" alt="Cosmos BTD battlefield under a nebula sky" onerror="this.style.display=\'none\'">'
+      + '<h3>COSMOS BTD: ORB DEFENSE' + (ver ? ' (v' + esc(ver) + ')' : '') + '</h3>'
+      + '<p>Protect the ATOM Orb! Deep Strategy Tower Defense.</p>'
+      + '<p class="tagRow"><span class="tagChip">Tower Defense</span><span class="tagChip">Space</span><span class="tagChip">Heroes</span><span class="tagChip">50 Waves</span></p>'
+      + '<p><button class="playNow" data-play-btd style="width:100%">▶ PLAY NOW (FULLSCREEN)</button></p>'
+      + '<p><button data-dev-setup class="devSetup" style="width:100%">DEV STUDIO SETUP</button></p>'
+      + '</article>'
+      + '<button type="button" class="storeCard soon" data-search="coming soon title unannounced"><span>COMING SOON<small>(TITLE UNANNOUNCED)</small></span></button>'
+      + '<button type="button" class="storeCard soon" data-search="coming soon title unannounced"><span>COMING SOON<small>(TITLE UNANNOUNCED)</small></span></button>';
+    grid.querySelectorAll('[data-play-btd]').forEach(function (b) { b.addEventListener('click', function () { enterGameMode(true); }); });
+    grid.querySelectorAll('[data-dev-setup]').forEach(function (b) { b.addEventListener('click', function () { showView('devtools'); }); });
+    grid.querySelectorAll('.storeCard.soon').forEach(function (c) { c.addEventListener('click', function () { toast('Coming soon.'); }); });
   }
   async function startSession() {
     if (!ctx.player) return;
@@ -631,7 +630,7 @@
       sessionId: ctx.session && ctx.session.sessionId,
       sessionNonce: ctx.session && ctx.session.nonce,
       onWaveReport: submitWaveReport,
-      onTowerSelect: function (t) { ctx.selectedTower = t; renderActionBar(); }
+      onTowerSelect: function (t) { ctx.selectedTower = t; renderActionBar(); setInspectorOpen(!!t); }
     };
     try {
       await ctx.host.loadGame(gameId, opts);
@@ -659,49 +658,112 @@
   var gameSideTab = 'towers';
   function setGameSideTab(t) { gameSideTab = t; renderActionBar(); }
   ctx.setGameSideTab = setGameSideTab;
+
+  /* Hub + game-screen renders (blueprint build): the top deck, bottom
+   * deck, slide-over inspector and perf overlay all read the live HUD
+   * snapshot (ctx.hud) — every number shown is measured, never faked. */
+  var DECK_ORDER = ['dart', 'mortar', 'frost', 'sniper', 'cannon', 'tesla', 'spikes', 'beacon'];
+  var _deckBuilt = false;
+  var _inspOpen = false;
+  var _perfHist = { fps: [], particles: [] };
+
   function renderActionBar() {
+    renderTopDeck();
+    buildDeckOnce();
+    updateDeck();
+    renderInspectorHead();
     renderInspectCard();
+    renderInspectorControls();
+    renderInspectorMarket();
+  }
+
+  function renderTopDeck() {
     var hud = ctx.hud || {};
-    var handle = ctx.host.current && ctx.host.current.handle;
-    var hudEl = document.getElementById('gameHud');
-    if (hudEl) {
-      if (ctx.currentGame !== 'cosmos-btd') { hudEl.innerHTML = '<span class="muted small">Cosmos BTD</span>'; }
-      else {
-        hudEl.innerHTML = '<span>❤ <b>' + (hud.lives != null ? hud.lives : '—') + '</b></span>'
-          + '<span>🪙 <b>' + (hud.gold != null ? hud.gold : '—') + '</b> gold</span>'
-          + '<span>Round <b>' + (hud.wave || 0) + (hud.endless ? '/∞' : '/50') + '</b></span>'
-          + '<span>Score <b>' + (hud.score || 0) + '</b></span>'
-          + '<span>Pops <b>' + (hud.pops || 0) + '</b></span>'
-          + '<span class="muted small">Next: ' + esc(hud.nextWave || '—') + '</span>'
-          + (hud.nextWaveDanger ? '<span class="pill">' + esc(hud.nextWaveDanger) + '</span>' : '')
-          + (hud.nextWaveBoss ? '<span class="pill">Boss next</span>' : '');
-      }
-    }
-    document.querySelectorAll('#gameSideTabs [data-side]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-side') === gameSideTab); });
-    var bar = document.getElementById('actionBar');
-    if (!bar) return;
-    if (ctx.currentGame !== 'cosmos-btd') { bar.innerHTML = '<span class="muted small">This game has its own controls inside the panel above.</span>'; return; }
+    var w = document.getElementById('gameWaveChip');
+    if (w) w.textContent = '[WAVE ' + (hud.wave || 0) + (hud.endless ? '/∞' : '/50') + ']';
+    var g = document.getElementById('gameGold');
+    if (g) g.textContent = (hud.gold != null ? hud.gold : '—');
+    var s = document.getElementById('gameShield');
+    if (s) s.textContent = (hud.lives != null ? hud.lives : '—');
+    var a = document.getElementById('btnGameAuto');
+    if (a) a.textContent = hud.autoStart ? 'ON' : 'OFF';
+    var sp = document.getElementById('gameSpeed');
+    if (sp) sp.value = String(hud.speed || 1);
+    var p = document.getElementById('btnGamePause');
+    if (p) p.textContent = hud.paused ? '▶ Resume' : '⏸ Pause';
+  }
+
+  function buildDeckOnce() {
+    if (_deckBuilt) return;
+    var bar = document.getElementById('buildBar'); if (!bar) return;
     var defs = (window.CosmosBTD && window.CosmosBTD.TOWER_DEFS) || {};
     var sprMap = (window.CosmosBTD && window.CosmosBTD.TOWER_SPRITES) || {};
-    var towersHtml = '<div class="towerGrid">' + Object.keys(defs).map(function (k) {
-      var d = defs[k];
+    if (!defs.dart) return;
+    var html = DECK_ORDER.map(function (k) {
+      var d = defs[k]; if (!d) return '';
       var spr = sprMap[k] || 'tower-validator';
-      return '<button class="towerBtn" data-tower="' + k + '" title="' + esc(d.desc) + '"><img class="towerThumb" src="assets/sprites/' + spr + '.png" alt="" onerror="this.outerHTML=\'<span class=towerDot style=background:' + d.color + '></span>\'"><span class="towerMeta"><strong>' + d.name + ' (' + d.key + ')</strong><small>' + d.cost + 'g</small></span></button>';
-    }).join('') + '</div><p class="small muted">Click a tower, then click the board to place it. Keys 1–8 work too.</p>';
+      return '<button class="deckTile" data-tower="' + k + '" title="' + esc(d.desc) + '"><img src="assets/sprites/' + spr + '.png" alt="" onerror="this.outerHTML=\'<span class=towerDot style=background:' + d.color + '></span>\'"><strong>' + d.name + '</strong><small>' + d.cost + 'g (' + d.key + ')</small></button>';
+    }).join('');
+    var hero = (ctx.host && ctx.host.equippedHero) || null;
+    var heroImgHtml = hero ? heroImg(hero) : '<img src="assets/sprites/hero-astra.png" alt="" onerror="this.style.display=\'none\'">';
+    var heroName = hero ? hero.name : 'Hero Commander';
+    html += '<button class="deckTile heroTile" data-hero-tile title="Hero ability">' + heroImgHtml + '<strong>' + esc(heroName) + '</strong><small data-hero-sub>Ability</small></button>';
+    bar.innerHTML = html;
+    bar.querySelectorAll('[data-tower]').forEach(function (btn) {
+      btn.addEventListener('click', function () { var h = btdHandle(); if (h) h.setPlacing(btn.getAttribute('data-tower')); });
+    });
+    var hb = bar.querySelector('[data-hero-tile]');
+    if (hb) hb.addEventListener('click', function () { var h = btdHandle(); if (h) h.heroAbility(); });
+    _deckBuilt = true;
+  }
+
+  function updateDeck() {
+    var bar = document.getElementById('buildBar'); if (!bar || !_deckBuilt) return;
+    var hud = ctx.hud || {};
+    var defs = (window.CosmosBTD && window.CosmosBTD.TOWER_DEFS) || {};
+    bar.querySelectorAll('[data-tower]').forEach(function (btn) {
+      var d = defs[btn.getAttribute('data-tower')];
+      btn.classList.toggle('active', hud.placing === btn.getAttribute('data-tower'));
+      btn.classList.toggle('cant', !!d && (hud.gold == null || hud.gold < d.cost));
+    });
+    var sub = bar.querySelector('[data-hero-sub]');
+    if (sub) { var cd = Math.max(0, hud.heroCd || 0); sub.textContent = cd > 0 ? 'Ability (' + cd + 's)' : 'Ability ready'; }
+  }
+
+  function renderInspectorHead() {
+    var el = document.getElementById('inspectorHead'); if (!el) return;
+    var hud = ctx.hud || {};
+    var ins = hud.inspect || null;
+    if (ins) {
+      var sprMap = (window.CosmosBTD && window.CosmosBTD.TOWER_SPRITES) || {};
+      var spr = sprMap[ins.kind || ins.defId] || 'tower-validator';
+      el.innerHTML = '<img src="assets/sprites/' + spr + '.png" alt="" onerror="this.style.display=\'none\'"><div><strong>' + esc(ins.name) + '</strong><br><span class="small muted">Level ' + ins.level + (ins.maxed ? ' (MAX)' : '') + ' · BTD Tower</span></div>';
+    } else if (ctx.host && ctx.host.equippedHero) {
+      var h = ctx.host.equippedHero;
+      el.innerHTML = heroImg(h) + '<div><strong>' + esc(h.name) + '</strong><br><span class="small muted">Level ' + h.level + ' · ' + esc(h.rarity || '') + ' · Power ' + h.basePower + '</span></div>';
+    } else {
+      el.innerHTML = '<img src="assets/sprites/battlefield.jpg" alt=""><div><strong>Cosmos BTD</strong><br><span class="small muted">Click a tower on the board to inspect it.</span></div>';
+    }
+  }
+
+  function renderInspectorControls() {
+    var box = document.getElementById('inspectorControls'); if (!box) return;
+    var hud = ctx.hud || {};
+    var handle = btdHandle();
     var ins = hud.inspect || null;
     var sellLabel = (ins && ins.sellRefund != null) ? 'Sell +' + ins.sellRefund + 'g' : 'Sell 70%';
     var branchHtml = '';
     if (ins && ins.branchOptions) {
-      branchHtml = ins.branchOptions.map(function (o) {
+      branchHtml = '<p>' + ins.branchOptions.map(function (o) {
         return '<button data-branch="' + o.branch + '"' + (o.locked || o.cost == null ? ' disabled' : '') + '>' + esc(o.name) + ' ' + (o.cost != null ? o.cost + 'g' : 'MAX') + '</button>';
-      }).join('');
+      }).join(' ') + '</p>';
     }
     var upHtml = ins
-      ? '<h4>🔍 ' + esc(ins.name) + ' — Lv ' + ins.level + (ins.maxed ? ' (MAX)' : '') + '</h4>'
+      ? '<h4>Upgrade Paths</h4>'
         + '<p class="small">Upgrade: ' + (ins.upgradeCost ? ins.upgradeCost + 'g → Lv ' + (ins.level + 1) + ' (dmg ' + ins.nextDmg + ', range ' + ins.nextRange + ')' : 'MAX — fully upgraded') + '</p>'
         + '<p class="small">Sell refund ' + ins.sellRefund + 'g · Cost ' + ins.cost + 'g</p>'
         + '<p><button id="abUpgrade">Upgrade ★</button> <button id="abSell" class="ghost">' + esc(sellLabel) + '</button></p>' + branchHtml
-      : '<p class="muted small">Click a placed tower on the board to inspect it here, then upgrade or sell it.</p><p><button id="abUpgrade">Upgrade ★</button> <button id="abSell" class="ghost">' + esc(sellLabel) + '</button></p>';
+      : '<p class="muted small">Click a placed tower on the board to inspect it here, then upgrade or sell it.</p>';
     var cdLeft = Math.max(0, hud.heroCd || 0);
     var cdMax = hud.heroCdMax || 12;
     var cdPct = cdLeft > 0 ? Math.max(0, Math.round(100 * (1 - cdLeft / cdMax))) : 100;
@@ -710,29 +772,122 @@
       + '<p class="small">Tier ' + (hud.heroTier || 1) + ' · ' + (hud.heroKills || 0) + ' kills · Patrol: ' + (hud.heroPatrol ? 'ON' : 'OFF') + '</p>'
       + '<p><button id="abAbility">Hero ability' + (cdLeft > 0 ? ' (' + cdLeft + 's)' : '') + '</button> <button id="abPatrol">Hero patrol: ' + (hud.heroPatrol ? 'ON' : 'OFF') + '</button></p>'
       + '<p class="small"><span style="display:inline-block;width:100%;height:8px;background:#26314a;border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:' + cdPct + '%;background:#ffd166"></span></span>' + (cdLeft > 0 ? 'Ability recharging: ' + cdLeft + 's' : 'Ability ready') + '</p>';
-    var playHtml = '<label class="small" style="margin:0">Target <select id="abTarget" style="width:auto"><option value="first">First</option><option value="last">Last</option><option value="strong">Strong</option><option value="weak">Weak</option><option value="closest">Closest</option><option value="elite">Elite-only</option></select></label>'
-      + '<label class="small" style="margin:0">Speed <select id="abSpeed" style="width:auto"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option></select></label>'
-      + '<p><button id="abWave" class="primary">▶ Start wave</button> <button id="abAuto">Auto: ' + (hud.autoStart ? 'ON' : 'OFF') + '</button></p>'
-      + '<p><button id="abPause">' + (hud.paused ? '▶ Resume' : '⏸ Pause') + '</button> <button id="abEndless">Endless: ' + (hud.endless ? 'ON' : 'OFF') + '</button> <button id="abChallenge">Challenge: ' + (hud.challenge ? 'ON' : 'OFF') + '</button></p>'
-      + '<p><button id="abHelp" class="ghost">⌨ Shortcuts</button></p>';
-    bar.innerHTML = (gameSideTab === 'towers' ? towersHtml : gameSideTab === 'upgrades' ? upHtml : gameSideTab === 'hero' ? heroHtml : playHtml);
+    var playHtml = '<h4>Targeting &amp; Play</h4>'
+      + '<label class="small" style="margin:0">Target <select id="abTarget" style="width:auto"><option value="first">First</option><option value="last">Last</option><option value="strong">Strong</option><option value="weak">Weak</option><option value="closest">Closest</option><option value="elite">Elite-only</option></select></label>'
+      + '<p><button id="abWave" class="primary">▶ Start wave</button> <button id="abEndless">Endless: ' + (hud.endless ? 'ON' : 'OFF') + '</button> <button id="abChallenge">Challenge: ' + (hud.challenge ? 'ON' : 'OFF') + '</button></p>'
+      + '<p><button id="abHelp" class="ghost">⌨ Shortcuts</button> <button id="abShareCard" class="ghost">📤 Share run card</button></p>';
+    box.innerHTML = upHtml + heroHtml + playHtml;
     var ts = document.getElementById('abTarget'); if (ts) { ts.value = hud.targeting || 'first'; ts.addEventListener('change', function () { if (handle) handle.setTargeting(ts.value); }); }
-    var sp = document.getElementById('abSpeed'); if (sp) { sp.value = String(hud.speed || 1); sp.addEventListener('change', function () { if (handle) handle.setSpeed(Number(sp.value)); }); }
-    bar.querySelectorAll('[data-tower]').forEach(function (btn) {
-      btn.addEventListener('click', function () { if (handle) handle.setPlacing(btn.getAttribute('data-tower')); bar.querySelectorAll('[data-tower]').forEach(function (b) { b.classList.remove('active'); }); btn.classList.add('active'); });
-    });
     var bind = function (id, fn) { var el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
     bind('abWave', function () { if (handle) handle.startWave(); });
-    bind('abAuto', function () { if (handle) handle.setAutoStart(!hud.autoStart); });
     bind('abUpgrade', function () { if (handle) handle.upgradeSelected(); });
     bind('abSell', function () { if (handle) handle.sellSelected(); });
     bind('abAbility', function () { if (handle) handle.heroAbility(); });
-    bar.querySelectorAll('[data-branch]').forEach(function (btn) { btn.addEventListener('click', function () { if (handle && handle.upgradeBranch) handle.upgradeBranch(btn.getAttribute('data-branch')); }); });
+    box.querySelectorAll('[data-branch]').forEach(function (btn) { btn.addEventListener('click', function () { if (handle && handle.upgradeBranch) handle.upgradeBranch(btn.getAttribute('data-branch')); }); });
     bind('abPatrol', function () { if (handle && handle.setHeroPatrol) handle.setHeroPatrol(!hud.heroPatrol); });
-    bind('abPause', function () { if (handle && handle.setPaused) handle.setPaused(!hud.paused); });
     bind('abEndless', function () { if (handle && handle.setEndless) { handle.setEndless(!hud.endless); toast(!hud.endless ? 'Endless mode ON: waves continue past 50.' : 'Endless mode OFF.'); } });
     bind('abChallenge', function () { if (handle && handle.setChallenge) { handle.setChallenge(!hud.challenge); toast(!hud.challenge ? 'Challenge mode: 100 gold, 20 lives. Applies on restart.' : 'Challenge mode OFF.'); } });
-    bind('abHelp', function () { var h = document.getElementById('helpCard'); if (h) { h.hidden = !h.hidden; if (!h.hidden && typeof showCenterTab === 'function') showCenterTab('details'); } });
+    bind('abHelp', function () { toggleShortcuts(); });
+    bind('abShareCard', function () { shareRunCard(); });
+  }
+
+  function renderInspectorMarket() {
+    var el = document.getElementById('inspectorMarket'); if (!el) return;
+    var q = '';
+    var qi = document.getElementById('mkSearch'); if (qi) q = (qi.value || '').toLowerCase();
+    var listings = (ctx.state && ctx.state.listings) || [];
+    var heroes = (ctx.state && ctx.state.heroes) || [];
+    var rows = listings.filter(function (l) { return !q || (l.heroName || '').toLowerCase().indexOf(q) >= 0; });
+    if (!rows.length) {
+      el.innerHTML = '<p class="muted small">' + (listings.length ? 'No listings match your search.' : 'No heroes listed yet. List one from the Hero Shop.') + '</p><p><button data-open-shop class="ghost">Open Hero Shop</button></p>';
+    } else {
+      el.innerHTML = rows.slice(0, 12).map(function (l) {
+        var h = null; for (var i = 0; i < heroes.length; i++) if (heroes[i].id === l.heroId) h = heroes[i];
+        var img = h ? heroImg(h) : '<span class="heroDot">★</span>';
+        return '<button class="marketRow" data-shop>' + img + '<span style="flex:1;text-align:left"><strong>' + esc(l.heroName) + '</strong><br><span class="mLvl">Level ' + l.level + ' · ' + esc(l.rarity || '') + ' · BTD Hero</span></span><span class="mPrice">' + l.priceAtom + ' ATOM</span><span>›</span></button>';
+      }).join('');
+    }
+    el.querySelectorAll('[data-open-shop],[data-shop]').forEach(function (b) { b.addEventListener('click', function () { exitGameMode(); showView('marketplace'); }); });
+  }
+
+  function renderMarketPreview() {
+    var el = document.getElementById('marketPreview'); if (!el) return;
+    var listings = (ctx.state && ctx.state.listings) || [];
+    var heroes = (ctx.state && ctx.state.heroes) || [];
+    if (!listings.length) { el.innerHTML = '<p class="muted small">No heroes listed yet. The feed fills when a hero is listed in the Hero Shop.</p>'; return; }
+    el.innerHTML = listings.slice(0, 8).map(function (l) {
+      var h = null; for (var i = 0; i < heroes.length; i++) if (heroes[i].id === l.heroId) h = heroes[i];
+      var img = h ? heroImg(h) : '<span class="heroDot">★</span>';
+      return '<button class="marketRow" data-preview-shop>' + img + '<span style="flex:1;text-align:left"><strong>' + esc(l.heroName) + '</strong><br><span class="mLvl">Level ' + l.level + ' · BTD Hero</span></span><span class="mPrice">' + l.priceAtom + ' ATOM</span><span>›</span></button>';
+    }).join('');
+    el.querySelectorAll('[data-preview-shop]').forEach(function (b) { b.addEventListener('click', function () { showView('marketplace'); }); });
+  }
+
+  function drawSpark(id, arr, color) {
+    var c = document.getElementById(id); if (!c || arr.length < 2) return;
+    var x = c.getContext('2d'); if (!x) return;
+    var w = c.width, h = c.height;
+    x.clearRect(0, 0, w, h);
+    var max = Math.max.apply(null, arr.concat([1]));
+    x.strokeStyle = color; x.lineWidth = 1.5; x.beginPath();
+    arr.forEach(function (v, i) { var px = (w - 4) * i / (arr.length - 1) + 2; var py = h - 3 - (h - 6) * (v / max); if (i === 0) x.moveTo(px, py); else x.lineTo(px, py); });
+    x.stroke();
+  }
+
+  function renderPerf() {
+    var hud = ctx.hud || {};
+    var fps = (hud.fps != null) ? hud.fps : null;
+    var parts = (hud.particles != null) ? hud.particles : null;
+    var ent = (hud.towers != null || hud.balloonsRemaining != null) ? ((hud.towers || 0) + (hud.balloonsRemaining || 0)) : null;
+    var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = (v == null ? '—' : String(v)); };
+    set('perfFps', fps == null ? null : fps + ' FPS');
+    set('perfEntities', ent);
+    set('perfParticles', parts);
+    var mem = null;
+    try { if (window.performance && window.performance.memory) mem = Math.round(window.performance.memory.usedJSHeapSize / 1048576 * 10) / 10 + 'MB'; } catch (e) {}
+    set('perfMemory', mem == null ? 'n/a' : mem);
+    if (fps != null) { _perfHist.fps.push(fps); if (_perfHist.fps.length > 40) _perfHist.fps.shift(); drawSpark('sparkFps', _perfHist.fps, '#ff6ec7'); }
+    if (parts != null) { _perfHist.particles.push(parts); if (_perfHist.particles.length > 40) _perfHist.particles.shift(); drawSpark('sparkParticles', _perfHist.particles, '#00f6ff'); }
+  }
+
+  function setInspectorOpen(open) {
+    _inspOpen = !!open;
+    var so = document.getElementById('slideOver'); if (so) so.classList.toggle('open', _inspOpen);
+    var ob = document.getElementById('btnOpenInspector'); if (ob) ob.hidden = _inspOpen;
+  }
+  ctx.setInspectorOpen = setInspectorOpen;
+
+  /* Routing: Home Hub (/) vs dedicated game screen (/game/cosmos-btd).
+   * The game module stays loaded in both; only the visible shell swaps. */
+  var gameMode = false;
+  function setGameMode(on, silent) {
+    gameMode = !!on;
+    document.body.classList.toggle('game-mode', gameMode);
+    document.title = gameMode ? 'Cosmos BTD — GAME' : 'GAME — game.atomstaking.app';
+    if (!silent) { try { window.history.pushState({}, '', gameMode ? '/game/cosmos-btd' : '/'); } catch (e) {} }
+    if (gameMode) renderActionBar();
+  }
+  function enterGameMode(fullscreen) {
+    setGameMode(true);
+    if (fullscreen) {
+      try { var gv = document.getElementById('gameView'); if (gv && gv.requestFullscreen && !document.fullscreenElement) { var pr = gv.requestFullscreen(); if (pr && pr.catch) pr.catch(function () {}); } } catch (e) {}
+    }
+  }
+  function exitGameMode() { setGameMode(false); }
+  function syncModeFromUrl() {
+    var p = ''; try { p = window.location.pathname || ''; } catch (e) {}
+    var g = null; try { g = new URLSearchParams(window.location.search).get('game'); } catch (e) {}
+    setGameMode(p === '/game/cosmos-btd' || g === 'cosmos-btd', true);
+  }
+  ctx.enterGameMode = enterGameMode; ctx.exitGameMode = exitGameMode;
+  window.addEventListener('popstate', syncModeFromUrl);
+
+  function filterStore(q) {
+    q = (q || '').toLowerCase();
+    document.querySelectorAll('#storeGrid .storeCard').forEach(function (c) {
+      var t = (c.getAttribute('data-search') || '') + ' ' + (c.textContent || '').toLowerCase();
+      c.style.display = (!q || t.indexOf(q) >= 0) ? '' : 'none';
+    });
   }
   /* Batch 7 (Pillar 5): Dev Tools view — map editor, mod loader,
    * debug console. All three work on the live BTD handle only; with
@@ -800,41 +955,25 @@
     });
   }
   function showView(name) {
-    document.querySelectorAll('nav.tabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-nav') === name); });
-    document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
-    document.getElementById('view-' + name).classList.add('active');
+    if (name === 'games') name = 'store';
+    document.querySelectorAll('.topnav [data-nav]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-nav') === name); });
+    var grid = document.querySelector('.hubGrid');
+    var isHub = (name === 'store' || name === 'library');
+    if (grid) grid.style.display = isHub ? '' : 'none';
+    document.querySelectorAll('#hubWrap .view').forEach(function (v) { v.classList.remove('active'); });
+    var sec = document.getElementById('view-' + name);
+    if (sec) sec.classList.add('active');
+    var sg = document.getElementById('storeGrid');
+    if (sg) sg.classList.toggle('owned-only', name === 'library');
+    var ln = document.getElementById('libNote');
+    if (ln) ln.hidden = (name !== 'library');
     if (name === 'marketplace' && window.MarketplaceUI) window.MarketplaceUI.render(document.getElementById('marketplace'), ctx);
     if (name === 'updates') renderFeatures();
     if (name === 'devtools') renderDevTools();
     if (name === 'ceo' && window.CeoUI) window.CeoUI.mountGate(document.getElementById('ceoGate'), document.getElementById('ceoPanel'), ctx);
+    if (isHub) { renderGameList(); renderMarketPreview(); }
   }
-  document.querySelectorAll('nav.tabs button').forEach(function (b) { b.addEventListener('click', function () { showView(b.getAttribute('data-nav')); }); });
-  /* Rail tabs: right sidebar grouped into Social / You / Play panes.
-   * Wallet widget stays pinned above the tabs. Safe on stale HTML:
-   * with no #railTabs buttons the loops below simply do nothing. */
-  var railTab = 'social';
-  function showRailTab(name) {
-    railTab = name;
-    document.querySelectorAll('#railTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-rail') === name); });
-    document.querySelectorAll('.rail-right .railPane').forEach(function (p) { p.classList.toggle('active', p.id === 'railPane-' + name); });
-  }
-  document.querySelectorAll('#railTabs button').forEach(function (b) { b.addEventListener('click', function () { showRailTab(b.getAttribute('data-rail')); }); });
-  /* Left + center tab groups (redesign): same pattern as the rail tabs,
-   * each scoped to its own container so panes never cross-hide. */
-  var leftTab = 'play';
-  function showLeftTab(name) {
-    leftTab = name;
-    document.querySelectorAll('#leftTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-left') === name); });
-    document.querySelectorAll('.rail-left .railPane').forEach(function (p) { p.classList.toggle('active', p.id === 'leftPane-' + name); });
-  }
-  document.querySelectorAll('#leftTabs button').forEach(function (b) { b.addEventListener('click', function () { showLeftTab(b.getAttribute('data-left')); }); });
-  var centerTab = 'games';
-  function showCenterTab(name) {
-    centerTab = name;
-    document.querySelectorAll('#centerTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-center') === name); });
-    document.querySelectorAll('.centerPane').forEach(function (p) { p.classList.toggle('active', p.id === 'centerPane-' + name); });
-  }
-  document.querySelectorAll('#centerTabs button').forEach(function (b) { b.addEventListener('click', function () { showCenterTab(b.getAttribute('data-center')); }); });
+  document.querySelectorAll('.topnav [data-nav]').forEach(function (b) { b.addEventListener('click', function () { showView(b.getAttribute('data-nav')); }); });
   async function init() {
     try { var refParam = new URLSearchParams(window.location.search).get('ref'); if (refParam) localStorage.setItem('game-referral', refParam); } catch (e) {}
     var startGame = 'cosmos-btd';
@@ -843,6 +982,7 @@
     ctx.config = await api('/api/config');
     updateHubLoader(35, 'Config loaded — starting wallet + engine…');
     renderHubFooter();
+    var _lv = document.getElementById('launcherVersion'); if (_lv && ctx.config && ctx.config.version) _lv.textContent = 'v' + ctx.config.version;
     ctx.wallet = new window.WalletManager(bus, ctx.config);
     ctx.host = new window.EngineHost(bus, ctx.wallet, ctx.config);
     ctx.watcher = new window.RpcWatcher(bus, ctx.config);
@@ -856,64 +996,15 @@
     var cfgStatus = function (id) { var gs = (ctx.config && ctx.config.games) || []; for (var i = 0; i < gs.length; i++) if (gs[i].id === id) return gs[i].status; return 'playable'; };
     var lazyGame = function (src, globalName) { return async function () { var mod = await window.GameScriptLoader.load(src, globalName); if (!mod) throw new Error('Game module did not load: ' + src); return mod; }; };
     ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', tags: ['Tower Defense', 'Space', 'Heroes', '50 Waves'], load: lazyGame('games/cosmos-btd/btd.js', 'CosmosBTD') });
-    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', image: 'assets/sprites/tower-validator.png', description: 'Build mining rigs, hire overseers, earn while away. Prestige for a permanent multiplier, rig skins. Local save.', status: 'playable', tags: ['Idle', 'Tycoon', 'Space'], load: lazyGame('games/space-tycoon/tycoon.js', 'SpaceTycoon') });
-    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, chain combo streaks, catch golden shards and surges, bank shards. Convert 100 shards to 10 credits. Local save.', status: 'playable', tags: ['Clicker', 'Idle', 'ATOM'], load: lazyGame('games/atom-clicker/clicker.js', 'AtomClicker') });
-    if (cfgStatus('space-shooter') === 'playable') ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', image: 'assets/sprites/monster-1.png', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', status: 'playable', tags: ['Arcade', 'Shooter', 'Space'], load: lazyGame('games/space-shooter/shooter.js', 'SpaceShooter') });
-    if (cfgStatus('asteroid-miner') === 'playable') ctx.host.registerGame({ id: 'asteroid-miner', name: 'Asteroid Miner', tagline: 'Mine ore, upgrade drills', image: 'assets/sprites/monster-1.png', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', status: 'playable', tags: ['Mining', 'Clicker', 'Space'], load: lazyGame('games/asteroid-miner/miner.js', 'AsteroidMiner') });
     updateHubLoader(60, 'Games registered…');
-    renderGameList(); renderRecent(); renderWallet(); renderSettingsPanel();
+    renderGameList(); renderWallet(); renderSettingsPanel(); renderMarketPreview();
     /* Batch 19: first user gesture unlocks the ambient hum (no autoplay). */
     var _gestureOnce = function () { if (_userGestured) return; _userGestured = true; applyAmbientHum(); };
     document.addEventListener('pointerdown', _gestureOnce);
     document.addEventListener('keydown', _gestureOnce);
     document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
-    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); closeShortcuts(); } else if (ev.key === '?') { var t = ev.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return; toggleShortcuts(); } });
-    /* Batch 10: record a finished Space Shooter run on the server
-     * shooter leaderboard. Only the game-over emit (final:true) counts;
-     * the destroy() emit has no final flag, so leaving a game or
-     * switching games never submits. Dedupe by address+score+wave+kills
-     * in case the same run emits twice. */
-    var _shooterSubmitted = {};
-    bus.on('game:ended', function (gameId, payload) {
-      if (gameId !== 'space-shooter' || !payload || !payload.final) return;
-      if (!ctx.player) return;
-      var key = ctx.player.address + ':' + payload.score + ':' + payload.wave + ':' + (payload.kills || 0);
-      if (_shooterSubmitted[key]) return;
-      _shooterSubmitted[key] = true;
-      api('/api/progress', 'POST', { address: ctx.player.address, game: 'space-shooter', score: payload.score, waveReached: payload.wave }).then(function (r) {
-        if (r.player) { ctx.player = r.player; toast('Shooter score saved: +' + r.xpGain + ' XP, +' + r.creditGain + ' credits.', 'ok'); refreshState(); }
-      }).catch(function () { /* best-effort; the local score stands */ });
-    });
-    /* Batch 14: record a finished Asteroid Miner shift on the server
-     * per-game leaderboard. Only the End Shift emit (final:true)
-     * counts; the destroy() emit has no final flag. Dedupe by
-     * address+score+belt+mined in case the same shift emits twice. */
-    var _minerSubmitted = {};
-    bus.on('game:ended', function (gameId, payload) {
-      if (gameId !== 'asteroid-miner' || !payload || !payload.final) return;
-      if (!ctx.player) return;
-      var key = ctx.player.address + ':' + payload.score + ':' + payload.wave + ':' + (payload.kills || 0);
-      if (_minerSubmitted[key]) return;
-      _minerSubmitted[key] = true;
-      api('/api/progress', 'POST', { address: ctx.player.address, game: 'asteroid-miner', score: payload.score, waveReached: payload.wave }).then(function (r) {
-        if (r.player) { ctx.player = r.player; toast('Miner shift saved: +' + r.xpGain + ' XP, +' + r.creditGain + ' credits.', 'ok'); refreshState(); }
-      }).catch(function () { /* best-effort; the local save stands */ });
-    });
-    /* Batch 17: record a Clicker best combo on the server per-game
-     * leaderboard. Only the Save Best emit (final:true) counts; the
-     * destroy() emit has no final flag. Dedupe by address+score+clicks. */
-    var _clickerSubmitted = {};
-    bus.on('game:ended', function (gameId, payload) {
-      if (gameId !== 'atom-clicker' || !payload || !payload.final) return;
-      if (!ctx.player) return;
-      var key = ctx.player.address + ':' + payload.score + ':' + (payload.clicks || 0);
-      if (_clickerSubmitted[key]) return;
-      _clickerSubmitted[key] = true;
-      api('/api/progress', 'POST', { address: ctx.player.address, game: 'atom-clicker', score: payload.score, waveReached: 0 }).then(function (r) {
-        if (r.player) { ctx.player = r.player; toast('Clicker best saved: combo ' + payload.score + ' (+' + r.xpGain + ' XP).', 'ok'); refreshState(); }
-      }).catch(function () { /* best-effort; the local best stands */ });
-    });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); closeShortcuts(); setInspectorOpen(false); } else if (ev.key === '?') { var t = ev.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return; toggleShortcuts(); } });
     bus.on('wallet:connected', function () { renderWallet(); });
     bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
     bus.on('wallet:balance', function () { renderWallet(); });
@@ -926,19 +1017,34 @@
     var exBtn = document.getElementById('btnExploreStore'); if (exBtn) exBtn.addEventListener('click', function () { showView('marketplace'); });
     var bellBtn = document.getElementById('btnBell'); if (bellBtn) bellBtn.addEventListener('click', function () { showView('updates'); });
     var shareBtn = document.getElementById('btnShareCard'); if (shareBtn) shareBtn.addEventListener('click', shareRunCard);
-    var pfBtn = document.getElementById('btnPlayFeatured'); if (pfBtn) pfBtn.addEventListener('click', function () { openGameInTab('cosmos-btd'); });
-    document.querySelectorAll('#gameSideTabs [data-side]').forEach(function (b) { b.addEventListener('click', function () { setGameSideTab(b.getAttribute('data-side')); }); });
-    var infBtn = document.getElementById('btnInfoFeatured'); if (infBtn) infBtn.addEventListener('click', function () { openGameInfo('cosmos-btd'); });
     var closePk = document.getElementById('btnClosePicker'); if (closePk) closePk.addEventListener('click', closeGamePicker);
     var playPk = document.getElementById('btnPlayPicker'); if (playPk) playPk.addEventListener('click', function () { var id = document.getElementById('gamePicker').getAttribute('data-game'); closeGamePicker(); if (id) openGameInTab(id); });
     var pkOverlay = document.getElementById('gamePicker'); if (pkOverlay) pkOverlay.addEventListener('click', function (ev) { if (ev.target === pkOverlay) closeGamePicker(); });
-    var gsInput = document.getElementById('gameSearch'); if (gsInput) gsInput.addEventListener('input', function () { filterGameCards(gsInput.value); });
+    var gsInput = document.getElementById('gameSearch'); if (gsInput) gsInput.addEventListener('input', function () { filterStore(gsInput.value); });
     var restored = ctx.wallet.restore();
     if (restored) { renderWallet(); await ensurePlayer(); await startSession(); }
     await refreshState();
     updateHubLoader(80, 'Loading Cosmos BTD…');
     if (!ctx.host.listGames().some(function (g) { return g.id === startGame; })) startGame = 'cosmos-btd';
     await loadGame(startGame);
+    syncModeFromUrl();
+    var _exitBtn = document.getElementById('btnExitGame'); if (_exitBtn) _exitBtn.addEventListener('click', function () { exitGameMode(); showView('store'); });
+    var _pauseBtn = document.getElementById('btnGamePause'); if (_pauseBtn) _pauseBtn.addEventListener('click', function () { var h = btdHandle(); if (h && h.setPaused) h.setPaused(!(ctx.hud && ctx.hud.paused)); });
+    var _autoBtn = document.getElementById('btnGameAuto'); if (_autoBtn) _autoBtn.addEventListener('click', function () { var h = btdHandle(); if (h) h.setAutoStart(!(ctx.hud && ctx.hud.autoStart)); });
+    var _spd = document.getElementById('gameSpeed'); if (_spd) _spd.addEventListener('change', function () { var h = btdHandle(); if (h) h.setSpeed(Number(_spd.value)); });
+    var _mk = document.getElementById('mkSearch'); if (_mk) _mk.addEventListener('input', renderInspectorMarket);
+    var _dp = document.getElementById('deckPrev'); if (_dp) _dp.addEventListener('click', function () { var sc = document.getElementById('buildBar'); if (sc) sc.scrollBy({ left: -220, behavior: 'smooth' }); });
+    var _dn = document.getElementById('deckNext'); if (_dn) _dn.addEventListener('click', function () { var sc = document.getElementById('buildBar'); if (sc) sc.scrollBy({ left: 220, behavior: 'smooth' }); });
+    var _ci = document.getElementById('btnCloseInspector'); if (_ci) _ci.addEventListener('click', function () { setInspectorOpen(false); });
+    var _oi = document.getElementById('btnOpenInspector'); if (_oi) _oi.addEventListener('click', function () { setInspectorOpen(true); });
+    var _pt = document.getElementById('btnPerfToggle'); if (_pt) _pt.addEventListener('click', function () { var po = document.getElementById('perfOverlay'); if (po) po.style.display = 'none'; var ps = document.getElementById('btnPerfShow'); if (ps) ps.hidden = false; });
+    var _ps = document.getElementById('btnPerfShow'); if (_ps) _ps.addEventListener('click', function () { var po = document.getElementById('perfOverlay'); if (po) po.style.display = ''; _ps.hidden = true; });
+    var _ceo = document.getElementById('btnOpenCeo'); if (_ceo) _ceo.addEventListener('click', function () { showView('ceo'); });
+    var _lh = document.getElementById('btnListHero'); if (_lh) _lh.addEventListener('click', function () { if (!ctx.player) { toast('Connect your wallet first.', 'warn'); return; } showView('marketplace'); });
+    var _ts2 = document.getElementById('btnTopSettings'); if (_ts2) _ts2.addEventListener('click', openSettings);
+    var _lm = document.getElementById('btnLibMenu'); if (_lm) _lm.addEventListener('click', function () { var m = document.getElementById('libMenu'); if (m) m.hidden = !m.hidden; });
+    document.querySelectorAll('#libMenu [data-libmenu]').forEach(function (b) { b.addEventListener('click', function () { var m = document.getElementById('libMenu'); if (m) m.hidden = true; var k = b.getAttribute('data-libmenu'); if (k === 'updates') showView('updates'); else if (k === 'devtools') showView('devtools'); else if (k === 'settings') openSettings(); else if (k === 'shortcuts') toggleShortcuts(); }); });
+    setInterval(renderPerf, 500);
     updateHubLoader(100, 'Ready');
     hideHubLoader();
     setInterval(refreshState, 30000);
