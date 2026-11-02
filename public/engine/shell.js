@@ -348,6 +348,7 @@
   function gameMeta(g) {
     return { id: g.id, name: g.name, tagline: g.tagline || '', status: g.status || 'playable',
       image: g.image || GAME_IMAGES[g.id] || 'assets/sprites/battlefield.jpg',
+      tags: (g.tags || []).slice(),
       description: g.description || g.tagline || '' };
   }
   function recordRecent(id) {
@@ -372,6 +373,19 @@
     }).join('');
     el.querySelectorAll('[data-recent]').forEach(function (btn) { btn.addEventListener('click', function () { loadGame(btn.getAttribute('data-recent')); }); });
   }
+  function tagChipsHtml(tags) {
+    if (!tags || !tags.length) return '';
+    return '<p class="tagRow">' + tags.map(function (t) { return '<span class="tagChip">' + esc(t) + '</span>'; }).join('') + '</p>';
+  }
+  var activeTag = '';
+  function renderTagFilter() {
+    var el = document.getElementById('tagFilter'); if (!el) return;
+    var seen = {};
+    ctx.host.listGames().forEach(function (g) { (g.tags || []).forEach(function (t) { seen[t] = true; }); });
+    var tags = Object.keys(seen).sort();
+    el.innerHTML = '<button class="tagChip' + (!activeTag ? ' active' : '') + '" data-tag="">All</button>' + tags.map(function (t) { return '<button class="tagChip' + (activeTag === t ? ' active' : '') + '" data-tag="' + esc(t) + '">' + esc(t) + '</button>'; }).join('');
+    el.querySelectorAll('[data-tag]').forEach(function (b) { b.addEventListener('click', function () { activeTag = b.getAttribute('data-tag'); renderTagFilter(); filterGameCards((document.getElementById('gameSearch') || {}).value || ''); }); });
+  }
   function openGameInfo(id) {
     var games = ctx.host.listGames();
     var g = games.filter(function (x) { return x.id === id; })[0];
@@ -381,7 +395,8 @@
     body.innerHTML = '<img src="' + m.image + '" alt="">'
       + '<h3>' + esc(m.name) + ' <span class="pill">' + esc(m.status) + '</span></h3>'
       + '<p class="gameDesc">' + esc(m.description) + '</p>'
-      + '<p class="small muted">' + esc(m.tagline) + '</p>';
+      + '<p class="small muted">' + esc(m.tagline) + '</p>'
+      + tagChipsHtml(m.tags);
     var pk = document.getElementById('gamePicker');
     pk.setAttribute('data-game', m.id);
     var play = document.getElementById('btnPlayPicker'); if (play) play.disabled = (m.status !== 'playable');
@@ -392,10 +407,14 @@
   function filterGameCards(q) {
     q = (q || '').toLowerCase();
     document.querySelectorAll('#gameCards .gameCard').forEach(function (c) {
-      c.style.display = (!q || (c.getAttribute('data-search') || '').indexOf(q) >= 0) ? '' : 'none';
+      var okQ = !q || (c.getAttribute('data-search') || '').indexOf(q) >= 0;
+      var tags = (c.getAttribute('data-tags') || '').split(',').filter(Boolean);
+      var okT = !activeTag || tags.indexOf(activeTag.toLowerCase()) >= 0;
+      c.style.display = (okQ && okT) ? '' : 'none';
     });
   }
   function renderGameList() {
+    renderTagFilter();
     var el = document.getElementById('gameList');
     var games = ctx.host.listGames();
     if (el) {
@@ -411,9 +430,9 @@
     if (cards) {
       cards.innerHTML = games.map(function (g) {
         var m = gameMeta(g);
-        return '<div class="gameCard" data-search="' + esc((m.name + ' ' + m.description + ' ' + m.tagline).toLowerCase()) + '">'
+        return '<div class="gameCard" data-search="' + esc((m.name + ' ' + m.description + ' ' + m.tagline + ' ' + m.tags.join(' ')).toLowerCase()) + '" data-tags="' + esc(m.tags.join(',').toLowerCase()) + '">'
           + '<img class="gameThumb" src="' + m.image + '" alt="" onerror="this.style.display=\'none\'">'
-          + '<div class="gameMeta"><strong>' + esc(m.name) + '</strong> <span class="pill">' + esc(m.status) + '</span>'
+          + '<div class="gameMeta"><strong>' + esc(m.name) + '</strong> <span class="pill">' + esc(m.status) + '</span>' + tagChipsHtml(m.tags)
           + '<p class="gameDesc">' + esc(m.description) + '</p></div>'
           + '<div class="gameRow"><button data-info="' + m.id + '">About</button><button data-play="' + m.id + '" class="primary"' + (m.status !== 'playable' ? ' disabled' : '') + '>▶ Play</button></div></div>';
       }).join('');
@@ -443,7 +462,7 @@
       if (handle && handle.setSession && ctx.session) handle.setSession(ctx.session.sessionId, ctx.session.nonce);
       applySettings(handle);
       renderActionBar();
-    } catch (e) { toast(e.message, 'err'); }
+    } catch (e) { ctx.host.unloadGame(); toast('Could not open ' + gameId + ': ' + e.message, 'err'); }
   }
   ctx.loadGame = loadGame;
   async function submitWaveReport(payload) {
@@ -605,11 +624,11 @@
      * where a missing file meant no global and no registration. */
     var cfgStatus = function (id) { var gs = (ctx.config && ctx.config.games) || []; for (var i = 0; i < gs.length; i++) if (gs[i].id === id) return gs[i].status; return 'playable'; };
     var lazyGame = function (src, globalName) { return async function () { var mod = await window.GameScriptLoader.load(src, globalName); if (!mod) throw new Error('Game module did not load: ' + src); return mod; }; };
-    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', load: lazyGame('games/cosmos-btd/btd.js', 'CosmosBTD') });
-    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', image: 'assets/sprites/tower-validator.png', description: 'Build mining rigs, hire overseers, earn while away. Local save.', status: 'playable', load: lazyGame('games/space-tycoon/tycoon.js', 'SpaceTycoon') });
-    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, catch multiplier surges, bank shards. Local save.', status: 'playable', load: lazyGame('games/atom-clicker/clicker.js', 'AtomClicker') });
-    if (cfgStatus('space-shooter') === 'playable') ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', image: 'assets/sprites/monster-1.png', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', status: 'playable', load: lazyGame('games/space-shooter/shooter.js', 'SpaceShooter') });
-    if (cfgStatus('asteroid-miner') === 'playable') ctx.host.registerGame({ id: 'asteroid-miner', name: 'Asteroid Miner', tagline: 'Mine ore, upgrade drills', image: 'assets/sprites/monster-1.png', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', status: 'playable', load: lazyGame('games/asteroid-miner/miner.js', 'AsteroidMiner') });
+    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', tags: ['Tower Defense', 'Space', 'Heroes', '50 Waves'], load: lazyGame('games/cosmos-btd/btd.js', 'CosmosBTD') });
+    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', image: 'assets/sprites/tower-validator.png', description: 'Build mining rigs, hire overseers, earn while away. Local save.', status: 'playable', tags: ['Idle', 'Tycoon', 'Space'], load: lazyGame('games/space-tycoon/tycoon.js', 'SpaceTycoon') });
+    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, catch multiplier surges, bank shards. Local save.', status: 'playable', tags: ['Clicker', 'Idle', 'ATOM'], load: lazyGame('games/atom-clicker/clicker.js', 'AtomClicker') });
+    if (cfgStatus('space-shooter') === 'playable') ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', image: 'assets/sprites/monster-1.png', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', status: 'playable', tags: ['Arcade', 'Shooter', 'Space'], load: lazyGame('games/space-shooter/shooter.js', 'SpaceShooter') });
+    if (cfgStatus('asteroid-miner') === 'playable') ctx.host.registerGame({ id: 'asteroid-miner', name: 'Asteroid Miner', tagline: 'Mine ore, upgrade drills', image: 'assets/sprites/monster-1.png', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', status: 'playable', tags: ['Mining', 'Clicker', 'Space'], load: lazyGame('games/asteroid-miner/miner.js', 'AsteroidMiner') });
     renderGameList(); renderRecent(); renderWallet(); renderSettingsPanel();
     document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });

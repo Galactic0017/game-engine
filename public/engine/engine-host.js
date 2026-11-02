@@ -55,6 +55,7 @@
     if (!this.viewport) throw new Error('EngineHost: no viewport element set.');
     this.viewport.innerHTML = '';
     var mod = await entry.load();
+    if (!mod) throw new Error(entry.name + ' failed to load.');
     var handle = null;
     if (mod && typeof mod.init === 'function') {
       handle = await mod.init(this.viewport, {
