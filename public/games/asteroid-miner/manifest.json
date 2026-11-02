@@ -1,11 +1,11 @@
 {
  "canvas": true,
- "description": "Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock. Batch 22: cargo breakdown + richest ore.",
+ "description": "Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock. Batch 22: cargo breakdown + richest ore. Batch 23: belt progress percent.",
  "entry": "miner.js",
  "id": "asteroid-miner",
  "image": "assets/sprites/monster-1.png",
  "name": "Asteroid Miner",
- "version": "1.3.0",
+ "version": "1.4.0",
  "tags": [
   "Mining",
   "Clicker",
