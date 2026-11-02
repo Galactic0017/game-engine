@@ -191,3 +191,6 @@ works through them top-down, tests each batch, and pushes to GitHub
 
 ## v3.49.3 — Deep-link fix
 - /game/cosmos-btd returned 404 on Vercel: the catch-all rewrite dropped the original path. The rewrite now carries `?__path=/$1` and the SPA fallback also covers a bare GET /api/index.
+
+## v3.49.4 — Deep-link fix, corrected
+- v3.49.3 broke /api/* live (config returned HTML): the fallback safety net fired for rewritten API requests. Removed. /game/* now rewrites statically to /index.html, before the catch-all; the API path is untouched.

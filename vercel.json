@@ -1,1 +1,1 @@
-{"functions":{"api/[...path].js":{"includeFiles":"public/**"},"api/index.js":{"includeFiles":"public/**"}},"rewrites":[{"destination":"/api/index?__path=/api/:path*","source":"/api/:path*"},{"destination":"/api/index?__path=/$1","source":"/(.*)"}]}
+{"functions":{"api/[...path].js":{"includeFiles":"public/**"},"api/index.js":{"includeFiles":"public/**"}},"rewrites":[{"destination":"/api/index?__path=/api/:path*","source":"/api/:path*"},{"destination":"/index.html","source":"/game/:path*"},{"destination":"/api/index","source":"/(.*)"}]}

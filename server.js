@@ -62,7 +62,7 @@ function isCeoRequest(req, bodyForMessage) {
   const message = effPath + '\n' + canonicalJson(bodyForMessage || {}) + '\n' + String(ts);
   return verifyAdr36(address, message, sig, pub);
 }
-const VERSION = '3.49.3';
+const VERSION = '3.49.4';
 const BUILD_DATE = '2026-11-01';
 /* Batch 20: honest feature count — read once from the same
  * public/features.json the server serves, so /api/config can never
@@ -711,7 +711,7 @@ async function handle(req, res) {
   let file = p === '/' ? '/index.html' : p;
   const fp = path.join(__dirname, 'public', file);
   if (!fp.startsWith(path.join(__dirname, 'public'))) return send(res, 403, { error: 'bad path' });
-  fs.readFile(fp, (e, data) => { if (e) { if (req.method === 'GET' && !(p.startsWith('/api/') && p !== '/api/index') && !path.extname(p)) { const fp2 = path.join(__dirname, 'public', 'index.html'); return fs.readFile(fp2, (e2, d2) => { if (e2) return send(res, 404, { error: 'not found' }); res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(d2); }); } return send(res, 404, { error: 'not found' }); } res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'text/plain' }); res.end(data); });
+  fs.readFile(fp, (e, data) => { if (e) { if (req.method === 'GET' && !p.startsWith('/api/') && !path.extname(p)) { const fp2 = path.join(__dirname, 'public', 'index.html'); return fs.readFile(fp2, (e2, d2) => { if (e2) return send(res, 404, { error: 'not found' }); res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(d2); }); } return send(res, 404, { error: 'not found' }); } res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'text/plain' }); res.end(data); });
 }
 const server = http.createServer(handle);
 if (require.main === module) { server.listen(PORT, () => console.log('GAME listening on ' + PORT + ' mode=' + MODE + ' chain=' + CHAIN_ID + ' fee=' + feePercent() + '% ceo=' + CEO_ADDRESS)); setInterval(() => { try { publishDueAnnouncements(); } catch {} }, 60000); }

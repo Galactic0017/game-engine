@@ -727,3 +727,6 @@ Live status: see Run log.
 
 ## Deep-link fix 3.49.3 (main chat, live 404 found during verification)
 - DONE 3.49.3: vercel.json __path-preserving catch-all + server.js fallback safety net. Local harness passed because direct node serving keeps req.url; the bug only showed on Vercel. Auto-improve loop stays DISABLED.
+
+## Deep-link fix corrected 3.49.4 (main chat, live API regression found during verification)
+- DONE 3.49.4: removed the /api/index safety net, restored the 3.49.2 catch-all, added a /game/:path* -> /index.html static rewrite. Verified live: /api/config JSON + /game/cosmos-btd HTML. Auto-improve loop stays DISABLED.
