@@ -1061,10 +1061,40 @@
    "id": "tycoon-avg-rig-level",
    "tested": "tycoon/clicker harness: _avgRigLevelFor([])=0, ([lvl1,lvl3])=2, ([1,2,2])=1.7; getState exposes avgRigLevel and the panel shows the Average rig level line",
    "title": "Average rig level - mean level across owned rig types, in state and the panel"
+  },
+  {
+   "category": "Engine",
+   "id": "game-side-panel",
+   "tested": "serve check: #gameScreen + #gameSideTabs in served HTML, tower grid renders in the side panel (code-reviewed, no browser screenshot)",
+   "title": "In-screen game side panel — Towers / Upgrades / Hero / Play tabs beside the board; tower shop grid with sprite tiles and prices lives inside the game screen"
+  },
+  {
+   "category": "Engine",
+   "id": "game-screen-hud",
+   "tested": "serve check: #gameHud strip in served HTML with lives/gold/wave/score/pops (code-reviewed, no browser screenshot)",
+   "title": "Game screen HUD strip — lives, gold, round, score, pops and next-wave danger/boss chips above the board, inside the screen"
+  },
+  {
+   "category": "Hub UI",
+   "id": "open-game-new-tab",
+   "tested": "serve check: served shell opens ?game=<id> in a new tab; new tab loads that game inside the engine (code-reviewed, no browser click check)",
+   "title": "Open a game in a new tab — clicking a game opens a new tab that loads that game inside the engine with its own sidebar and tabs"
+  },
+  {
+   "category": "Hub UI",
+   "id": "friends-rail",
+   "tested": "serve check: #friendsBox in served HTML; rivals come only from real duel history (code-reviewed, no fake friends)",
+   "title": "Friends rail — players you have actually dueled, from real duel history; honest empty state, no fake friends or presence"
+  },
+  {
+   "category": "Hub UI",
+   "id": "share-image-pro",
+   "tested": "serve check: og-share.jpg 1200x630 returns 200; og/twitter tags point to it with the new description",
+   "title": "Professional share image — 1200×630 OG image with GAME branding, Protect the ATOM orb, and a positive, honest description for shared links"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 177,
+ "totalFeatures": 182,
  "updated": "2026-11-02",
- "version": "3.30.0"
+ "version": "3.30.1"
 }
