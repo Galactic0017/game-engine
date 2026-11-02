@@ -941,10 +941,34 @@
    "id": "tycoon-seconds-to-prestige",
    "tested": "tycoon/clicker harness: _secondsToPrestigeFor(5000,10)=0, (0,0)=null, (4000,10)=100, (4900,10)=10; getState exposes secondsToPrestige and the panel shows the estimate",
    "title": "Seconds to prestige - whole seconds until 5,000 credits at the current earnings rate (null with no earnings), in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-hero-xp-per-wave",
+   "tested": "BTD harness: _heroXpPerWaveFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD and state expose heroXpPerWave",
+   "title": "Hero XP per wave - average hero XP earned per wave reached (one decimal), in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-score-per-wave",
+   "tested": "shooter harness: _scorePerWaveFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD, state and game-over screen expose scorePerWave",
+   "title": "Score per wave - average score per wave reached (one decimal), in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-mined-per-belt",
+   "tested": "miner harness: _minedPerBeltFor(0,0)=0, (25,5)=5, (7,3)=2.3, (10,0)=0; HUD and state expose minedPerBelt",
+   "title": "Mined per belt - average ore mined per belt reached (one decimal), in HUD and state"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-seconds-to-next-rig",
+   "tested": "tycoon/clicker harness: _secondsToNextRigFor(100,0,[])=0, (0,0,[])=null, (0,1,[])=100, (0,1,[rig-1 L1])=180; getState exposes nextRigCost + secondsToNextRig and the panel shows the next-rig line",
+   "title": "Seconds to next rig - whole seconds until the cheapest rig buy/upgrade is affordable at the current earnings rate (null with no earnings), in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 157,
+ "totalFeatures": 161,
  "updated": "2026-11-02",
- "version": "3.25.0"
+ "version": "3.26.0"
 }
