@@ -1075,7 +1075,18 @@
      * where a missing file meant no global and no registration. */
     var cfgStatus = function (id) { var gs = (ctx.config && ctx.config.games) || []; for (var i = 0; i < gs.length; i++) if (gs[i].id === id) return gs[i].status; return 'playable'; };
     var lazyGame = function (src, globalName) { return async function () { var mod = await window.GameScriptLoader.load(src, globalName); if (!mod) throw new Error('Game module did not load: ' + src); return mod; }; };
-    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', tags: ['Tower Defense', 'Space', 'Heroes', '50 Waves'], load: lazyGame('games/cosmos-btd/btd.js', 'CosmosBTD') });
+    /* 3D: best-effort preload of the vendored Three.js + 3D renderer
+     * before the 2D game module. Any failure falls through to 2D. */
+    var loadBtd3d = async function () {
+      try {
+        await window.GameScriptLoader.load('engine/vendor/three.min.js', 'THREE');
+        await window.GameScriptLoader.load('games/cosmos-btd/btd3d.js', 'CosmosBTD3D');
+      } catch (e) { /* 3D unavailable: the game falls back to 2D. */ }
+      var mod = await window.GameScriptLoader.load('games/cosmos-btd/btd.js', 'CosmosBTD');
+      if (!mod) throw new Error('Game module did not load: games/cosmos-btd/btd.js');
+      return mod;
+    };
+    ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', tags: ['Tower Defense', 'Space', 'Heroes', '50 Waves'], load: loadBtd3d });
     updateHubLoader(60, 'Games registered…');
     renderGameList(); renderWallet(); renderSettingsPanel(); renderMarketPreview();
     /* Batch 19: first user gesture unlocks the ambient hum (no autoplay). */
