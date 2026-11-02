@@ -1163,10 +1163,34 @@
    "id": "clicker-clicks-per-golden",
    "tested": "tycoon/clicker harness: _clicksPerGoldenFor(0,0)=0, (200,2)=100, (7,3)=2.3; getState exposes clicksPerGolden and the panel shows the Clicks/golden line",
    "title": "Clicks per golden \u2014 average clicks between golden shard events, in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-skip-bonus-per-tower",
+   "tested": "BTD harness: _skipBonusPerTowerFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose skipBonusPerTower",
+   "title": "Skip bonus per tower — average wave-skip bonus gold earned per tower placed, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-grazes-per-shot",
+   "tested": "shooter harness: _grazesPerShotFor(0,0)=0, (20,10)=2, (7,3)=2.3; HUD + state expose grazesPerShot, game-over line",
+   "title": "Grazes per shot — average grazes per firing volley, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-rich-veins-per-shift",
+   "tested": "miner harness: _richVeinsPerShiftFor(0,0)=0, (20,4)=5, (7,3)=2.3; HUD + state expose richVeinsPerShift",
+   "title": "Rich veins per shift — average rich veins triggered per completed shift, in HUD and state"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-earnings-per-overseer",
+   "tested": "tycoon/clicker harness: _earningsPerOverseerFor([],0,0)=0, (1 rig 10x2, 1 overseer)=22, (rigs 1+1+5, 2 overseers)=4.2; getState exposes earningsPerOverseer and the panel shows the Earnings per overseer line",
+   "title": "Earnings per overseer — earnings rate per assigned overseer, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 194,
+ "totalFeatures": 198,
  "updated": "2026-11-02",
- "version": "3.33.0"
+ "version": "3.34.0"
 }
