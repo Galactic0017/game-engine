@@ -845,10 +845,34 @@
    "id": "clicker-milestones",
    "tested": "tycoon/clicker harness: milestonesReached(99)=[], (100)=[100], (5000)=all 5; crossing 100 clicks toasts once and persists milestones=[100]; legacy save with 600 clicks seeds [100,500] silently with no toast",
    "title": "Click milestones \u2014 100/500/1000/2500/5000 total clicks toast once each, persist with the local save, next milestone shown in the game"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-balloons-remaining",
+   "tested": "BTD harness: _balloonsRemaining on a fresh state is 0; 2 live + 1 dead balloon + 3 queued = 5; HUD and getState echo the same count",
+   "title": "Balloons remaining — live balloons plus queued spawns in HUD and state, so the wave-clear count is visible"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-best-wave",
+   "tested": "shooter harness: fresh state bestWave 0; two startWave calls reach wave 2 with bestWave 2; R restart resets to wave 1 / bestWave 1; HUD and state expose it",
+   "title": "Best wave — highest wave reached in the run, in HUD, state and the game-over screen; resets on restart"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-belt-progress",
+   "tested": "miner harness: _beltProgressPct(0,8)=0, (4,8)=50, (10,8)=100 capped, (3,0)=0; HUD and state expose beltProgressPct",
+   "title": "Belt progress percent — mined/quota as a percent (capped 100) in HUD and state"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-prestige-progress",
+   "tested": "tycoon/clicker harness: _prestigeProgressFor(0)={pct 0, remaining 5000}; (2500)={pct 50, remaining 2500}; (5000)={pct 100, remaining 0, canPrestige true}; state and panel show pct + remaining",
+   "title": "Prestige progress — percent toward 5,000 credits plus credits remaining, in state and the tycoon panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 141,
+ "totalFeatures": 145,
  "updated": "2026-11-01",
- "version": "3.21.0"
+ "version": "3.22.0"
 }
