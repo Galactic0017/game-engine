@@ -1,11 +1,11 @@
-:root { --violet: #50259c; --cyan: #00f6ff; --bg: #070b18; --panel: rgba(20, 26, 48, .72); --panel2: rgba(13, 18, 36, .85); --line: rgba(0, 246, 255, .22); --text: #e8ecf8; --muted: #9fb4d8; --gold: #ffd166; --green: #3ddc5f; --red: #ff5a5a; --amber: #ff9e00; }
+:root { --violet: #8b5cf6; --cyan: #ff6ec7; --bg: #0c0716; --panel: rgba(30, 17, 48, .78); --panel2: rgba(22, 12, 36, .88); --line: rgba(255, 110, 199, .28); --text: #f3ecfa; --muted: #c4b3dd; --gold: #ffcf5c; --green: #3ddc5f; --red: #ff5a5a; --amber: #ff9e00; }
 * { box-sizing: border-box; }
-body { margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #2a1a5e 0%, transparent 60%), radial-gradient(900px 500px at 0% 110%, #0a3a4d 0%, transparent 55%), var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; }
+body { margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #6d28d9 0%, transparent 60%), radial-gradient(900px 500px at 0% 110%, #9d174d 0%, transparent 55%), var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; }
 a { color: var(--cyan); }
-button { background: linear-gradient(180deg, #3b2a7a, #241a52); color: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-size: 14px; }
+button { background: linear-gradient(180deg, #7c3aed, #4c1d95); color: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-size: 14px; }
 button:hover:not(:disabled) { border-color: var(--cyan); }
 button:disabled { opacity: .45; cursor: not-allowed; }
-button.primary { background: linear-gradient(180deg, #00b3c4, #007a8a); }
+button.primary { background: linear-gradient(180deg, #ec4899, #9d174d); }
 button.danger { background: linear-gradient(180deg, #7a2a2a, #521a1a); }
 button.ghost { background: transparent; }
 input, select, textarea { background: #0b1124; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; width: 100%; }
@@ -222,3 +222,20 @@ body[data-reduced-motion="on"] .hubLoaderBar>div{transition:none}
 .railPane { display: none; }
 .railPane.active { display: block; }
 .railPane h3:first-child { margin-top: 10px; }
+
+/* ---- Redesign: aurora-dusk theme + tabbed shell ---- */
+.centerTabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+.centerTabs button { flex: 1; min-width: 120px; }
+.centerTabs button.active { border-color: var(--cyan); background: linear-gradient(180deg, #4a1042, #2a0a24); }
+.centerPane { display: none; }
+.centerPane.active { display: block; }
+.railTabs button.active { border-color: var(--cyan); background: linear-gradient(180deg, #4a1042, #2a0a24); }
+nav.tabs button.active { border-color: var(--cyan); background: linear-gradient(180deg, #3b1a4d, #1c0b28); }
+.gameSideTabs button.active { border-color: var(--gold); background: linear-gradient(180deg, #4a1042, #2a0a24); }
+.banner { background: linear-gradient(90deg, rgba(255,110,199,.16), rgba(139,92,246,.28)); }
+.featured::after { background: linear-gradient(180deg, rgba(12,7,22,.25), rgba(12,7,22,.88) 78%); }
+button.tagChip.active { background: #db2777; border-color: #db2777; }
+.gameCard:hover:not(:disabled) { border-color: var(--cyan); box-shadow: 0 0 14px rgba(255,110,199,.25); }
+.hubLoaderBar>div { background: linear-gradient(90deg, var(--cyan), var(--violet)); }
+.progress > div, .statBar > div { background: linear-gradient(90deg, var(--cyan), var(--violet)); }
+.toast { border-left-color: var(--cyan); }
