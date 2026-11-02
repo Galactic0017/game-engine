@@ -808,6 +808,16 @@
     if (name === 'ceo' && window.CeoUI) window.CeoUI.mountGate(document.getElementById('ceoGate'), document.getElementById('ceoPanel'), ctx);
   }
   document.querySelectorAll('nav.tabs button').forEach(function (b) { b.addEventListener('click', function () { showView(b.getAttribute('data-nav')); }); });
+  /* Rail tabs: right sidebar grouped into Social / You / Play panes.
+   * Wallet widget stays pinned above the tabs. Safe on stale HTML:
+   * with no #railTabs buttons the loops below simply do nothing. */
+  var railTab = 'social';
+  function showRailTab(name) {
+    railTab = name;
+    document.querySelectorAll('#railTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-rail') === name); });
+    document.querySelectorAll('.railPane').forEach(function (p) { p.classList.toggle('active', p.id === 'railPane-' + name); });
+  }
+  document.querySelectorAll('#railTabs button').forEach(function (b) { b.addEventListener('click', function () { showRailTab(b.getAttribute('data-rail')); }); });
   async function init() {
     try { var refParam = new URLSearchParams(window.location.search).get('ref'); if (refParam) localStorage.setItem('game-referral', refParam); } catch (e) {}
     var startGame = 'cosmos-btd';
