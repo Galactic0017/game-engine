@@ -1523,10 +1523,40 @@
       "title": "Tycoon overseers per prestige",
       "description": "Assigned overseers per prestige taken, in the game state and the panel.",
       "tested": "Harness: helper 0/2/2.3/zero-prestige cases; state exposes 2 with 4 overseers and 2 prestiges; panel line render-checked."
+    },
+    {
+      "id": "btd-gold-per-minute",
+      "title": "BTD gold per minute",
+      "description": "Current gold held per minute of run time, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-time cases; HUD + state expose 60 at 120 gold / 120s."
+    },
+    {
+      "id": "shooter-shots-per-boss",
+      "title": "Shooter shots per boss",
+      "description": "Firing volleys per boss defeated, in the HUD, game state and the game-over screen.",
+      "tested": "Harness: helper 0/2.5/2.3/zero-boss cases; HUD + state 2.5 at 5 shots / 2 bosses; game-over line marker-checked."
+    },
+    {
+      "id": "miner-cargo-value-per-minute",
+      "title": "Miner cargo value per minute",
+      "description": "Scanner-adjusted cargo value held per minute of shift time, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-time cases; HUD + state expose 60 at 120 cargo value / 120s."
+    },
+    {
+      "id": "clicker-golden-per-shard",
+      "title": "Clicker golden per shard",
+      "description": "Golden shard events per shard currently held (unbanked + banked), in the game state and the panel milestone line.",
+      "tested": "Harness: helper 0/0.5/1/zero-held cases; state matches the helper; panel line render-checked."
+    },
+    {
+      "id": "tycoon-rigs-per-prestige",
+      "title": "Tycoon rigs per prestige",
+      "description": "Owned rigs per prestige taken, in the game state and the panel.",
+      "tested": "Harness: helper 0/2/2.3/zero-prestige cases; state exposes 2 with 4 rigs and 2 prestiges; panel line render-checked."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 254,
+  "totalFeatures": 259,
   "updated": "2026-11-02",
-  "version": "3.44.0"
+  "version": "3.45.0"
 }
