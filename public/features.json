@@ -1433,10 +1433,40 @@
       "title": "Center tabs",
       "description": "Everything below the game screen organized into Your Games, Guide and Details tabs; inspecting a tower opens Details.",
       "tested": "Harness: center tab bar and panes in served HTML; switching and auto-open in served shell code."
+    },
+    {
+      "id": "btd-score-per-minute",
+      "title": "BTD score per minute",
+      "description": "Average score earned per minute of run time (time since the first wave started), in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-time cases; HUD + state expose 60 at 120 score over 120s of run time."
+    },
+    {
+      "id": "shooter-bosses-per-minute",
+      "title": "Shooter bosses per minute",
+      "description": "Bosses defeated per minute of run time, in the HUD, game state and the game-over screen.",
+      "tested": "Harness: helper 0/60/2.3/zero-time cases; HUD + state expose 1 at 2 bosses over 120s; game-over line marker-checked in the server test."
+    },
+    {
+      "id": "miner-credits-per-minute",
+      "title": "Miner credits per minute",
+      "description": "Current unbanked credits held per minute of shift time, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-time cases; HUD + state expose 60 at 120 credits over 120s of shift time."
+    },
+    {
+      "id": "clicker-clicks-per-shard",
+      "title": "Clicker clicks per shard",
+      "description": "Total clicks per shard currently held (unbanked + banked), in the game state and the panel milestone line.",
+      "tested": "Harness: helper 0/1/2.3/zero-held cases; state matches the helper; panel line render-checked."
+    },
+    {
+      "id": "tycoon-earnings-per-prestige",
+      "title": "Tycoon earnings per prestige",
+      "description": "Earnings rate (after prestige + overseer boosts) per prestige taken, in the game state and the panel.",
+      "tested": "Harness: helper 0/15/zero-rigs cases; state exposes 15 with one level-2 rig and 2 prestiges; panel line render-checked."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 239,
+  "totalFeatures": 244,
   "updated": "2026-11-02",
-  "version": "3.41.1"
+  "version": "3.42.0"
 }
