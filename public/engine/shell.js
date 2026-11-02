@@ -133,32 +133,76 @@
     el.querySelectorAll('[data-lb]').forEach(function (btn) { btn.addEventListener('click', function () { leaderGame = btn.getAttribute('data-lb'); renderLeaderMini(); }); });
     el.querySelectorAll('[data-season]').forEach(function (btn) { btn.addEventListener('click', function () { leaderSeason = btn.getAttribute('data-season'); renderLeaderMini(); }); });
   }
-  /* Batch 11: friend challenges (duel invites with accept/decline +
-   * async results), referral code display, and the PNG share card.
-   * All three are shell-only views over the server endpoints; the
-   * canvas snapshot is best-effort (a tainted canvas throws and
-   * only shows a toast — the game keeps running). */
+  /* Batch 18: live duel races (polling), credits-only entry fee,
+   * duel history + rematch. Polling updates only the live score/clock
+   * spans so a score being typed is never wiped by a re-render. */
+  var duelPollTimer = null, duelPollId = null;
+  function stopDuelPolling() { if (duelPollTimer) { clearInterval(duelPollTimer); duelPollTimer = null; duelPollId = null; } }
+  async function pollLiveDuel() {
+    var box = document.getElementById('challengeBox'); if (!box || !duelPollId || !ctx.player) { stopDuelPolling(); return; }
+    try {
+      var r = await api('/api/duels/' + duelPollId + '/live?address=' + encodeURIComponent(ctx.player.address));
+      var d = r.duel;
+      var mineFirst = d.challenger === ctx.player.address;
+      var scoreEl = box.querySelector('[data-live-scores="' + d.id + '"]');
+      if (scoreEl) scoreEl.textContent = 'You ' + (mineFirst ? d.liveScores.challenger : d.liveScores.rival) + ' — Rival ' + (mineFirst ? d.liveScores.rival : d.liveScores.challenger) + ' · leader: ' + (d.leader === 'tie' ? 'tied' : d.leader === 'challenger' ? (d.challengerName || 'challenger') : (d.rivalName || 'rival'));
+      var clockEl = box.querySelector('[data-live-clock="' + d.id + '"]');
+      if (clockEl) clockEl.textContent = d.secondsLeft + 's left';
+      if (d.status !== 'live') { stopDuelPolling(); renderChallenges(); refreshState(); }
+    } catch (e) { /* polling is best-effort; the panel stays until the next render */ }
+  }
+  function startDuelPolling(id) {
+    if (duelPollId === id && duelPollTimer) return;
+    stopDuelPolling(); duelPollId = id;
+    duelPollTimer = setInterval(pollLiveDuel, 5000);
+  }
+  function applyDuelSeed(seed) {
+    var handle = ctx.host && ctx.host.current && ctx.host.current.handle;
+    if (handle && handle.setDuelSeed) { handle.setDuelSeed(seed); toast('Duel seed applied: ' + seed + '. Both players share this seed.', 'ok'); }
+    else toast('Load Cosmos BTD first, then apply seed ' + seed + '.', 'warn');
+  }
   async function renderChallenges() {
     var box = document.getElementById('challengeBox'); if (!box) return;
-    if (!ctx.player) { box.innerHTML = '<p class="muted small">Connect your wallet to send or answer duel invites.</p>'; return; }
-    var duels = [];
+    if (!ctx.player) { stopDuelPolling(); box.innerHTML = '<p class="muted small">Connect your wallet to send or answer duel invites.</p>'; return; }
+    var duels = [], history = [];
     try { var r = await api('/api/duels?address=' + encodeURIComponent(ctx.player.address)); duels = r.duels || []; } catch (e) {}
+    try { var hr = await api('/api/duels/history?address=' + encodeURIComponent(ctx.player.address)); history = hr.history || []; } catch (e) {}
     var me = ctx.player.address;
+    var feeOpts = (ctx.config && ctx.config.duels && ctx.config.duels.entryFees) || [0, 50, 100, 250];
     var rows = duels.slice(0, 5).map(function (d) {
       var other = d.challenger === me ? d.rival : d.challenger;
       var otherName = d.challenger === me ? (d.rivalName || shortAddr(d.rival)) : (d.challengerName || shortAddr(d.challenger));
-      var statusText = d.status === 'pending' ? (d.rivalResponse === 'accepted' ? 'Accepted — awaiting result' : 'Invite pending') : d.status.replace(/_/g, ' ');
+      var feeText = (d.entryFee || 0) > 0 ? ' · fee ' + d.entryFee + ' credits' : ' · free';
+      var seedText = d.seed ? ' · seed ' + d.seed : '';
+      var statusText = d.status === 'live' ? 'LIVE RACE' : d.status === 'pending' ? (d.rivalResponse === 'accepted' ? 'Accepted — start the race' : 'Invite pending') : d.status.replace(/_/g, ' ');
       var actions = '';
       if (d.status === 'pending' && d.rival === me && !d.rivalResponse) actions = '<button data-accept="' + d.id + '">Accept</button> <button data-decline="' + d.id + '" class="ghost">Decline</button>';
-      else if (d.status === 'pending' && d.challenger === me) actions = '<input data-score="' + d.id + '" type="number" min="0" max="100000" placeholder="Your score" style="width:110px"> <button data-result="' + d.id + '">Submit result</button>';
-      return '<div class="questCard"><strong>' + esc(otherName) + '</strong> <span class="small muted">' + esc(shortAddr(other)) + ' · ' + esc(statusText) + (d.score != null ? ' · score ' + d.score : '') + '</span><p style="margin:6px 0 0">' + actions + '</p></div>';
+      else if (d.status === 'pending' && d.rivalResponse === 'accepted') {
+        actions = '<button data-start="' + d.id + '" class="primary">Start live race (10 min)</button> ';
+        if ((d.entryFee || 0) === 0 && d.challenger === me) actions += '<input data-score="' + d.id + '" type="number" min="0" max="100000" placeholder="Your score" style="width:110px"> <button data-result="' + d.id + '">Submit result</button>';
+      }
+      else if (d.status === 'live') {
+        var mineFirst = d.challenger === me;
+        actions = '<span class="small" data-live-scores="' + d.id + '">You ' + (mineFirst ? d.liveScores.challenger : d.liveScores.rival) + ' — Rival ' + (mineFirst ? d.liveScores.rival : d.liveScores.challenger) + '</span> <span class="small muted" data-live-clock="' + d.id + '">' + (d.secondsLeft || 0) + 's left</span><br>'
+          + '<input data-live-score="' + d.id + '" type="number" min="0" max="100000" placeholder="Your live score" style="width:130px"> <button data-live-post="' + d.id + '">Post score</button> <button data-live-finish="' + d.id + '" class="primary">Finish race</button> <button data-seed="' + d.id + '" class="ghost">Apply seed</button>';
+      }
+      return '<div class="questCard"><strong>' + esc(otherName) + '</strong> <span class="small muted">' + esc(shortAddr(other)) + ' · ' + esc(statusText) + esc(feeText) + esc(seedText) + (d.score != null && d.status !== 'live' ? ' · score ' + d.score : '') + (d.payout ? ' · payout ' + d.payout + ' credits' : '') + '</span><p style="margin:6px 0 0">' + actions + '</p></div>';
     }).join('');
-    box.innerHTML = '<label>Challenge a friend by address</label><input id="challengeAddr" type="text" placeholder="cosmos1… rival address"><p><button id="btnChallenge" class="primary">Send duel invite</button></p>' + (rows || '<p class="muted small">No duels yet.</p>');
+    var histRows = history.slice(0, 5).map(function (d) {
+      var outcome = d.outcome === 'won' ? '🏆 Won' : d.outcome === 'lost' ? 'Lost' : d.outcome === 'draw' ? 'Draw' : 'Declined';
+      return '<div class="questCard"><strong>' + esc(d.opponentName || shortAddr(d.opponent)) + '</strong> <span class="small muted">' + esc(outcome) + ' · ' + d.myScore + '–' + d.opponentScore + ' · fee ' + (d.entryFee || 0) + (d.payout ? ' · payout ' + d.payout : '') + ' · seed ' + (d.seed || 0) + '</span> <button data-rematch="' + d.id + '" class="ghost">Rematch</button></div>';
+    }).join('');
+    box.innerHTML = '<label>Challenge a friend by address</label><input id="challengeAddr" type="text" placeholder="cosmos1… rival address"><label>Entry fee (credits only — winner takes most)</label><select id="challengeFee">' + feeOpts.map(function (f) { return '<option value="' + f + '">' + (f === 0 ? 'Free (0)' : f + ' credits') + '</option>'; }).join('') + '</select><p><button id="btnChallenge" class="primary">Send duel invite</button></p>' + (rows || '<p class="muted small">No duels yet.</p>') + '<h4 style="margin-top:10px">Duel history</h4>' + (histRows || '<p class="muted small">No finished duels yet.</p>');
+    var live = null;
+    for (var i = 0; i < duels.length; i++) if (duels[i].status === 'live') { live = duels[i]; break; }
+    if (live) startDuelPolling(live.id); else stopDuelPolling();
     var sendBtn = document.getElementById('btnChallenge');
     if (sendBtn) sendBtn.addEventListener('click', async function () {
       var rival = (document.getElementById('challengeAddr').value || '').trim();
       if (!rival || rival.indexOf('cosmos1') !== 0) return toast('Enter a valid rival Cosmos address (cosmos1…).', 'warn');
-      try { await api('/api/duels', 'POST', { challengerAddress: me, rivalAddress: rival }); toast('Duel invite sent to ' + shortAddr(rival) + '.', 'ok'); renderChallenges(); } catch (e) { toast(e.message, 'err'); }
+      var feeEl = document.getElementById('challengeFee');
+      var entryFee = feeEl ? Number(feeEl.value) || 0 : 0;
+      try { await api('/api/duels', 'POST', { challengerAddress: me, rivalAddress: rival, entryFee: entryFee }); toast('Duel invite sent to ' + shortAddr(rival) + (entryFee ? ' · ' + entryFee + ' credit entry fee, held at race start.' : '.'), 'ok'); renderChallenges(); } catch (e) { toast(e.message, 'err'); }
     });
     box.querySelectorAll('[data-accept]').forEach(function (btn) { btn.addEventListener('click', async function () { try { await api('/api/duels/respond', 'POST', { duelId: btn.getAttribute('data-accept'), address: me, accept: true }); toast('Duel accepted.', 'ok'); renderChallenges(); } catch (e) { toast(e.message, 'err'); } }); });
     box.querySelectorAll('[data-decline]').forEach(function (btn) { btn.addEventListener('click', async function () { try { await api('/api/duels/respond', 'POST', { duelId: btn.getAttribute('data-decline'), address: me, accept: false }); toast('Duel declined.', 'ok'); renderChallenges(); } catch (e) { toast(e.message, 'err'); } }); });
@@ -168,6 +212,30 @@
       var score = input ? Number(input.value) : 0;
       if (!score) return toast('Enter your score first.', 'warn');
       try { var res = await api('/api/duels/result', 'POST', { duelId: id, address: me, score: score }); toast(res.won ? 'You won the duel! +150 credits, +100 XP.' : 'Duel decided: rival best was ' + res.rivalBest + '. +20 XP.', res.won ? 'ok' : 'warn'); renderChallenges(); refreshState(); } catch (e) { toast(e.message, 'err'); }
+    }); });
+    box.querySelectorAll('[data-start]').forEach(function (btn) { btn.addEventListener('click', async function () {
+      var id = btn.getAttribute('data-start');
+      try { var res = await api('/api/duels/start', 'POST', { duelId: id, address: me }); toast('Live race started! Seed ' + res.duel.seed + ' · ' + (res.duel.secondsLeft || res.duel.raceSeconds) + 's. Play Cosmos BTD now.', 'ok'); applyDuelSeed(res.duel.seed); renderChallenges(); refreshState(); } catch (e) { toast(e.message, 'err'); }
+    }); });
+    box.querySelectorAll('[data-live-post]').forEach(function (btn) { btn.addEventListener('click', async function () {
+      var id = btn.getAttribute('data-live-post');
+      var input = box.querySelector('[data-live-score="' + id + '"]');
+      var score = input ? Number(input.value) : 0;
+      if (!score && !(ctx.hud && ctx.hud.score)) return toast('Enter your live score first.', 'warn');
+      var wave = (ctx.currentGame === 'cosmos-btd' && ctx.hud) ? (ctx.hud.wave || 0) : undefined;
+      try { await api('/api/duels/live', 'POST', { duelId: id, address: me, score: score || ctx.hud.score, wave: wave }); toast('Live score posted.', 'ok'); pollLiveDuel(); } catch (e) { toast(e.message, 'err'); }
+    }); });
+    box.querySelectorAll('[data-live-finish]').forEach(function (btn) { btn.addEventListener('click', async function () {
+      var id = btn.getAttribute('data-live-finish');
+      try { var res = await api('/api/duels/finish', 'POST', { duelId: id, address: me }); toast(res.isDraw ? 'Duel drawn — entry fees refunded.' : res.winner === me ? 'You won the race! Payout recorded.' : 'Race finished — the rival won.', res.winner === me ? 'ok' : 'warn'); renderChallenges(); refreshState(); } catch (e) { toast(e.message, 'err'); }
+    }); });
+    box.querySelectorAll('[data-seed]').forEach(function (btn) { btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-seed');
+      var d = null; for (var k = 0; k < duels.length; k++) if (duels[k].id === id) d = duels[k];
+      if (d) applyDuelSeed(d.seed);
+    }); });
+    box.querySelectorAll('[data-rematch]').forEach(function (btn) { btn.addEventListener('click', async function () {
+      try { var res = await api('/api/duels/rematch', 'POST', { duelId: btn.getAttribute('data-rematch'), address: me }); toast('Rematch invite sent (seed ' + res.duel.seed + ').', 'ok'); renderChallenges(); } catch (e) { toast(e.message, 'err'); }
     }); });
   }
   async function renderReferral() {
