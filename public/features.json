@@ -1271,10 +1271,40 @@
    "id": "tycoon-rigs-per-overseer",
    "tested": "tycoon/clicker harness: _rigsPerOverseerFor(0,0)=0, (8,2)=4, (7,3)=2.3, (4,0)=0; getState exposes rigsPerOverseer and the panel shows the Rigs per overseer line",
    "title": "Rigs per overseer \u2014 owned rigs per assigned overseer, in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-hazard-slows-per-wave",
+   "tested": "BTD harness: _hazardSlowsPerWaveFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; HUD + state expose hazardSlowsPerWave",
+   "title": "Hazard slows per wave \u2014 average hazard-zone slows per wave, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-score-per-minute",
+   "tested": "shooter harness: _scorePerMinuteFor(0,0)=0, (120,120)=60, (7,180)=2.3, (10,0)=0; HUD + state + game-over line expose scorePerMinute",
+   "title": "Score per minute \u2014 score per minute of run time, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-banked-per-minute",
+   "tested": "miner harness: _bankedPerMinuteFor(0,0)=0, (120,120)=60, (7,180)=2.3, (10,0)=0; HUD + state expose bankedPerMinute",
+   "title": "Banked per minute \u2014 banked credits per minute of shift time, in HUD and state"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-clicks-per-milestone",
+   "tested": "tycoon/clicker harness: _clicksPerMilestoneFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; getState exposes clicksPerMilestone and the panel shows the Clicks/milestone line",
+   "title": "Clicks per milestone \u2014 average clicks per milestone hit, in state and the panel"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-credits-per-overseer",
+   "tested": "tycoon/clicker harness: _creditsPerOverseerFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; getState exposes creditsPerOverseer and the panel shows the Credits per overseer line",
+   "title": "Credits per overseer \u2014 current credits held per assigned overseer, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 212,
+ "totalFeatures": 217,
  "updated": "2026-11-02",
- "version": "3.37.0"
+ "version": "3.38.0"
 }
