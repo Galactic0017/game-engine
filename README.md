@@ -114,6 +114,10 @@ Platform & social: duel invites a rival can accept or decline before the challen
 
 Batch 10 (Space Shooter depth): drone/boss power-up drops (shield, rapid fire, spread shot, extra life), boss drone every 5 waves with a health bar, combo multiplier up to x3 (shield blocks preserve it), touch controls (virtual joystick + FIRE button on canvas), and a server shooter leaderboard (per-game bests via /api/progress, Shooter filter in Top Players). Tests: server 29/29, BTD 146/146, shooter harness pass incl. Batch 10 checks.
 
+## v3.15.2 — 2026-11-01 (4 more, 118 tracked features)
+
+Every game now has tags: chips on the cards and info window, a tag filter row, and search that matches tags. Games that fail to load no longer leave a broken open state — the engine clears the viewport and stays usable. Removed the unreferenced Voidfall files (app.js, game.js, styles.css), the dead Dockerfile/Procfile/railway.toml deploy configs, and the legacy Defend ATOM entry from the server config; fixed the stale demo description.
+
 ## v3.8.1 — 2026-11-01 (1 more, 86 tracked features)
 
 Keplr only: the other wallet option was removed from the UI, wallet detection, signing and all wording. Players connect with Keplr.

@@ -20,6 +20,13 @@ Honest limits: season bests are recorded only from this version on (no backfill 
 
 Honest limits: power-up/boss/combo/touch visuals are canvas draw code, harness-verified via state/HUD helpers only (no browser screenshot or real-device touch check); shooter score submission uses the legacy /api/progress endpoint (not the hashed secure path, which stays BTD-only); the shell's Shooter leaderboard filter and game-over submission are code-reviewed only (no browser/DOM harness for the shell).
 
+## v3.15.2 — 2026-11-01 — 4 features (118 total)
+
+| Area | Features |
+|---|---|
+| Hub UI (2) | Game tags on every game (chips on cards + info window), tag filter + search by tag |
+| Engine (2) | Engine open fail-safe (failed loads throw before opening), legacy cleanup (dead files/configs removed) |
+
 ## v3.8.1 — 2026-11-01 — 1 feature (86 total)
 
 | Area | Features |

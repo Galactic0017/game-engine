@@ -176,6 +176,13 @@ Space Shooter depth (was Batch 6)
 Tests: server 29/29 (25 prior + 4 shooter), BTD 146/146, shooter harness pass incl. Batch 10 checks (combo 275, shield block, 4 power-up kinds, boss kill 750+350 wave-clear, joystick + fire). Serve check pending at push time; live /api/config verification after push.
 Limits: power-up/boss/combo/touch visuals are canvas code, harness-verified via state/HUD only (no browser screenshot or real-device touch check); shooter submission uses legacy /api/progress, not the hashed secure path (BTD-only); shell submission + leaderboard filter are code-reviewed only (no shell DOM harness).
 
+## Cleanup + tags — DONE 2026-11-01 — v3.15.2 (4 features, 118 total)
+- [x] Game tags (manifests + server config + registry), tag chips on cards/info window, tag filter row, search matches tags.
+- [x] Engine open fail-safe: failed module load throws before the engine marks it open; shell clears the viewport on open failure.
+- [x] Legacy cleanup: deleted public/app.js, public/game.js, public/styles.css, Dockerfile, Procfile, railway.toml; removed the legacy Defend ATOM config entry; fixed the stale demo description in package.json.
+- Tests: server 25/25, BTD harness, shooter pass, wallet harness, tags harness, serve 200s.
+- Limits: tag chips/filter rendering code-reviewed only (no browser screenshot); tag filter state is not persisted.
+
 ## Batch 11 — DONE 2026-11-01 — v3.10.0 (4 features, 95 total)
 Platform & social (was Batch 7)
 - [x] Friend challenges: send a duel invite by address, async results.
@@ -303,3 +310,5 @@ Live status: see Run log.
 - 2026-11-01 18:05 EST: Batch 14 static re-check at run start: API/config live 3.13.0, but miner.js still 404 live and served features.json stale — Batch 14 statics NOT live (same one-deployment lag as Batches 11/13). Batch 15 built locally (v3.14.0, Performance): server 111/111, BTD 156/156, shooter pass, miner pass. Push via browser task; verify /api/config shows 3.14.0 and served miner.js + features.json show Batch 14/15 markers. NOTE: the staged tags/cleanup patch was NOT applied in this run either — it is separate from Batch 15 and must wait for a run without the loop lock.
 - 2026-11-01 19:00 EST: Batch 16 run start: health/config 200, live 3.14.0 (real CEO address, asteroid-miner playable). Batch 14 statics RESOLVED (miner.js live). Batch 15 statics STILL LAGGING: served features.json is 3.13.0/107 (no Batch 15 entries) — same one-deployment static lag as Batches 11/13; this run's push should deploy them. No re-push of Batch 15 files alone.
 - 2026-11-01 19:19 EST: Batch 16 built locally (v3.15.0, Accessibility & mobile): server 116/116, BTD 184/184, shooter pass, miner pass. Push via browser task; verify /api/config shows 3.15.0 and served features.json shows 3.15.0/114 (which also confirms Batch 15 statics deployed).
+- 2026-11-01 19:31 EST (delivery check): Batch 16 VERIFIED LIVE in substance — /api/config 3.15.0 (real CEO address), served btd.js has all Batch 16 markers (colorblind/crosshair/reduced-motion), served shell.js has GameScriptLoader (Batch 15 lazy-load live), served index has Batch 15 comment. Served /features.json still lags at 3.14.0/110 (local 3.15.0/114) — Updates view only. Batch 16 worker lock was stale (written 19:00:01 EST, no edits since 19:19 EST); lock cleared for manual tags/cleanup apply.
+- 2026-11-01: Cleanup + tags built locally (v3.15.2) after the Batch 10 run finished. Tests: server 25/25, BTD harness, shooter pass, wallet harness, tags harness. Push via browser task (replace 12 files + delete 6 dead files); verify /api/config shows 3.15.2 with tags and no legacy entry.
