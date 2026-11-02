@@ -1211,10 +1211,40 @@
    "id": "clicker-shards-per-golden",
    "tested": "tycoon/clicker harness: _shardsPerGoldenFor(10,20,2)=15, (7,0,3)=2.3, (5,5,0)=0; getState exposes shardsPerGolden and the panel shows the Shards/golden line",
    "title": "Shards per golden \u2014 held shards per golden shard event, in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-score-per-hero-kill",
+   "tested": "BTD harness: _scorePerHeroKillFor(100,4)=25, (7,3)=2.3, (10,0)=0; HUD + state expose scorePerHeroKill",
+   "title": "Score per hero kill \u2014 average score per hero kill, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-boss-share",
+   "tested": "shooter harness: _bossShareFor(25,100)=25, (1,3)=33.3, caps at 100; HUD + state expose bossShare and the game-over screen shows the Boss share line",
+   "title": "Boss share \u2014 bosses defeated as a percent of kills, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-mined-per-rich-vein",
+   "tested": "miner harness: _minedPerRichVeinFor(100,4)=25, (7,3)=2.3, (10,0)=0; HUD + state expose minedPerRichVein",
+   "title": "Mined per rich vein \u2014 average ore mined per rich-vein trigger, in HUD and state"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-banked-per-golden",
+   "tested": "tycoon/clicker harness: _bankedPerGoldenFor(20,2)=10, (7,3)=2.3, (5,0)=0; getState exposes bankedPerGolden and the panel shows the Banked/golden line",
+   "title": "Banked per golden \u2014 banked shards per golden shard event, in state and the panel"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-lifetime-per-overseer",
+   "tested": "tycoon/clicker harness: _lifetimePerOverseerFor(100,4)=25, (7,3)=2.3, (10,0)=0; getState exposes lifetimePerOverseer and the panel shows the Lifetime per overseer line",
+   "title": "Lifetime per overseer \u2014 lifetime credits earned per assigned overseer, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 202,
+ "totalFeatures": 207,
  "updated": "2026-11-02",
- "version": "3.35.0"
+ "version": "3.36.0"
 }
