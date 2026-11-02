@@ -760,6 +760,10 @@
     return out;
   }
   function upgradeCostFor(t) { return t.level >= 5 ? null : 80 + t.level * 60; }
+  /* Batch 21: total gold invested in a tower (base cost + linear
+   * upgrades + branch points). Towers placed before this batch have
+   * no invested field, so fall back to the base cost. */
+  function investedFor(t, def) { return t.invested || def.cost; }
   /* Branch upgrade (Batch 6): locks the tower to one branch, applies
    * the branch bonus, and returns false when unaffordable, locked, or
    * maxed. Requires tower level 2+ so the choice follows investment. */
@@ -771,6 +775,7 @@
     if (cost == null) return false;
     if (st.gold < cost) { if (st.opts.onToast) st.opts.onToast('Branch upgrade costs ' + cost + 'g.', 'warn'); return false; }
     st.gold -= cost;
+    t.invested = investedFor(t, TOWER_DEFS[t.kind]) + cost;
     t.branch = branch;
     t.paths = t.paths || { speed: 0, power: 0 };
     t.paths[branch] = (t.paths[branch] || 0) + 1;
@@ -799,7 +804,7 @@
       upgradeCost: cost,
       nextDmg: t.level >= 5 ? t.dmg : (t.level === 4 ? t.dmg + 2 : t.dmg + 1),
       nextRange: t.level >= 5 ? Math.round(t.range) : Math.round(t.range + (t.level === 4 ? 15 : 10)),
-      sellRefund: Math.floor(def.cost * 0.7),
+      sellRefund: Math.floor(investedFor(t, def) * 0.7),
       effectiveness: effectivenessFor(t, def),
       branch: t.branch || null,
       branchLevel: t.branch ? ((t.paths && t.paths[t.branch]) || 0) : 0,
@@ -1207,11 +1212,15 @@
     });
     return score < 40 ? 'Calm' : score < 150 ? 'Guarded' : score < 400 ? 'Dangerous' : 'Extreme';
   }
+  /* ---- Batch 21: boss-wave warning ---- * Boss waves are every
+   * 10th wave (waveComposition pushes -1 there). Exposed in the HUD
+   * as nextWaveBoss so the shell can warn before the wave starts. */
+  function isBossWave(w) { return w % 10 === 0; }
   function emitHud(st) { if (st.opts.onHud) st.opts.onHud(getHud(st)); }
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -1634,7 +1643,7 @@
     if (distToPath(x, y) <= 34) { if (st.opts.onToast) st.opts.onToast('Too close to the path.', 'warn'); return false; }
     for (var i = 0; i < st.towers.length; i++) if (dist(x, y, st.towers[i].x, st.towers[i].y) < 30) { if (st.opts.onToast) st.opts.onToast('Too close to another tower.', 'warn'); return false; }
     st.gold -= def.cost;
-    st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, recoil: 0, level: 1, canSeeCamo: !!def.camo, maxed: false, branch: null, paths: { speed: 0, power: 0 }, splashBonus: 0, evolved: false });
+    st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, recoil: 0, level: 1, canSeeCamo: !!def.camo, maxed: false, branch: null, paths: { speed: 0, power: 0 }, splashBonus: 0, evolved: false, invested: def.cost });
     var tw0 = st.towers[st.towers.length - 1]; tw0.ecsId = ecsAdd(st, 'tower', { position: tw0, combat: tw0, render: tw0 });
     st.audio.place(); st.placing = null; emitHud(st);
     return true;
@@ -1785,7 +1794,7 @@
     var t = st.selected; if (!t || t.level >= 5) return false;
     var cost = 80 + t.level * 60;
     if (st.gold < cost) { if (st.opts.onToast) st.opts.onToast('Upgrade costs ' + cost + 'g.', 'warn'); return false; }
-    st.gold -= cost; t.level++;
+    st.gold -= cost; t.invested = investedFor(t, TOWER_DEFS[t.kind]) + cost; t.level++;
     t.evolved = t.level >= 4;
     if (t.level >= 5) { t.dmg += 2; t.range += 15; t.rate = Math.max(0.22, t.rate * 0.85); t.maxed = true; }
     else { t.dmg += 1; t.range += 10; t.rate = Math.max(0.25, t.rate * 0.9); }
@@ -1794,7 +1803,7 @@
   function sellSelected(st) {
     var t = st.selected; if (!t) return false;
     var def = TOWER_DEFS[t.kind];
-    st.gold += Math.floor(def.cost * 0.7);
+    st.gold += Math.floor(investedFor(t, def) * 0.7);
     if (t.ecsId) ecsRemove(st, t.ecsId);
     st.towers.splice(st.towers.indexOf(t), 1); st.selected = null; emitHud(st); return true;
   }
@@ -1839,7 +1848,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.17.0', description: 'Space tower defense: protect the ATOM orb across 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. v3.8.0: space ATOM-orb battlefield with glowing energy lane. Dev tools: custom-track map editor, JSON mod loader, debug stats. Batch 16: colorblind palette + labels, reduced-motion mode, keyboard-only placement, larger touch targets. Batch 18: shared duel seed for live duel races.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.20.0', description: 'Space tower defense: protect the ATOM orb across 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. v3.8.0: space ATOM-orb battlefield with glowing energy lane. Dev tools: custom-track map editor, JSON mod loader, debug stats. Batch 16: colorblind palette + labels, reduced-motion mode, keyboard-only placement, larger touch targets. Batch 18: shared duel seed for live duel races. Batch 21: sell refund counts full investment, boss-wave warning.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _waveDangerRating: waveDangerRating, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded, _spriteCacheStats: spriteCacheStats, _clearSpriteCache: clearSpriteCache, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle, _addShake: addShake, _displayBalloonType: displayBalloonType, COLORBLIND_PALETTE: COLORBLIND_PALETTE, _balloonPopColor: balloonPopColor, _setDuelSeed: setDuelSeed, _duelSeed: duelSeed, _rnd: rnd };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _waveDangerRating: waveDangerRating, _isBossWave: isBossWave, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded, _spriteCacheStats: spriteCacheStats, _clearSpriteCache: clearSpriteCache, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle, _addShake: addShake, _displayBalloonType: displayBalloonType, COLORBLIND_PALETTE: COLORBLIND_PALETTE, _balloonPopColor: balloonPopColor, _setDuelSeed: setDuelSeed, _duelSeed: duelSeed, _rnd: rnd };
 })(typeof window !== 'undefined' ? window : globalThis);
