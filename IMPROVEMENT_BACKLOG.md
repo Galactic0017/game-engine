@@ -752,3 +752,6 @@ Live status: see Run log.
 
 ## Extra 3D/realism 3.49.11 (user: make it 3D and more realistic)
 - DONE 3.49.11: light wash, corner foliage frame, path shadows, pond reflections. True WebGL 3D / UE5 cannot run on this web stack — deepest 2.5D Canvas look instead. Auto-improve loop stays DISABLED.
+
+## 3D rebuild stage 1 — 3.49.12 (user: rebuild in real 3D, make it very good)
+- DONE 3.49.12: Three.js r147 vendored, btd3d.js renderer, wiring patch applied, preload chain in shell.js, 2D fallback intact. UE5 cannot run on this website. Stage 2 still open: attack beams, floaters, range-ring visuals, ghost polish, hero/weather/ability FX in 3D, win/lose screens. Auto-improve loop stays DISABLED.
