@@ -1010,7 +1010,7 @@
     document.addEventListener('keydown', _gestureOnce);
     document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
-    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); closeShortcuts(); setInspectorOpen(false); } else if (ev.key === '?') { var t = ev.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return; toggleShortcuts(); } });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); closeShortcuts(); setInspectorOpen(false); var _lmEsc = document.getElementById('libMenu'); if (_lmEsc) _lmEsc.hidden = true; } else if (ev.key === '?') { var t = ev.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return; toggleShortcuts(); } });
     bus.on('wallet:connected', function () { renderWallet(); });
     bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
     bus.on('wallet:balance', function () { renderWallet(); });
@@ -1066,6 +1066,7 @@
     var _lh = document.getElementById('btnListHero'); if (_lh) _lh.addEventListener('click', function () { if (!ctx.player) { toast('Connect your wallet first.', 'warn'); return; } showView('marketplace'); });
     var _ts2 = document.getElementById('btnTopSettings'); if (_ts2) _ts2.addEventListener('click', openSettings);
     var _lm = document.getElementById('btnLibMenu'); if (_lm) _lm.addEventListener('click', function () { var m = document.getElementById('libMenu'); if (m) m.hidden = !m.hidden; });
+    document.addEventListener('click', function (ev) { var m = document.getElementById('libMenu'); if (!m || m.hidden) return; var tg = ev.target; if (tg && tg.closest && (tg.closest('#libMenu') || tg.closest('#btnLibMenu'))) return; m.hidden = true; });
     document.querySelectorAll('#libMenu [data-libmenu]').forEach(function (b) { b.addEventListener('click', function () { var m = document.getElementById('libMenu'); if (m) m.hidden = true; var k = b.getAttribute('data-libmenu'); if (k === 'updates') showView('updates'); else if (k === 'settings') openSettings(); else if (k === 'shortcuts') toggleShortcuts(); }); });
     setInterval(renderPerf, 500);
     updateHubLoader(100, 'Ready');
