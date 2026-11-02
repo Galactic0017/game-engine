@@ -1,12 +1,12 @@
 {
  "canvas": true,
- "description": "Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed. Dev tools: map editor, mod loader, debug console. Batch 18: shared duel seed (setDuelSeed) for live duel races. Batch 20: selected splash ring + next-wave danger rating. Batch 21: invested sell refunds + boss-wave warning. Batch 22: hero XP progress to the next level. Batch 23: balloons-remaining counter. Batch 24: army value (total gold invested in towers).",
+ "description": "Space tower defense: protect the ATOM orb across 50 waves \u2014 8 towers, heroes, targeting, 1x-3x speed. Dev tools: map editor, mod loader, debug console. Batch 18: shared duel seed (setDuelSeed) for live duel races. Batch 20: selected splash ring + next-wave danger rating. Batch 21: invested sell refunds + boss-wave warning. Batch 22: hero XP progress to the next level. Batch 23: balloons-remaining counter. Batch 24: army value (total gold invested in towers). Batch 25: pops-per-wave average.",
  "image": "assets/sprites/battlefield.jpg",
  "entry": "btd.js",
  "id": "cosmos-btd",
  "maxWaves": 50,
  "name": "Cosmos BTD",
- "version": "3.23.0",
+ "version": "3.24.0",
  "tags": [
   "Tower Defense",
   "Space",
