@@ -4,6 +4,12 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.39.1 — Right sidebar tabs
+
+- Right sidebar organized into Social / You / Play tabs; wallet pinned above.
+- Social (default): Friends, Challenges, Referral. You: Profile, My Heroes, Quests, Achievements. Play: Top Players, Recently Played, Settings.
+- All 10 sidebar box ids preserved; render functions untouched; tab switching mirrors the existing showView pattern.
+
 ## v3.30.1 — 2026-11-01 — 5 features (182 total)
 
 Solo engine: in-screen game side panel (Towers/Upgrades/Hero/Play tabs + tower shop inside the screen), HUD strip, open-in-new-tab (?game=), Friends rail from real duel history, professional 1200x630 share image + description. All games shown are the user's own games, with real art and real data only.
