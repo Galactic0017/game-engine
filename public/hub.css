@@ -188,3 +188,14 @@ body[data-reduced-motion="on"] .heroCard.equipped img, body[data-reduced-motion=
 .tagRow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 .tagChip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;background:rgba(11,17,36,.8);color:var(--text);cursor:pointer}
 button.tagChip.active{background:#7c3aed;border-color:#7c3aed;color:#fff}
+
+/* ---- Batch 19: hub loading screen + footer ---- */
+.hubLoader{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:radial-gradient(900px 500px at 50% 30%,#2a1a5e 0%,transparent 60%),var(--bg)}
+.hubLoaderInner{width:min(420px,90vw);text-align:center}
+.hubLoaderLogo{font-size:32px;font-weight:800;letter-spacing:1px;margin-bottom:16px}
+.hubLoaderBar{height:10px;background:#1a2342;border:1px solid var(--line);border-radius:99px;overflow:hidden}
+.hubLoaderBar>div{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width .35s ease}
+.hubLoaderPct{margin-top:8px;font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.hubLoaderTip{color:var(--muted);font-size:13px;min-height:36px}
+body[data-reduced-motion="on"] .hubLoaderBar>div{transition:none}
+#hubFooter a{margin:0 2px}
