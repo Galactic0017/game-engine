@@ -214,3 +214,11 @@ body[data-reduced-motion="on"] .hubLoaderBar>div{transition:none}
 .gameSide .towerBtn { flex-direction: column; align-items: center; text-align: center; padding: 8px 4px; }
 .towerThumb { width: 40px; height: 40px; object-fit: contain; }
 @media (max-width: 900px) { .gameScreenBody { grid-template-columns: 1fr; } .gameSide { border-left: 0; border-top: 1px solid var(--line); } }
+
+/* Right-rail tabs (Social / You / Play). Wallet stays pinned above. */
+.railTabs { display: flex; gap: 6px; margin: 12px 0 4px; }
+.railTabs button { flex: 1; }
+.railTabs button.active { border-color: var(--cyan); background: linear-gradient(180deg, #123a4d, #0b2233); }
+.railPane { display: none; }
+.railPane.active { display: block; }
+.railPane h3:first-child { margin-top: 10px; }
