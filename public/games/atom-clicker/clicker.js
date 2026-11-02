@@ -8,6 +8,8 @@
  * Save Best (best combo recorded on the server leaderboard via
  * game:ended final), and shard conversion (100 banked shards ->
  * 10 in-game credits via POST /api/convert-shards).
+ * Batch 22: click milestones (100/500/1000/2500/5000) that toast
+ * once each when crossed and persist with the local save.
  */
 (function (global) {
   'use strict';
@@ -16,6 +18,13 @@
   var GOLDEN_MS = 8000;
   var GOLDEN_BONUS = 10;
   var SHARD_CONVERSION = { shardsPerChunk: 100, creditsPerChunk: 10, minShards: 100, maxShards: 5000 };
+  /* Batch 22: click milestones — total-click thresholds that toast
+   * once each when crossed. milestonesReached is pure; the hit list
+   * is persisted with the save so a milestone never toasts twice,
+   * and legacy saves seed it silently from their stored click total. */
+  var MILESTONES = [100, 500, 1000, 2500, 5000];
+  function milestonesReached(clicks) { return MILESTONES.filter(function (m) { return (clicks || 0) >= m; }); }
+  function nextMilestone(clicks) { for (var i = 0; i < MILESTONES.length; i++) if ((clicks || 0) < MILESTONES[i]) return MILESTONES[i]; return null; }
   function comboMultiplier(streak) { return Math.min(3, 1 + 0.1 * Math.floor((streak || 0) / 10)); }
   function clickGain(state, now) {
     var surging = now < (state.surgeUntil || 0);
@@ -38,6 +47,7 @@
     try { var raw = global.localStorage && global.localStorage.getItem(key); if (raw) state = JSON.parse(raw); } catch (e) {}
     state.combo = state.combo || 0; state.bestCombo = state.bestCombo || 0; state.lastClickAt = state.lastClickAt || 0;
     state.surgeUntil = state.surgeUntil || 0; state.goldenUntil = state.goldenUntil || 0; state.goldenEvents = state.goldenEvents || 0;
+    state.milestones = Array.isArray(state.milestones) ? state.milestones : milestonesReached(state.clicks || 0);
     var destroyed = false, proof = '…', surgeTimer = null, savedOnce = false;
     function persist() { try { if (global.localStorage) global.localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} }
     async function refreshProof() { proof = await sha256Hex(state.clicks + ':' + state.shards + ':' + state.nonce); var el = viewport.querySelector('#clkProof'); if (el) el.textContent = proof.slice(0, 24) + '…'; }
@@ -48,6 +58,8 @@
       if (state.combo > state.bestCombo) state.bestCombo = state.combo;
       var gain = clickGain(state, now);
       state.clicks++; state.shards += gain;
+      var newly = milestonesReached(state.clicks).filter(function (m) { return state.milestones.indexOf(m) < 0; });
+      newly.forEach(function (m) { state.milestones.push(m); if (opts.onToast) opts.onToast('Milestone! ' + m + ' total clicks.', 'ok'); });
       if (Math.random() < GOLDEN_CHANCE && now >= state.goldenUntil) { state.goldenUntil = now + GOLDEN_MS; state.goldenEvents++; if (opts.onToast) opts.onToast('Golden shard! +10 per click for 8s.', 'ok'); }
       if (Math.random() < 0.02 && now >= state.surgeUntil) { state.surgeUntil = now + 10000; if (opts.onToast) opts.onToast('Multiplier surge! 2x for 10s.', 'ok'); }
       persist(); render(); refreshProof();
@@ -87,7 +99,8 @@
         + (golden ? '<p class="ok">✨ GOLDEN SHARD! +10 per click (' + Math.ceil((state.goldenUntil - now) / 1000) + 's left)</p>' : '')
         + '<button id="clkCore" style="font-size:44px;padding:26px 34px;border-radius:50%;">⚛</button>'
         + '<p><button id="clkBank">Bank shards</button> <button id="clkConvert" ' + (conv.chunks <= 0 ? 'disabled' : '') + '>Convert ' + conv.shards + ' shards → +' + conv.credits + ' credits</button> <button id="clkSave">Save best combo</button></p>'
-        + '<p class="muted">100 banked shards = 10 credits. Session proof: <code id="clkProof">' + proof.slice(0, 24) + '…</code></p></div>';
+        + '<p class="muted">100 banked shards = 10 credits. Session proof: <code id="clkProof">' + proof.slice(0, 24) + '…</code></p>'
+        + '<p class="muted">Milestones hit: ' + state.milestones.length + '/' + MILESTONES.length + (nextMilestone(state.clicks) ? ' — next at ' + nextMilestone(state.clicks) + ' clicks.' : ' — all reached!') + '</p></div>';
       var core = viewport.querySelector('#clkCore');
       if (core) core.addEventListener('click', function () { clickCore(); });
       var bankBtn = viewport.querySelector('#clkBank');
@@ -105,9 +118,9 @@
       click: clickCore,
       endSession: endSession,
       convertBanked: convertBanked,
-      getState: function () { return { shards: state.shards, banked: state.banked, clicks: state.clicks, proof: proof, combo: state.combo, bestCombo: state.bestCombo, goldenActive: Date.now() < state.goldenUntil, goldenEvents: state.goldenEvents, surgeUntil: state.surgeUntil }; },
+      getState: function () { return { shards: state.shards, banked: state.banked, clicks: state.clicks, proof: proof, combo: state.combo, bestCombo: state.bestCombo, goldenActive: Date.now() < state.goldenUntil, goldenEvents: state.goldenEvents, surgeUntil: state.surgeUntil, milestones: state.milestones.slice(), nextMilestone: nextMilestone(state.clicks) }; },
       destroy: function () { destroyed = true; if (surgeTimer) clearInterval(surgeTimer); if (opts.bus) opts.bus.emit('game:ended', 'atom-clicker', {}); }
     };
   }
-  global.AtomClicker = { manifest: { id: 'atom-clicker', name: 'ATOM Core Clicker' }, init: init, _comboMultiplier: comboMultiplier, _clickGain: clickGain, _convertShards: convertShards, SHARD_CONVERSION: SHARD_CONVERSION, COMBO_WINDOW_MS: COMBO_WINDOW_MS, GOLDEN_BONUS: GOLDEN_BONUS };
+  global.AtomClicker = { manifest: { id: 'atom-clicker', name: 'ATOM Core Clicker' }, init: init, _comboMultiplier: comboMultiplier, _clickGain: clickGain, _convertShards: convertShards, _milestonesReached: milestonesReached, _nextMilestone: nextMilestone, MILESTONES: MILESTONES, SHARD_CONVERSION: SHARD_CONVERSION, COMBO_WINDOW_MS: COMBO_WINDOW_MS, GOLDEN_BONUS: GOLDEN_BONUS };
 })(typeof window !== 'undefined' ? window : globalThis);
