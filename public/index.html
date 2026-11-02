@@ -21,6 +21,14 @@
 <link rel="stylesheet" href="hub.css">
 </head>
 <body>
+<div id="hubLoader" class="hubLoader" role="status" aria-label="Loading GAME hub">
+  <div class="hubLoaderInner">
+    <div class="hubLoaderLogo">🌌 GAME</div>
+    <div class="hubLoaderBar"><div id="hubLoaderFill"></div></div>
+    <div class="hubLoaderPct" id="hubLoaderPct">0%</div>
+    <p class="hubLoaderTip" id="hubLoaderTip">Tip: Protect the ATOM orb at the end of the glowing energy lane.</p>
+  </div>
+</div>
 <div class="launcher">
   <aside class="rail rail-left">
     <div class="logo">🌌 GAME <span>game.atomstaking.app</span><small>by GalacticTools · Swap · AtomStaking · GAME</small></div>
@@ -145,7 +153,7 @@
 </div>
 
 <div id="toasts" aria-live="polite"></div>
-<footer>GAME · game.atomstaking.app · GalacticTools · Real ATOM sends are irreversible. Verify every address, amount and memo in your wallet before signing.</footer>
+<footer id="hubFooter">GAME · <span id="hubFooterVersion">v3.18.0</span> · <span id="hubFooterDate">Build 2026-11-01</span> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a> · <a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://game.atomstaking.app/">game.atomstaking.app</a> · GalacticTools · Real ATOM sends are irreversible. Verify every address, amount and memo in your wallet before signing.</footer>
 
 <script src="engine/event-bus.js"></script>
 <script src="engine/wallet.js"></script>
