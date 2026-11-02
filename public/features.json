@@ -1877,10 +1877,76 @@
       "id": "place-selects-tower",
       "tested": "harness: placed tower exposes inspect kind dart; undo clears it",
       "title": "Placing a tower selects it, so the Entity Inspector (stats, upgrades, Undo) opens at once"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "deck-below-board",
+      "tested": "editor harness: stageWrap + static deck CSS",
+      "title": "Bottom deck sits below the board in normal flow — the whole map shows, nothing overlaps"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "map-depth-3d",
+      "tested": "harness: depth markers in painter",
+      "title": "Pseudo-3D map depth: raised cobblestones, cliff faces, stacked tree canopies, pond depth shading, warmer stone"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "map-life-animated",
+      "tested": "harness: drawMapLife markers; BTD suite green",
+      "title": "Animated map life: drifting cloud shadows, pond shimmer, canopy light, fireflies, grass fringe; star twinkle on the space map"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "upgrade-panel-side",
+      "tested": "editor harness: upgrade panel marker",
+      "title": "Entity Inspector upgrade panel: full-width Upgrade button with cost and target level, next stats plus DPS, sell row, branch options"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "enemy-intel",
+      "tested": "BTD harness: balloon click exposes enemyInspect",
+      "title": "Click a balloon to inspect it: layers, speed, reward, progress to the orb; empty click clears it"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "heroes-lifecycle",
+      "tested": "editor harness: heroes lifecycle markers",
+      "title": "Heroes in the Entity Inspector: claim free at unlock level, buy with credits, upgrade, list for sale with price and payout address"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "inspector-head-fix",
+      "tested": "editor harness: #inspectorHead img CSS",
+      "title": "Inspector head image size-constrained; panel body scrolls inside the slide-over instead of pushing content off"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "local-player-no-wallet",
+      "tested": "smoke: local player create, claim, list, buy verified",
+      "title": "No wallet needed to play: a local player identity is created automatically; credits, heroes, progress and leaderboards work without Keplr"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "ceo-password",
+      "tested": "smoke: wrong password 401, A007 issues token, token opens pending",
+      "title": "CEO panel unlocks with password A007 (server-checked, CEO_PASSWORD env override, 12h token); wallet ADR-36 sign-in still works"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "payout-address-listing",
+      "tested": "editor harness: mkPayout and mkBulkPayout markers",
+      "title": "Listing a hero asks for your payout address (Cosmos); the CEO sends your ATOM there after the fee"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "buy-ready-details",
+      "tested": "editor harness: seller payout in buy flow",
+      "title": "Buy confirmation shows everything ready: CEO address, seller payout address, full price, fee, seller amount, exact memo"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 313,
+  "totalFeatures": 324,
   "updated": "2026-11-02",
-  "version": "3.49.9"
+  "version": "3.49.10"
 }

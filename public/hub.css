@@ -285,7 +285,8 @@ body.game-mode #gameView { display: block; }
 .shieldPill { background: linear-gradient(180deg, #22d3ee, #0891b2); color: #062a33; font-weight: 800; border-radius: 999px; padding: 6px 14px; }
 .gameTopbar .spacer { flex: 1; }
 .gameTopbar select { width: auto; }
-.gameStage { position: relative; margin: 12px 16px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #0a0f22; min-height: 620px; display: flex; align-items: center; justify-content: center; }
+.gameStage { position: relative; margin: 12px 16px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #0a0f22; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px; box-sizing: border-box; }
+.stageWrap { position: relative; width: min(960px, 100%); }
 .gameStage #game-viewport { border: 0; border-radius: 0; min-height: 0; background: transparent; }
 .gameStage #game-viewport canvas { max-width: 100%; height: auto; display: block; }
 .perfOverlay { position: absolute; left: 10px; bottom: 10px; z-index: 6; width: 188px; background: rgba(10,15,34,.88); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; backdrop-filter: blur(8px); }
@@ -295,8 +296,8 @@ body.game-mode #gameView { display: block; }
 .perfRow b { font-variant-numeric: tabular-nums; }
 .perfOverlay canvas { width: 100%; height: 26px; display: block; }
 #btnPerfShow { position: absolute; left: 10px; bottom: 10px; z-index: 6; }
-.bottomDeck { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 8px; background: rgba(10,15,34,.92); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px; max-width: calc(100% - 220px); backdrop-filter: blur(8px); }
-.deckLabel { position: absolute; top: -19px; left: 50%; transform: translateX(-50%); font-size: 10px; letter-spacing: 1.5px; color: var(--muted); background: rgba(10,15,34,.92); border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 2px 10px; white-space: nowrap; }
+.bottomDeck { position: static; transform: none; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: rgba(10,15,34,.92); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px; width: 100%; max-width: 960px; box-sizing: border-box; backdrop-filter: blur(8px); }
+.deckLabel { position: static; transform: none; width: 100%; text-align: center; font-size: 10px; letter-spacing: 1.5px; color: var(--muted); background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 0 0 6px; white-space: nowrap; }
 .deckArrow { flex: none; padding: 8px 10px; font-size: 18px; }
 .deckStrip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
 .deckStrip::-webkit-scrollbar { display: none; }
@@ -310,7 +311,7 @@ body.game-mode #gameView { display: block; }
 .slideOver { position: absolute; right: 0; top: 0; bottom: 0; width: 302px; z-index: 7; background: rgba(13,20,40,.97); border-left: 1px solid var(--line); transform: translateX(105%); transition: transform .25s ease; display: flex; flex-direction: column; }
 .slideOver.open { transform: translateX(0); }
 .slideOver .panelHead { flex: none; }
-.slideBody { overflow: auto; padding: 12px; }
+.slideBody { overflow: auto; padding: 12px; flex: 1; min-height: 0; }
 .slideBody .panelHead { padding: 10px 0; }
 #btnOpenInspector { position: absolute; right: 10px; top: 12px; z-index: 6; }
 .inspHead { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
@@ -376,3 +377,7 @@ body.game-mode #gameView { display: block; }
   input, select, textarea { font-size: 16px; }
   .mkHead { padding: 12px; }
 }
+#inspectorHead { display: flex; gap: 10px; align-items: center; }
+#inspectorHead img { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex: none; }
+.heroRow { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.heroRow img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex: none; }
