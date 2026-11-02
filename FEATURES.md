@@ -177,3 +177,14 @@ particles deferred to WebGL research — not claimed.
 Next batches live in `IMPROVEMENT_BACKLOG.md`. The auto-improve loop
 works through them top-down, tests each batch, and pushes to GitHub
 (Vercel auto-deploys). A batch is only marked done after its tests pass.
+
+## v3.49.1 — Hub + dedicated game screen (blueprint build)
+- Home Hub (/) vs dedicated game screen (/game/cosmos-btd) with Exit to Home Hub; only Cosmos BTD is playable, other slots are unnamed COMING SOON / TITLE UNANNOUNCED.
+- Game top deck (wave / gold / ATOM shield / auto-wave / speed / pause), scrollable bottom deck (8 towers + hero, real costs and hotkeys), slide-over Entity Inspector + marketplace list, real performance overlay (FPS / entities / particles / heap).
+- ATOM Orb: rotating electron rings, pulsing cyan/violet glow, in-canvas shield bar; leaks trigger red lightning, shockwave ripple and screen shake.
+- Server falls back to index.html for extensionless non-API routes so /game/cosmos-btd loads directly.
+
+## v3.49.2 — Hero economy + late-campaign ramp
+- Buy any hero with in-game credits (Common 2,500 / Rare 5,000 / Epic 9,000 / Legendary 15,000) — no unlock-level gate when paying. Free claim at unlock level stays.
+- Hero cap Lv 100 on upgrade and XP paths; upgrade costs 200 x level. Active marketplace listings follow the hero's level.
+- Waves 26-50 ramp: extra balloon layers + speed; boss layers scale (wave-40 boss 90 layers). Late waves need leveled heroes + maxed towers.
