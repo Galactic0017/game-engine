@@ -29,164 +29,115 @@
     <p class="hubLoaderTip" id="hubLoaderTip">Tip: Protect the ATOM orb at the end of the glowing energy lane.</p>
   </div>
 </div>
-<div class="launcher">
-  <aside class="rail rail-left">
-    <div class="logo">🌌 GAME <span>game.atomstaking.app</span><small>by GalacticTools · Swap · AtomStaking · GAME</small></div>
-    <div class="railTabs" id="leftTabs" role="tablist" aria-label="Sidebar">
-      <button data-left="play" class="active" role="tab">🎮 Play</button>
-      <button data-left="system" role="tab">⚙ System</button>
-    </div>
-    <div class="railPane active" id="leftPane-play" role="tabpanel">
-    <nav class="tabs" aria-label="Main">
-      <button data-nav="games" class="active">🎮 Game Library</button>
-      <button data-nav="marketplace">🛒 Hero Shop</button>
-      <button data-nav="updates">🆕 Updates</button>
-      <button data-nav="devtools">🛠 Dev Tools</button>
-      <button data-nav="ceo">👑 CEO Panel</button>
-    </nav>
-    <h3>Games</h3>
-    <div id="gameList"></div>
-    <button id="btnExploreStore" class="primary" style="width:100%">Explore Store</button>
-    </div>
-    <div class="railPane" id="leftPane-system" role="tabpanel">
-    <h3>Settings</h3>
-    <p><button id="btnSettings" class="ghost">⚙ Settings</button> <button id="btnShortcuts" class="ghost">⌨ Shortcuts (?)</button></p>
-    <h3>Links</h3>
-    <p class="small"><a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a></p>
-    <p class="small muted">Real wallet sends only. No contracts. Buyer sends full price to the CEO address; CEO moves the item, then sends the seller their cut after the fee. Always check the address and memo in your wallet before signing. Test with a tiny amount first.</p>
-    </div>
-  </aside>
-
-  <div class="centerCol">
-    <div class="searchbar">
-      <input id="gameSearch" type="search" placeholder="Find Games" aria-label="Find games">
-      <button id="btnBell" class="ghost" title="Announcements and updates">🔔</button>
-    </div>
-    <div id="announceBar" class="banner" hidden></div>
-    <main class="stage">
-      <section class="view active" id="view-games">
-        <div class="featured" id="featuredHero">
-          <img src="assets/sprites/battlefield.jpg" alt="Cosmos BTD battlefield under a nebula sky">
-          <span class="featuredBadge">Featured</span>
-          <div class="featuredBody">
-            <h2>Cosmos BTD</h2>
-            <p><span class="pill">Tower Defense</span> <span class="pill">Space</span> <span class="pill">Heroes</span> <span class="pill">50 Waves</span></p>
-            <p>Protect the ATOM orb at the end of the glowing energy lane. 8 towers, heroes, targeting modes, bosses every 10 waves, endless mode.</p>
-            <p><button id="btnPlayFeatured" class="primary">▶ Play Cosmos BTD</button> <button id="btnInfoFeatured" class="ghost">About this game</button></p>
-          </div>
-        </div>
-        <div id="gameScreen">
-          <div class="gameScreenHead" id="gameHud"><span class="muted small">Loading game…</span></div>
-          <div class="gameScreenBody">
-            <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>
-            <aside id="gameSide" aria-label="Game panel">
-              <div class="gameSideTabs" id="gameSideTabs">
-                <button data-side="towers" class="active">Towers</button>
-                <button data-side="upgrades">Upgrades</button>
-                <button data-side="hero">Hero</button>
-                <button data-side="play">Play</button>
-              </div>
-              <div class="actionbar gameSideBody" id="actionBar"></div>
-            </aside>
-          </div>
-        </div>
-        <div class="centerTabs" id="centerTabs" role="tablist" aria-label="Below game">
-          <button data-center="games" class="active" role="tab">🎮 Your Games</button>
-          <button data-center="guide" role="tab">📖 Guide</button>
-          <button data-center="details" role="tab">🔍 Details</button>
-        </div>
-        <div class="centerPane active" id="centerPane-games" role="tabpanel">
-        <p><button id="btnShareCard" class="ghost">📤 Share run card (PNG)</button> <span class="small muted">Downloads a snapshot of the current game canvas with your run stats.</span></p>
-        <h3 class="sectionTitle">Your games</h3>
-        <div id="tagFilter" class="tagRow" aria-label="Filter games by tag"></div>
-        <div id="gameCards" class="gameCards"></div>
-
-        </div>
-        <div class="centerPane" id="centerPane-details" role="tabpanel">
-        <div class="card inspectCard" id="inspectCard" hidden style="margin-top:12px"></div>
-        <div class="card" id="helpCard" hidden style="margin-top:12px">
-          <h3>Shortcuts</h3>
-          <p class="small"><b>1–8</b> pick tower · <b>Space</b> start wave · <b>P</b> pause · <b>R</b> restart · <b>Esc</b> cancel placement · <b>Click</b> place / select tower · <b>Arrow keys</b> move the keyboard cursor (Shift = big step) · <b>Enter</b> place / select at cursor · <b>U</b> upgrade selected · <b>X</b> sell selected · <b>~</b> debug console · <b>Touch</b> works on mobile. Colorblind palette &amp; reduced motion are in Settings.</p>
-        </div>
-        </div>
-        <div class="centerPane" id="centerPane-guide" role="tabpanel">
-        <div class="card" style="margin-top:12px">
-          <h3>How to play — Cosmos BTD</h3>
-          <p class="small">Click a tower, then click the board to place it (not on the path). Press <b>1–8</b> to pick towers, <b>Space</b> to start a wave, <b>P</b> to pause, <b>R</b> to restart. Place your equipped hero by clicking the board. 50 waves + endless mode — boss every 10. Speed 1x–3x, auto-start, and targeting (First / Last / Strong / Weak / Closest / Elite) are in the bar above. Protect the ATOM orb at the end of the lane.</p>
-          <p class="small muted">Wave reports are hashed and checked server-side (session hash + XP caps). Cheated claims get flagged for CEO audit and earn nothing.</p>
-        </div>
-        </div>
-      </section>
-
-      <section class="view" id="view-updates">
-        <div class="card"><h3>What's New — Feature Tracker</h3><div id="updatesList"><p class="muted">Loading…</p></div></div>
-      </section>
-
-      <section class="view" id="view-marketplace">
-        <div class="card"><h3>Marketplace — CEO escrow, no contracts</h3><div id="marketplace"></div></div>
-      </section>
-
-      <section class="view" id="view-devtools">
-        <div class="card"><h3>Dev Tools — map editor, mods, debug console</h3><div id="devToolsBox"><p class="muted">Loading…</p></div></div>
-      </section>
-
-      <section class="view" id="view-ceo">
-        <div class="card">
-          <h3>CEO Panel — advanced</h3>
-          <p class="small muted">Opens only with the CEO wallet: connect Keplr with the CEO address and sign each action (ADR-36). No password, no ADMIN_KEY in the UI.</p>
-          <div id="ceoGate"></div>
-          <div id="ceoPanel" hidden></div>
-        </div>
-      </section>
-    </main>
+<header class="topbar" id="hubTopbar">
+  <div class="logo">🌌 GAME <span>ENGINE LAUNCHER</span> <small id="launcherVersion"></small><small>game.atomstaking.app · by GalacticTools</small></div>
+  <nav class="topnav" aria-label="Main">
+    <button data-nav="store" class="active">[STORE]</button>
+    <button data-nav="library">[MY LIBRARY (1 Active)]</button>
+    <button data-nav="marketplace">[MARKETPLACE]</button>
+    <button data-nav="ceo">[CEO PANEL]</button>
+  </nav>
+  <div class="wallet" id="walletWidget">
+    <span id="walletStatus">Not connected</span>
+    <span class="bal" id="walletBalance"></span>
+    <button id="btnConnectKeplr" class="primary">Connect Keplr</button>
+    <button id="btnDisconnect" class="ghost" hidden>Disconnect</button>
+  </div>
+  <button id="btnTopSettings" class="ghost" title="Settings">⚙</button>
+</header>
+<div id="hubWrap">
+  <div id="announceBar" class="banner" hidden></div>
+  <div class="hubGrid">
+    <section class="panel storePanel">
+      <div class="panelHead"><span>GAMES LIBRARY / STORE</span><button id="btnLibMenu" class="ghost" title="More">···</button></div><div id="libMenu" class="libMenu" hidden><button data-libmenu="updates">🆕 Updates</button><button data-libmenu="devtools">🛠 Dev Tools</button><button data-libmenu="settings">⚙ Settings</button><button data-libmenu="shortcuts">⌨ Shortcuts</button></div>
+      <div class="searchbar"><input id="gameSearch" type="search" placeholder="Search" aria-label="Search games"></div>
+      <div id="storeGrid" class="storeGrid"></div>
+      <p class="small muted" id="libNote" hidden>1 active game in your library.</p>
+    </section>
+    <aside class="panel hubRight">
+      <div class="panelHead"><span>USER INVENTORY &amp; MARKETPLACE FEED</span></div>
+      <div class="panelBody">
+        <h4>MY INVENTORY</h4>
+        <div id="heroList"><p class="muted small">Connect your wallet to see heroes.</p></div>
+        <div id="heroActions"></div>
+        <p><button id="btnListHero" class="outlineBtn" style="width:100%">MARKETPLACE LISTING</button></p>
+        <h4>P2P MARKETPLACE</h4>
+        <div id="marketPreview"><p class="muted small">Loading…</p></div>
+        <h4>CEO PANEL</h4>
+        <p class="small muted">Orders, ledger, bans and settings — CEO wallet only.</p>
+        <p><button id="btnOpenCeo" class="primary" style="width:100%">👑 Open CEO Panel</button></p>
+        <h4>TOP PLAYERS</h4>
+        <div id="leaderMini"></div>
+      </div>
+    </aside>
   </div>
 
-  <aside class="rail rail-right">
-    <div class="wallet" id="walletWidget">
-      <span id="walletStatus">Not connected</span>
-      <span class="bal" id="walletBalance"></span>
-      <button id="btnConnectKeplr" class="primary">Connect Keplr</button>
-      <button id="btnDisconnect" class="ghost" hidden>Disconnect</button>
+  <section class="view" id="view-marketplace">
+    <div class="card"><h3>Marketplace — CEO escrow, no contracts</h3><p class="small muted">Real wallet sends only. Buyer sends the full price to the CEO address; the CEO moves the item, then sends the seller their cut after the fee. Always check the address and memo in your wallet before signing. Test with a tiny amount first.</p><div id="marketplace"></div></div>
+  </section>
+
+  <section class="view" id="view-ceo">
+    <div class="card">
+      <h3>CEO Panel — advanced</h3>
+      <p class="small muted">Opens only with the CEO wallet: connect Keplr with the CEO address and sign each action (ADR-36). No password, no ADMIN_KEY in the UI.</p>
+      <div id="ceoGate"></div>
+      <div id="ceoPanel" hidden></div>
     </div>
-    <div class="railTabs" id="railTabs" role="tablist" aria-label="Sidebar">
-      <button data-rail="social" class="active" role="tab">👥 Social</button>
-      <button data-rail="you" role="tab">👤 You</button>
-      <button data-rail="play" role="tab">🏆 Play</button>
-    </div>
-    <div class="railPane active" id="railPane-social" role="tabpanel">
-      <h3>Friends</h3>
-      <div id="friendsBox"><p class="muted small">Connect Keplr to see players you have dueled.</p></div>
-      <h3>Challenges</h3>
-      <div id="challengeBox"><p class="muted small">Connect your wallet to send or answer duel invites.</p></div>
-      <h3>Referral</h3>
-      <div id="referralBox"><p class="muted small">Connect your wallet for your referral code.</p></div>
-    </div>
-    <div class="railPane" id="railPane-you" role="tabpanel">
-      <h3>Profile</h3>
-      <div id="profileBox"><p class="muted small">Connect your wallet.</p></div>
-      <h3>My Heroes</h3>
-      <div id="heroList"><p class="muted small">Connect your wallet to see heroes.</p></div>
-      <div id="heroActions"></div>
-      <h3>Daily Quests</h3>
-      <div id="questBox"></div>
-      <h3>Achievements</h3>
-      <div id="achBox"></div>
-    </div>
-    <div class="railPane" id="railPane-play" role="tabpanel">
-      <h3>Top Players</h3>
-      <div id="leaderMini"></div>
-      <h3>Recently Played</h3>
-      <div id="recentBox"><p class="muted small">No games played yet.</p></div>
-      <h3>Settings</h3>
-      <div id="settingsBox"></div>
-    </div>
-  </aside>
+  </section>
+
+  <section class="view" id="view-updates">
+    <div class="card"><h3>What's New — Feature Tracker</h3><div id="updatesList"><p class="muted">Loading…</p></div></div>
+  </section>
+
+  <section class="view" id="view-devtools">
+    <div class="card"><h3>Dev Tools — map editor, mods, debug console</h3><div id="devToolsBox"><p class="muted">Loading…</p></div></div>
+  </section>
 </div>
 
-<div id="gamePicker" class="modalOverlay" hidden>
-  <div class="card modalCard pickerWrap" role="dialog" aria-modal="true" aria-label="Game info">
-    <div id="gamePickerBody"></div>
-    <p><button id="btnClosePicker">Close</button> <button id="btnPlayPicker" class="primary">▶ Play</button></p>
+<div id="gameView">
+  <div class="gameTopbar">
+    <div class="logo">🌌 <span>Cosmos BTD</span></div>
+    <span class="waveChip" id="gameWaveChip">[WAVE 0/50]</span>
+    <span class="goldChip">🪙 GOLD: <b id="gameGold">650</b></span>
+    <span class="shieldPill">ATOM SHIELD: <b id="gameShield">100</b></span>
+    <span class="spacer"></span>
+    <button id="btnGamePause" class="ghost">⏸ Pause</button>
+    <span class="small">Auto-Wave: <button id="btnGameAuto" class="ghost">OFF</button></span>
+    <span class="small">Speed: <select id="gameSpeed" style="width:auto"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option></select></span>
+    <button id="btnExitGame" class="primary">Exit to Home Hub</button>
+  </div>
+  <div class="gameStage" id="gameStage">
+    <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>
+    <div class="perfOverlay" id="perfOverlay">
+      <div class="perfHead"><span>PERFORMANCE MONITOR</span><button class="ghost" id="btnPerfToggle" title="Hide">×</button></div>
+      <div class="perfRows">
+        <div class="perfRow"><span>FPS</span><b id="perfFps">—</b></div>
+        <canvas id="sparkFps" width="164" height="26"></canvas>
+        <div class="perfRow"><span>Entities</span><b id="perfEntities">—</b></div>
+        <div class="perfRow"><span>Particles</span><b id="perfParticles">—</b></div>
+        <canvas id="sparkParticles" width="164" height="26"></canvas>
+        <div class="perfRow"><span>Memory</span><b id="perfMemory">—</b></div>
+      </div>
+    </div>
+    <button id="btnPerfShow" class="ghost" hidden>📊 Perf</button>
+    <div class="bottomDeck" id="bottomDeck">
+      <span class="deckLabel">BOTTOM DECK</span>
+      <button class="deckArrow" id="deckPrev" title="Scroll towers">‹</button>
+      <div class="deckStrip" id="buildBar"></div>
+      <button class="deckArrow" id="deckNext" title="Scroll towers">›</button>
+    </div>
+    <aside class="slideOver" id="slideOver" aria-label="Entity inspector">
+      <div class="panelHead"><span>ENTITY INSPECTOR</span><button class="ghost" id="btnCloseInspector" title="Close">×</button></div>
+      <div class="slideBody">
+        <div id="inspectorHead"></div>
+        <div id="inspectBars"></div>
+        <div id="inspectorControls"></div>
+        <div class="panelHead" style="margin-top:14px"><span>MARKETPLACE</span></div>
+        <input id="mkSearch" type="search" placeholder="BTD heroes" aria-label="Search marketplace">
+        <div id="inspectorMarket"><p class="muted small">Loading…</p></div>
+      </div>
+    </aside>
+    <button id="btnOpenInspector" class="ghost" hidden>🔍 Inspector</button>
   </div>
 </div>
 
@@ -207,7 +158,6 @@
 </div>
 
 <div id="toasts" aria-live="polite"></div>
-<footer id="hubFooter">GAME · <span id="hubFooterVersion">v3.19.0</span> · <span id="hubFooterDate">Build 2026-11-01</span> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a> · <a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://game.atomstaking.app/">game.atomstaking.app</a> · GalacticTools · Real ATOM sends are irreversible. Verify every address, amount and memo in your wallet before signing.</footer>
 
 <script src="engine/event-bus.js"></script>
 <script src="engine/wallet.js"></script>

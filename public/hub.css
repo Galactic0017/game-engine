@@ -239,3 +239,100 @@ button.tagChip.active { background: #db2777; border-color: #db2777; }
 .hubLoaderBar>div { background: linear-gradient(90deg, var(--cyan), var(--violet)); }
 .progress > div, .statBar > div { background: linear-gradient(90deg, var(--cyan), var(--violet)); }
 .toast { border-left-color: var(--cyan); }
+
+/* ---- Hub + dedicated game screen (blueprint build) ---- */
+.topnav { display: flex; gap: 18px; flex-wrap: wrap; margin-left: 12px; }
+.topnav button { background: transparent; border: 0; border-radius: 0; padding: 8px 2px; font-size: 14px; letter-spacing: .6px; color: var(--muted); border-bottom: 2px solid transparent; }
+.topnav button:hover:not(:disabled) { border-color: transparent; box-shadow: none; color: var(--text); }
+.topnav button.active { color: var(--text); border-bottom-color: var(--cyan); font-weight: 700; }
+header.topbar .wallet { border-color: var(--cyan); }
+#hubWrap .banner { margin: 12px 16px 0; }
+.hubGrid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 14px; padding: 14px 16px; max-width: 1500px; margin: 0 auto; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(12px); }
+.panelHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+.panelBody { padding: 12px 14px; }
+.panelBody h4 { margin: 14px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+.panelBody h4:first-child { margin-top: 0; }
+.storePanel { padding-bottom: 14px; }
+.storePanel .searchbar { padding: 12px 14px 0; }
+.storeGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 14px; }
+.storeGrid.owned-only .storeCard.soon { display: none; }
+.storeCard { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-height: 340px; }
+.storeCard.featured { border-color: var(--cyan); box-shadow: 0 0 18px rgba(0,246,255,.18); }
+.storeCard .thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; border-radius: 10px; display: block; }
+.storeCard h3 { margin: 2px 0; font-size: 15px; }
+.storeCard p { margin: 0; color: var(--muted); font-size: 13px; }
+.storeCard .tagRow { margin: 2px 0; }
+.playNow { background: linear-gradient(180deg, #22d3ee, #0891b2) !important; color: #062a33 !important; font-weight: 800; border-color: #22d3ee !important; }
+.devSetup { background: #141a30 !important; }
+.storeCard.soon { align-items: center; justify-content: center; text-align: center; color: var(--muted); font-size: 18px; letter-spacing: .5px; background: rgba(11,17,36,.6); }
+.storeCard.soon small { display: block; font-size: 13px; margin-top: 4px; }
+.outlineBtn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); }
+#marketPreview { max-height: 380px; overflow: auto; }
+.marketRow { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 13px; text-align: left; width: 100%; background: transparent; border-left: 0; border-right: 0; border-top: 0; border-radius: 0; }
+.marketRow img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex: none; }
+.marketRow .mPrice { margin-left: auto; color: var(--cyan); font-weight: 700; white-space: nowrap; }
+.marketRow .mLvl { font-size: 11px; color: var(--muted); }
+#hubWrap .view { max-width: 1500px; margin: 0 auto; padding: 0 16px 16px; }
+/* Dedicated game screen */
+#gameView { display: none; }
+body.game-mode #hubTopbar, body.game-mode #hubWrap { display: none; }
+body.game-mode #gameView { display: block; }
+.gameTopbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: rgba(7,11,24,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.gameTopbar .logo { font-size: 18px; }
+.waveChip { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-weight: 700; letter-spacing: .5px; }
+.goldChip { color: var(--gold); font-weight: 700; }
+.shieldPill { background: linear-gradient(180deg, #22d3ee, #0891b2); color: #062a33; font-weight: 800; border-radius: 999px; padding: 6px 14px; }
+.gameTopbar .spacer { flex: 1; }
+.gameTopbar select { width: auto; }
+.gameStage { position: relative; margin: 12px 16px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #0a0f22; min-height: 620px; display: flex; align-items: center; justify-content: center; }
+.gameStage #game-viewport { border: 0; border-radius: 0; min-height: 0; background: transparent; }
+.gameStage #game-viewport canvas { max-width: 100%; height: auto; display: block; }
+.perfOverlay { position: absolute; left: 10px; bottom: 10px; z-index: 6; width: 188px; background: rgba(10,15,34,.88); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; backdrop-filter: blur(8px); }
+.perfHead { display: flex; justify-content: space-between; align-items: center; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 4px; }
+.perfHead button { padding: 2px 8px; }
+.perfRow { display: flex; justify-content: space-between; font-size: 12px; padding: 1px 0; }
+.perfRow b { font-variant-numeric: tabular-nums; }
+.perfOverlay canvas { width: 100%; height: 26px; display: block; }
+#btnPerfShow { position: absolute; left: 10px; bottom: 10px; z-index: 6; }
+.bottomDeck { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 8px; background: rgba(10,15,34,.92); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px; max-width: calc(100% - 220px); backdrop-filter: blur(8px); }
+.deckLabel { position: absolute; top: -19px; left: 50%; transform: translateX(-50%); font-size: 10px; letter-spacing: 1.5px; color: var(--muted); background: rgba(10,15,34,.92); border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 2px 10px; white-space: nowrap; }
+.deckArrow { flex: none; padding: 8px 10px; font-size: 18px; }
+.deckStrip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.deckStrip::-webkit-scrollbar { display: none; }
+.deckTile { flex: none; width: 104px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; text-align: center; }
+.deckTile img { width: 40px; height: 40px; object-fit: contain; }
+.deckTile strong { font-size: 12px; line-height: 1.15; }
+.deckTile small { color: var(--muted); font-size: 11px; }
+.deckTile.active { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,246,255,.4); }
+.deckTile.cant { opacity: .55; }
+.deckTile.heroTile { border-color: var(--gold); }
+.slideOver { position: absolute; right: 0; top: 0; bottom: 0; width: 302px; z-index: 7; background: rgba(13,20,40,.97); border-left: 1px solid var(--line); transform: translateX(105%); transition: transform .25s ease; display: flex; flex-direction: column; }
+.slideOver.open { transform: translateX(0); }
+.slideOver .panelHead { flex: none; }
+.slideBody { overflow: auto; padding: 12px; }
+.slideBody .panelHead { padding: 10px 0; }
+#btnOpenInspector { position: absolute; right: 10px; top: 12px; z-index: 6; }
+.inspHead { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.inspHead img { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex: none; }
+.inspHead strong { display: block; font-size: 15px; }
+.inspStat { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+.inspStat span { color: var(--muted); }
+#inspectorMarket .marketRow img { width: 36px; height: 36px; }
+@media (max-width: 1100px) {
+  .hubGrid { grid-template-columns: 1fr; }
+  .storeGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bottomDeck { max-width: calc(100% - 20px); }
+}
+@media (max-width: 700px) {
+  .storeGrid { grid-template-columns: 1fr; }
+  .slideOver { width: min(302px, 88vw); }
+  .perfOverlay { width: 160px; }
+  .topnav { gap: 10px; }
+}
+
+.storePanel { position: relative; }
+.libMenu { position: absolute; right: 14px; top: 44px; z-index: 20; display: flex; flex-direction: column; gap: 4px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+.libMenu[hidden] { display: none; }
+.libMenu button { text-align: left; }
+.storeCard.soon { cursor: pointer; }

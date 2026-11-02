@@ -1643,10 +1643,118 @@
       "title": "Tycoon rig levels per prestige",
       "description": "Total rig levels per prestige taken, in the game state and the panel.",
       "tested": "Harness: helper 0/2/2.3/zero-prestige cases; state exposes 2 with 4 total rig levels and 2 prestiges; panel line render-checked."
+    },
+    {
+      "id": "btd-hero-xp-per-hero-kill",
+      "title": "BTD hero XP per hero kill",
+      "description": "Hero XP earned per hero kill, in the HUD and game state.",
+      "tested": "Harness: helper 0/25/2.3/zero-kill cases; HUD + state expose 25 at 100 hero XP / 4 hero kills."
+    },
+    {
+      "id": "shooter-score-per-graze",
+      "title": "Shooter score per graze",
+      "description": "Score per asteroid graze, in the HUD, game state and the game-over screen.",
+      "tested": "Harness: helper 0/25/2.3/zero-graze cases; HUD + state expose 25 at 100 score / 4 grazes; game-over line marker-checked in the server test."
+    },
+    {
+      "id": "miner-cargo-units-per-belt",
+      "title": "Miner cargo units per belt",
+      "description": "Ore units currently in cargo per belt reached, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-belt cases; HUD + state expose 12 at 24 cargo units / belt 2."
+    },
+    {
+      "id": "clicker-unbanked-per-golden",
+      "title": "Clicker unbanked per golden",
+      "description": "Unbanked shards per golden shard event, in the game state and the panel.",
+      "tested": "Harness: helper 0/3/2.3/zero-golden cases; state exposes 3 with 6 unbanked shards and 2 golden events; panel line render-checked."
+    },
+    {
+      "id": "tycoon-credits-per-level",
+      "title": "Tycoon credits per level",
+      "description": "Current credits held per total rig level, in the game state and the panel.",
+      "tested": "Harness: helper 0/25/2.3/zero-level cases; state exposes 25 with 100 credits and 4 total rig levels; panel line render-checked."
+    },
+    {
+      "id": "hub-game-routing",
+      "category": "Hub",
+      "title": "Home Hub vs dedicated game screen routing (/ and /game/cosmos-btd)",
+      "tested": "serve checks: /game/cosmos-btd returns the hub HTML with game view ids"
+    },
+    {
+      "id": "game-top-deck",
+      "category": "Game Screen",
+      "title": "Game top deck: wave, gold, ATOM shield, auto-wave, speed, pause, Exit to Home Hub",
+      "tested": "serve checks: top-deck ids + live HUD wiring in shell.js"
+    },
+    {
+      "id": "bottom-deck-strip",
+      "category": "Game Screen",
+      "title": "Bottom deck: scrollable tower strip with real costs and hotkeys, hero ability tile",
+      "tested": "serve checks: deck ids + TOWER_DEFS order"
+    },
+    {
+      "id": "inspector-slideover",
+      "category": "Game Screen",
+      "title": "Entity Inspector slide-over: real tower stats, upgrade paths, targeting, sell",
+      "tested": "serve checks: slide-over ids + inspect wiring"
+    },
+    {
+      "id": "hub-marketplace-preview",
+      "category": "Hub",
+      "title": "Hub P2P marketplace feed: real active listings only, honest empty state",
+      "tested": "serve checks: marketPreview + listings render"
+    },
+    {
+      "id": "hub-inventory-ceo",
+      "category": "Hub",
+      "title": "Hub inventory (real owned heroes) + CEO Panel link + Top Players",
+      "tested": "serve checks: heroList + leaderMini present"
+    },
+    {
+      "id": "orb-animated-shield",
+      "category": "Cosmos BTD",
+      "title": "ATOM Orb: rotating electron rings, pulsing glow, in-canvas shield bar",
+      "tested": "BTD harness + serve checks: drawOrbOverlay in btd.js"
+    },
+    {
+      "id": "orb-hit-fx",
+      "category": "Cosmos BTD",
+      "title": "Orb hit feedback: red lightning, shockwave ripple, screen shake on leaks",
+      "tested": "BTD harness + serve checks: orbHitT in btd.js"
+    },
+    {
+      "id": "hero-buy-credits",
+      "category": "Heroes",
+      "title": "Buy any hero with in-game credits: Common 2,500 / Rare 5,000 / Epic 9,000 / Legendary 15,000",
+      "tested": "serve checks: /api/heroes/buy validation + config costs"
+    },
+    {
+      "id": "hero-max-level",
+      "category": "Heroes",
+      "title": "Hero level cap 100 on upgrade and XP paths; upgrade cost 200 x level",
+      "tested": "serve checks + BTD harness hero power scaling"
+    },
+    {
+      "id": "listing-level-sync",
+      "category": "Marketplace",
+      "title": "Active listing level follows the hero when it levels up, so buyers see the true level",
+      "tested": "serve checks: listing snapshot update in upgrade/add-xp paths"
+    },
+    {
+      "id": "late-campaign-ramp",
+      "category": "Cosmos BTD",
+      "title": "Waves 26-50 ramp: extra balloon layers + speed, boss layers scale (wave-40 boss 90)",
+      "tested": "BTD harness wave-40 ramp checks"
+    },
+    {
+      "id": "hero-shop-buy-ui",
+      "category": "Hub",
+      "title": "Hero Shop buy row: real costs from config + credit balance, buy/claim/upgrade in one place",
+      "tested": "serve checks: buyHeroSel + btnBuyHero in shell.js"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 274,
+  "totalFeatures": 292,
   "updated": "2026-11-02",
-  "version": "3.48.0"
+  "version": "3.49.2"
 }
