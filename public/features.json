@@ -1961,10 +1961,28 @@
       "id": "realism-path-water",
       "tested": "editor harness: shadow + reflection markers",
       "title": "Path slabs cast a soft edge shadow; ponds carry a sky reflection streak"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-3d-renderer",
+      "tested": "node 3D smoke test: 19 checks",
+      "title": "Real 3D board: Three.js renderer with lit terrain, winding path, ATOM orb, towers and balloons"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-3d-wiring",
+      "tested": "BTD harness 343 checks + editor harness 114 checks",
+      "title": "3D renderer wired into the game with automatic 2D fallback when WebGL is unavailable"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-3d-preload",
+      "tested": "editor harness: loadBtd3d marker",
+      "title": "Three.js and the 3D renderer preload best-effort before the game module; failures fall back to 2D"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 327,
+  "totalFeatures": 330,
   "updated": "2026-11-02",
-  "version": "3.49.11"
+  "version": "3.49.12"
 }
