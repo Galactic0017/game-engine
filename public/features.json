@@ -1755,12 +1755,12 @@
     {
       "id": "spa-deep-link",
       "category": "Hub",
-      "title": "Deep links /game/cosmos-btd serve the hub HTML (path-preserving rewrite + SPA fallback)",
-      "tested": "live curl: /game/cosmos-btd 200 with hub ids"
+      "title": "Deep links /game/cosmos-btd serve the hub HTML via a static Vercel rewrite to /index.html",
+      "tested": "live curl: /game/cosmos-btd 200 with hub ids AND /api/config JSON, both verified"
     }
   ],
   "platform": "GAME",
   "totalFeatures": 293,
   "updated": "2026-11-02",
-  "version": "3.49.3"
+  "version": "3.49.4"
 }
