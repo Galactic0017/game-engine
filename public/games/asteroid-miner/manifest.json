@@ -1,6 +1,6 @@
 {
  "canvas": true,
- "description": "Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock. Batch 22: cargo breakdown + richest ore. Batch 23: belt progress percent. Batch 24: average ore value in cargo. Batch 25: cargo units total. Batch 26: ore remaining to the belt quota. Batch 27: mined-per-belt average. Batch 28: rich-veins-per-belt average. Batch 29: cargo-value-per-belt average. Batch 30: banked-per-belt average. Batch 31: banked-per-ore average. Batch 32: rich-vein rate. Batch 33: mined-per-shift average. Batch 34: banked-per-shift average. Batch 35: rich-veins-per-shift average. Batch 36: banked-per-rich-vein average. Batch 37: mined-per-rich-vein average. Batch 38: mined-per-minute average. Batch 39: banked-per-minute average.",
+ "description": "Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock. Batch 22: cargo breakdown + richest ore. Batch 23: belt progress percent. Batch 24: average ore value in cargo. Batch 25: cargo units total. Batch 26: ore remaining to the belt quota. Batch 27: mined-per-belt average. Batch 28: rich-veins-per-belt average. Batch 29: cargo-value-per-belt average. Batch 30: banked-per-belt average. Batch 31: banked-per-ore average. Batch 32: rich-vein rate. Batch 33: mined-per-shift average. Batch 34: banked-per-shift average. Batch 35: rich-veins-per-shift average. Batch 36: banked-per-rich-vein average. Batch 37: mined-per-rich-vein average. Batch 38: mined-per-minute average. Batch 39: banked-per-minute average. Batch 40: rich-veins-per-minute average. Batch 41: credits-per-belt average.",
  "entry": "miner.js",
  "id": "asteroid-miner",
  "image": "assets/sprites/monster-1.png",
@@ -10,5 +10,5 @@
   "Clicker",
   "Space"
  ],
- "version": "1.17.0"
+ "version": "1.18.0"
 }
