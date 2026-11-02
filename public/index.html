@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GAME — game.atomstaking.app</title>
-<meta name="description" content="GAME by GalacticTools: Cosmos BTD, Space Tycoon, ATOM Core Clicker. Real wallet, no contracts. CEO-escrow hero marketplace.">
+<meta name="description" content="GAME by GalacticTools: protect the ATOM orb in Cosmos BTD — 50 waves, 8 towers, heroes and live PvP duels. Real Keplr wallet, no contracts, CEO-escrow hero marketplace.">
 <meta property="og:title" content="GAME \u2014 game.atomstaking.app">
-<meta property="og:description" content="GAME by GalacticTools: Cosmos BTD, Space Tycoon, ATOM Core Clicker. Real wallet, no contracts. CEO-escrow hero marketplace.">
+<meta property="og:description" content="GAME by GalacticTools: protect the ATOM orb in Cosmos BTD — 50 waves, 8 towers, heroes and live PvP duels. Real Keplr wallet, no contracts, CEO-escrow hero marketplace.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://game.atomstaking.app/">
 <meta property="og:site_name" content="GAME by GalacticTools">
-<meta property="og:image" content="https://game.atomstaking.app/assets/sprites/battlefield.jpg">
-<meta property="og:image:width" content="1600">
-<meta property="og:image:height" content="900">
-<meta property="og:image:alt" content="Cosmos BTD battlefield under a nebula sky">
+<meta property="og:image" content="https://game.atomstaking.app/assets/sprites/og-share.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GAME — Protect the ATOM orb. Cosmos BTD, 50 waves, heroes, PvP duels.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="GAME \u2014 game.atomstaking.app">
-<meta name="twitter:description" content="GAME by GalacticTools: Cosmos BTD, Space Tycoon, ATOM Core Clicker. Real wallet, no contracts. CEO-escrow hero marketplace.">
-<meta name="twitter:image" content="https://game.atomstaking.app/assets/sprites/battlefield.jpg">
+<meta name="twitter:description" content="GAME by GalacticTools: protect the ATOM orb in Cosmos BTD — 50 waves, 8 towers, heroes and live PvP duels. Real Keplr wallet, no contracts, CEO-escrow hero marketplace.">
+<meta name="twitter:image" content="https://game.atomstaking.app/assets/sprites/og-share.jpg">
 <link rel="stylesheet" href="hub.css">
 </head>
 <body>
@@ -34,7 +34,7 @@
     <div class="logo">🌌 GAME <span>game.atomstaking.app</span><small>by GalacticTools · Swap · AtomStaking · GAME</small></div>
     <nav class="tabs" aria-label="Main">
       <button data-nav="games" class="active">🎮 Game Library</button>
-      <button data-nav="marketplace">🛒 Store</button>
+      <button data-nav="marketplace">🛒 Hero Shop</button>
       <button data-nav="updates">🆕 Updates</button>
       <button data-nav="devtools">🛠 Dev Tools</button>
       <button data-nav="ceo">👑 CEO Panel</button>
@@ -67,12 +67,26 @@
             <p><button id="btnPlayFeatured" class="primary">▶ Play Cosmos BTD</button> <button id="btnInfoFeatured" class="ghost">About this game</button></p>
           </div>
         </div>
+        <div id="gameScreen">
+          <div class="gameScreenHead" id="gameHud"><span class="muted small">Loading game…</span></div>
+          <div class="gameScreenBody">
+            <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>
+            <aside id="gameSide" aria-label="Game panel">
+              <div class="gameSideTabs" id="gameSideTabs">
+                <button data-side="towers" class="active">Towers</button>
+                <button data-side="upgrades">Upgrades</button>
+                <button data-side="hero">Hero</button>
+                <button data-side="play">Play</button>
+              </div>
+              <div class="actionbar gameSideBody" id="actionBar"></div>
+            </aside>
+          </div>
+        </div>
+        <p><button id="btnShareCard" class="ghost">📤 Share run card (PNG)</button> <span class="small muted">Downloads a snapshot of the current game canvas with your run stats.</span></p>
         <h3 class="sectionTitle">Your games</h3>
         <div id="tagFilter" class="tagRow" aria-label="Filter games by tag"></div>
         <div id="gameCards" class="gameCards"></div>
-        <div id="game-viewport"><p class="muted" style="padding:20px">Loading game…</p></div>
-        <p><button id="btnShareCard" class="ghost">📤 Share run card (PNG)</button> <span class="small muted">Downloads a snapshot of the current game canvas with your run stats.</span></p>
-        <div class="actionbar" id="actionBar"></div>
+
         <div class="card inspectCard" id="inspectCard" hidden style="margin-top:12px"></div>
         <div class="card" id="helpCard" hidden style="margin-top:12px">
           <h3>Shortcuts</h3>
@@ -117,6 +131,8 @@
     </div>
     <h3>Profile</h3>
     <div id="profileBox"><p class="muted small">Connect your wallet.</p></div>
+    <h3>Friends</h3>
+    <div id="friendsBox"><p class="muted small">Connect Keplr to see players you have dueled.</p></div>
     <h3>Referral</h3>
     <div id="referralBox"><p class="muted small">Connect your wallet for your referral code.</p></div>
     <h3>Top Players</h3>
