@@ -772,7 +772,7 @@
       mouse: { x: -999, y: -999 },
       audio: makeAudio(),
       grid: new Map(), ecs: createECS(),
-      lights: [], acc: 0, alpha: 1, windX: 0, postfx: true, dof: true,
+      lights: [], acc: 0, alpha: 1, windX: 0, postfx: true, dof: false,
       gridQueries: 0, glowCv: null, glowCtx: null, sceneCv: null, sceneCtx: null, blurCv: null, blurCtx: null, vigCv: null,
       weather: { kind: 'clear', until: 0, strikeT: 0 }, reroutes: 0, hazardSlows: 0,
       terrain: [], customMap: null, customMapName: null, customTowers: [], customEnemies: [], customWaves: {},
