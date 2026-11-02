@@ -21,7 +21,7 @@
   /* Batch 16: reduced motion defaults to the OS preference when the
    * user has never chosen (stored settings win over the OS default). */
   function prefersReducedMotion() { try { return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
-  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true, colorblind: false, reducedMotion: prefersReducedMotion() }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true, colorblind: false, reducedMotion: prefersReducedMotion() }; } }
+  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true, ambientHum: true, colorblind: false, reducedMotion: prefersReducedMotion() }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true, ambientHum: true, colorblind: false, reducedMotion: prefersReducedMotion() }; } }
   ctx.settings = loadSettings();
   function saveSettings() { try { localStorage.setItem('game-settings', JSON.stringify(ctx.settings)); } catch (e) {} }
   /* Reactive UI prefs: glass theme on/off + dynamic font scaling, applied
@@ -39,7 +39,7 @@
     document.body.setAttribute('data-colorblind', ctx.settings.colorblind ? 'on' : 'off');
   }
   ctx.applyUiPrefs = applyUiPrefs;
-  function applySettings(handle) { if (!handle) { applyUiPrefs(); return; } if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); if (handle.setPostFx) handle.setPostFx(ctx.settings.postfx !== false); if (handle.setDof) handle.setDof(ctx.settings.dof !== false); if (handle.setFpsTarget) handle.setFpsTarget(ctx.settings.fpsTarget); if (handle.setParticleDensity) handle.setParticleDensity(ctx.settings.particleDensity); if (handle.setMotionBlur) handle.setMotionBlur(ctx.settings.motionBlur); if (handle.setDisplayScale) handle.setDisplayScale(ctx.settings.displayScale); if (handle.setColorblind) handle.setColorblind(ctx.settings.colorblind === true); if (handle.setReducedMotion) handle.setReducedMotion(ctx.settings.reducedMotion === true); applyUiPrefs(); }
+  function applySettings(handle) { if (!handle) { applyUiPrefs(); applyAmbientHum(); return; } if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); if (handle.setPostFx) handle.setPostFx(ctx.settings.postfx !== false); if (handle.setDof) handle.setDof(ctx.settings.dof !== false); if (handle.setFpsTarget) handle.setFpsTarget(ctx.settings.fpsTarget); if (handle.setParticleDensity) handle.setParticleDensity(ctx.settings.particleDensity); if (handle.setMotionBlur) handle.setMotionBlur(ctx.settings.motionBlur); if (handle.setDisplayScale) handle.setDisplayScale(ctx.settings.displayScale); if (handle.setColorblind) handle.setColorblind(ctx.settings.colorblind === true); if (handle.setReducedMotion) handle.setReducedMotion(ctx.settings.reducedMotion === true); applyUiPrefs(); applyAmbientHum(); }
   ctx.applySettings = applySettings;
   /* Hover/click sound feedback: one lazy WebAudio tick, throttled, silent
    * when volume is 0 or UI sounds are off. Never throws, never autoplays. */
@@ -60,6 +60,81 @@
     } catch (e) { /* sound is decoration; never break the UI */ }
   }
   ctx.uiTick = uiTick;
+  /* Batch 19: ambient space hum — two quiet detuned Web Audio sine
+   * oscillators, no audio assets. Shares the uiTick AudioContext.
+   * Never autoplays: it starts only after the user's first
+   * pointer/key gesture, and only while ambient hum + UI sounds are
+   * on and volume > 0. Never throws, never breaks the UI. */
+  var _humNodes = null, _userGestured = false;
+  function humAllowed() { return ctx.settings.ambientHum !== false && ctx.settings.uiSounds !== false && (ctx.settings.volume || 0) > 0; }
+  function startAmbientHum() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      if (!_uiAC) _uiAC = new AC();
+      if (_uiAC.state === 'suspended') _uiAC.resume();
+      var t = _uiAC.currentTime, g = _uiAC.createGain();
+      g.gain.setValueAtTime(0.012 * (ctx.settings.volume || 1), t);
+      g.connect(_uiAC.destination);
+      var oscs = [54, 81].map(function (freq) { var o = _uiAC.createOscillator(); o.type = 'sine'; o.frequency.value = freq; o.connect(g); o.start(t); return o; });
+      _humNodes = { gain: g, oscs: oscs };
+    } catch (e) { _humNodes = null; /* sound is decoration */ }
+  }
+  function stopAmbientHum() {
+    if (!_humNodes) return;
+    try { _humNodes.oscs.forEach(function (o) { try { o.stop(); } catch (e) {} try { o.disconnect(); } catch (e) {} }); _humNodes.gain.disconnect(); } catch (e) {}
+    _humNodes = null;
+  }
+  function applyAmbientHum() {
+    if (!humAllowed() || !_userGestured) { stopAmbientHum(); return; }
+    if (!_humNodes) { startAmbientHum(); return; }
+    try { _humNodes.gain.gain.setValueAtTime(0.012 * (ctx.settings.volume || 1), _uiAC.currentTime); } catch (e) {}
+  }
+  ctx.startAmbientHum = startAmbientHum; ctx.stopAmbientHum = stopAmbientHum; ctx.applyAmbientHum = applyAmbientHum;
+  /* Batch 19: hub loading screen — progress bar + rotating tips.
+   * updateHubLoader is called at real init stages (config, games,
+   * first game load); hideHubLoader runs when the first game is
+   * ready, and a 20s safety timeout hides it even if init fails, so
+   * the overlay can never trap the user on a broken load. */
+  var LOADING_TIPS = [
+    'Tip: Protect the ATOM orb at the end of the glowing energy lane.',
+    'Tip: Bosses arrive every 10 waves — save gold for upgraded towers.',
+    'Tip: Press Space to start a wave early and earn a +25 gold skip bonus.',
+    'Tip: Heroes level up inside a run — equip one from My Heroes.',
+    'Tip: Marketplace buys send the full price to the CEO address — always check the memo in Keplr.'
+  ];
+  var _loaderTimer = null, _loaderTipIdx = 0;
+  function updateHubLoader(pct, label) {
+    try {
+      var fill = document.getElementById('hubLoaderFill'), pctEl = document.getElementById('hubLoaderPct');
+      var p = Math.max(0, Math.min(100, Number(pct) || 0));
+      if (fill) fill.style.width = p + '%';
+      if (pctEl) pctEl.textContent = p + '%' + (label ? ' · ' + label : '');
+    } catch (e) {}
+  }
+  function hideHubLoader() {
+    if (_loaderTimer) { clearInterval(_loaderTimer); _loaderTimer = null; }
+    try { var el = document.getElementById('hubLoader'); if (el) el.remove(); } catch (e) {}
+  }
+  function startHubLoaderTips() {
+    try {
+      var tipEl = document.getElementById('hubLoaderTip'); if (!tipEl) return;
+      _loaderTimer = setInterval(function () { _loaderTipIdx = (_loaderTipIdx + 1) % LOADING_TIPS.length; var el = document.getElementById('hubLoaderTip'); if (el) el.textContent = LOADING_TIPS[_loaderTipIdx]; }, 3000);
+      setTimeout(hideHubLoader, 20000);
+    } catch (e) {}
+  }
+  ctx.updateHubLoader = updateHubLoader; ctx.hideHubLoader = hideHubLoader; ctx.LOADING_TIPS = LOADING_TIPS;
+  startHubLoaderTips(); updateHubLoader(5, 'Starting…');
+  /* Batch 19: hub footer — version + build date from /api/config,
+   * links to AtomStaking + Swap. Static HTML already carries the
+   * same links and a fallback version/date, so a failed config
+   * fetch never leaves the footer empty. */
+  function renderHubFooter() {
+    try {
+      var v = document.getElementById('hubFooterVersion'); if (v && ctx.config && ctx.config.version) v.textContent = 'v' + ctx.config.version;
+      var d = document.getElementById('hubFooterDate'); if (d && ctx.config && ctx.config.buildDate) d.textContent = 'Build ' + ctx.config.buildDate;
+    } catch (e) {}
+  }
+  ctx.renderHubFooter = renderHubFooter;
   async function api(path, method, body) {
     var res = await fetch(path, { method: method || 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
     var json = null; try { json = await res.json(); } catch (e) {}
@@ -311,7 +386,8 @@
       + '<label class="checkRow"><input id="setPostFx" type="checkbox" ' + (ctx.settings.postfx !== false ? 'checked' : '') + '> Post-processing (bloom / lighting / vignette)</label>'
       + '<label class="checkRow"><input id="setDof" type="checkbox" ' + (ctx.settings.dof !== false ? 'checked' : '') + '> Cinematic tilt-shift bands</label>'
       + '<label class="checkRow"><input id="setGlass" type="checkbox" ' + (ctx.settings.glass !== false ? 'checked' : '') + '> Glassmorphism theme (translucent panels, blur, glowing borders)</label>'
-      + '<label class="checkRow"><input id="setUiSounds" type="checkbox" ' + (ctx.settings.uiSounds !== false ? 'checked' : '') + '> UI hover / click sounds</label>';
+      + '<label class="checkRow"><input id="setUiSounds" type="checkbox" ' + (ctx.settings.uiSounds !== false ? 'checked' : '') + '> UI hover / click sounds</label>'
+      + '<label class="checkRow"><input id="setAmbientHum" type="checkbox" ' + (ctx.settings.ambientHum !== false ? 'checked' : '') + '> Ambient space hum (quiet Web Audio drone, starts after your first click or keypress)</label>';
   }
   function wireSettingsControls(root) {
     var q = function (sel) { return root.querySelector(sel); };
@@ -322,7 +398,7 @@
     var d = q('#setDisplay'); if (d) { d.value = ctx.settings.displayScale || 'auto'; d.addEventListener('change', function () { ctx.settings.displayScale = d.value; saveSettings(); applySettings(handle()); }); }
     var u = q('#setUiScale'); if (u) { u.value = String(ctx.settings.uiScale || 1); u.addEventListener('change', function () { ctx.settings.uiScale = Number(u.value); saveSettings(); applyUiPrefs(); }); }
     var v = q('#setVol'); if (v) v.addEventListener('input', function () { ctx.settings.volume = Number(v.value); saveSettings(); applySettings(handle()); });
-    [['#setPostFx', 'postfx'], ['#setDof', 'dof'], ['#setMotionBlur', 'motionBlur'], ['#setGlass', 'glass'], ['#setUiSounds', 'uiSounds'], ['#setColorblind', 'colorblind'], ['#setReducedMotion', 'reducedMotion']].forEach(function (pair) {
+    [['#setPostFx', 'postfx'], ['#setDof', 'dof'], ['#setMotionBlur', 'motionBlur'], ['#setGlass', 'glass'], ['#setUiSounds', 'uiSounds'], ['#setAmbientHum', 'ambientHum'], ['#setColorblind', 'colorblind'], ['#setReducedMotion', 'reducedMotion']].forEach(function (pair) {
       var el = q(pair[0]); if (!el) return;
       el.addEventListener('change', function (ev) { ctx.settings[pair[1]] = ev.target.checked; saveSettings(); applySettings(handle()); });
     });
@@ -333,7 +409,7 @@
     var modal = document.getElementById('settingsModalBody');
     if (modal) { modal.innerHTML = settingsFormHtml(); wireSettingsControls(modal); }
     var el = document.getElementById('settingsBox');
-    if (el) el.innerHTML = '<button id="btnOpenSettings" class="primary">⚙ Open settings</button><p class="small muted">FPS target, motion blur, particle density, display scaling, glass theme, UI scale, UI sounds, colorblind palette &amp; reduced motion.</p>';
+    if (el) el.innerHTML = '<button id="btnOpenSettings" class="primary">⚙ Open settings</button><p class="small muted">FPS target, motion blur, particle density, display scaling, glass theme, UI scale, UI sounds, ambient hum, colorblind palette &amp; reduced motion.</p>';
     var openBtn = document.getElementById('btnOpenSettings'); if (openBtn) openBtn.onclick = openSettings;
     var topBtn = document.getElementById('btnSettings'); if (topBtn) topBtn.onclick = openSettings;
     var closeBtn = document.getElementById('btnCloseSettings'); if (closeBtn) closeBtn.onclick = closeSettings;
@@ -679,7 +755,10 @@
   document.querySelectorAll('nav.tabs button').forEach(function (b) { b.addEventListener('click', function () { showView(b.getAttribute('data-nav')); }); });
   async function init() {
     try { var refParam = new URLSearchParams(window.location.search).get('ref'); if (refParam) localStorage.setItem('game-referral', refParam); } catch (e) {}
+    updateHubLoader(10, 'Fetching hub config…');
     ctx.config = await api('/api/config');
+    updateHubLoader(35, 'Config loaded — starting wallet + engine…');
+    renderHubFooter();
     ctx.wallet = new window.WalletManager(bus, ctx.config);
     ctx.host = new window.EngineHost(bus, ctx.wallet, ctx.config);
     ctx.watcher = new window.RpcWatcher(bus, ctx.config);
@@ -697,7 +776,12 @@
     ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, chain combo streaks, catch golden shards and surges, bank shards. Convert 100 shards to 10 credits. Local save.', status: 'playable', tags: ['Clicker', 'Idle', 'ATOM'], load: lazyGame('games/atom-clicker/clicker.js', 'AtomClicker') });
     if (cfgStatus('space-shooter') === 'playable') ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', image: 'assets/sprites/monster-1.png', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', status: 'playable', tags: ['Arcade', 'Shooter', 'Space'], load: lazyGame('games/space-shooter/shooter.js', 'SpaceShooter') });
     if (cfgStatus('asteroid-miner') === 'playable') ctx.host.registerGame({ id: 'asteroid-miner', name: 'Asteroid Miner', tagline: 'Mine ore, upgrade drills', image: 'assets/sprites/monster-1.png', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', status: 'playable', tags: ['Mining', 'Clicker', 'Space'], load: lazyGame('games/asteroid-miner/miner.js', 'AsteroidMiner') });
+    updateHubLoader(60, 'Games registered…');
     renderGameList(); renderRecent(); renderWallet(); renderSettingsPanel();
+    /* Batch 19: first user gesture unlocks the ambient hum (no autoplay). */
+    var _gestureOnce = function () { if (_userGestured) return; _userGestured = true; applyAmbientHum(); };
+    document.addEventListener('pointerdown', _gestureOnce);
+    document.addEventListener('keydown', _gestureOnce);
     document.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('click'); });
     document.addEventListener('mouseover', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('button')) uiTick('hover'); });
     document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeSettings(); closeGamePicker(); } });
@@ -767,9 +851,12 @@
     var restored = ctx.wallet.restore();
     if (restored) { renderWallet(); await ensurePlayer(); await startSession(); }
     await refreshState();
+    updateHubLoader(80, 'Loading Cosmos BTD…');
     await loadGame('cosmos-btd');
+    updateHubLoader(100, 'Ready');
+    hideHubLoader();
     setInterval(refreshState, 30000);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { var p = init(); if (p && p.catch) p.catch(function () { hideHubLoader(); }); });
+  else { var _initP = init(); if (_initP && _initP.catch) _initP.catch(function () { hideHubLoader(); }); }
 })();
