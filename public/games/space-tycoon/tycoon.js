@@ -42,6 +42,19 @@
     var boost = (overseerCount ? 1 + overseerCount * 0.1 : 1) * prestigeMultiplierFor(prestigeCount);
     return Math.round(rate * boost * 10) / 10;
   }
+  /* Batch 26: seconds to prestige — whole seconds until
+   * PRESTIGE_COST credits at the given earnings rate (credits
+   * already held count). 0 when prestige is already
+   * affordable, null when the rate is zero and it is not
+   * (no rigs earning yet). Exposed in state as
+   * secondsToPrestige; the panel shows it as an estimate
+   * beside the prestige progress line. */
+  function secondsToPrestigeFor(credits, rate) {
+    var c = Math.max(0, Math.floor(credits || 0));
+    if (c >= PRESTIGE_COST) return 0;
+    if (!rate || rate <= 0) return null;
+    return Math.ceil((PRESTIGE_COST - c) / rate);
+  }
   function calcOfflineEarnings(rigs, elapsedSeconds, multiplier) {
     var capped = Math.min(Math.max(0, Math.floor(elapsedSeconds)), OFFLINE_CAP_SEC);
     var total = 0;
@@ -96,6 +109,7 @@
       var rate = 0; state.rigs.forEach(function (r) { rate += (r.outputRate || 0) * (r.level || 1); });
       var skin = skinFor(state.skin);
       var prog = prestigeProgressFor(state.credits);
+      var secToPrestige = secondsToPrestigeFor(state.credits, earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length));
       var html = '<div class="miniGame"><h2>🛰 Space Tycoon</h2><p class="muted">Local save only — rig earnings stay in this game.</p>'
         + '<p><strong>Credits:</strong> ' + Math.floor(state.credits) + ' &nbsp; <strong>Rate:</strong> ' + (rate * boost()).toFixed(1) + '/s'
         + ' &nbsp; <strong>Prestige:</strong> ' + state.prestigeCount + ' (x' + prestigeMultiplierFor(state.prestigeCount).toFixed(2) + ')'
@@ -112,7 +126,7 @@
           return '<div class="rigCard" style="border-color:' + skin.color + '"><strong>' + d.name + '</strong><br>Level ' + (owned ? owned.level : 0) + ' · ' + d.outputRate + '/s per level<br><button data-buy="' + d.id + '" ' + (state.credits < cost ? 'disabled' : '') + '>Buy / Upgrade — ' + cost + '</button></div>';
         }).join('') + '</div>'
         + '<p><button id="tycCollect">Collect now</button> <button id="tycOverseer">Assign my hero as overseer (+10%)</button> <button id="tycPrestige" ' + (canPrestige(state) ? '' : 'disabled') + '>Prestige — reset for +25% forever (' + PRESTIGE_COST + ' credits)</button></p>'
-        + '<p class="muted">Prestige progress: ' + prog.pct + '% — ' + (prog.remaining > 0 ? prog.remaining + ' credits to go.' : 'ready to prestige!') + '</p>'
+        + '<p class="muted">Prestige progress: ' + prog.pct + '% — ' + (prog.remaining > 0 ? prog.remaining + ' credits to go.' : 'ready to prestige!') + (secToPrestige != null && secToPrestige > 0 ? ' About ' + secToPrestige + 's at the current rate.' : '') + '</p>'
         + '<p class="muted">Overseers: ' + (state.overseers.length ? state.overseers.join(', ') : 'none') + '</p></div>';
       viewport.innerHTML = html;
       viewport.querySelectorAll('[data-buy]').forEach(function (btn) {
@@ -154,12 +168,12 @@
     if (opts.bus) opts.bus.emit('game:start', 'space-tycoon', []);
     return {
       state: state,
-      getState: function () { return { credits: Math.floor(state.credits), rigs: state.rigs, overseers: state.overseers, prestigeCount: state.prestigeCount, prestigeMultiplier: prestigeMultiplierFor(state.prestigeCount), prestigeProgress: prestigeProgressFor(state.credits), earningsRate: earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), lifetimeEarned: Math.floor(state.lifetimeEarned), skin: state.skin, skinOwned: state.skinOwned.slice() }; },
+      getState: function () { return { credits: Math.floor(state.credits), rigs: state.rigs, overseers: state.overseers, prestigeCount: state.prestigeCount, prestigeMultiplier: prestigeMultiplierFor(state.prestigeCount), prestigeProgress: prestigeProgressFor(state.credits), earningsRate: earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), secondsToPrestige: secondsToPrestigeFor(Math.floor(state.credits), earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length)), lifetimeEarned: Math.floor(state.lifetimeEarned), skin: state.skin, skinOwned: state.skinOwned.slice() }; },
       prestige: doPrestige,
       buySkin: buySkin,
       collectEarnings: collectEarnings,
       destroy: function () { destroyed = true; if (timer) clearInterval(timer); if (opts.bus) opts.bus.emit('game:ended', 'space-tycoon', {}); }
     };
   }
-  global.SpaceTycoon = { manifest: { id: 'space-tycoon', name: 'Space Tycoon' }, init: init, calculateOfflineEarnings: calcOfflineEarnings, RIG_DEFS: RIG_DEFS, SKIN_DEFS: SKIN_DEFS, PRESTIGE_COST: PRESTIGE_COST, _prestigeMultiplierFor: prestigeMultiplierFor, _canPrestige: canPrestige, _prestigeProgressFor: prestigeProgressFor, _earningsRateFor: earningsRateFor, _normalizeSave: normalizeSave };
+  global.SpaceTycoon = { manifest: { id: 'space-tycoon', name: 'Space Tycoon' }, init: init, calculateOfflineEarnings: calcOfflineEarnings, RIG_DEFS: RIG_DEFS, SKIN_DEFS: SKIN_DEFS, PRESTIGE_COST: PRESTIGE_COST, _prestigeMultiplierFor: prestigeMultiplierFor, _canPrestige: canPrestige, _prestigeProgressFor: prestigeProgressFor, _earningsRateFor: earningsRateFor, _secondsToPrestigeFor: secondsToPrestigeFor, _normalizeSave: normalizeSave };
 })(typeof window !== 'undefined' ? window : globalThis);
