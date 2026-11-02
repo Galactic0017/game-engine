@@ -1553,10 +1553,40 @@
       "title": "Tycoon rigs per prestige",
       "description": "Owned rigs per prestige taken, in the game state and the panel.",
       "tested": "Harness: helper 0/2/2.3/zero-prestige cases; state exposes 2 with 4 rigs and 2 prestiges; panel line render-checked."
+    },
+    {
+      "id": "btd-army-value-per-wave",
+      "title": "BTD army value per wave",
+      "description": "Total gold invested in towers per wave reached, in the HUD and game state.",
+      "tested": "Harness: helper 0/25/2.3/zero-wave cases; HUD + state expose 50 at 200 army value / 4 waves."
+    },
+    {
+      "id": "shooter-shots-per-minute",
+      "title": "Shooter shots per minute",
+      "description": "Firing volleys per minute of run time, in the HUD, game state and the game-over screen.",
+      "tested": "Harness: helper 0/60/2.3/zero-time cases; HUD + state 60 at 120 shots / 120s; game-over line marker-checked."
+    },
+    {
+      "id": "miner-cargo-value-per-shift",
+      "title": "Miner cargo value per shift",
+      "description": "Scanner-adjusted cargo value held per completed shift, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-shift cases; HUD + state expose 60 at 120 cargo value / 2 shifts."
+    },
+    {
+      "id": "clicker-banked-share",
+      "title": "Clicker banked share",
+      "description": "Banked shards as a percent of shards currently held (unbanked + banked), in the game state and the panel milestone line.",
+      "tested": "Harness: helper 0/75/70/all-banked cases; state matches the helper; panel line render-checked."
+    },
+    {
+      "id": "tycoon-rig-levels-per-overseer",
+      "title": "Tycoon rig levels per overseer",
+      "description": "Total rig levels per assigned overseer, in the game state and the panel.",
+      "tested": "Harness: helper 0/2/2.3/zero-overseer cases; state exposes 2 with 4 total rig levels and 2 overseers; panel line render-checked."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 259,
+  "totalFeatures": 264,
   "updated": "2026-11-02",
-  "version": "3.45.0"
+  "version": "3.46.0"
 }
