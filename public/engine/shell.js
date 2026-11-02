@@ -608,12 +608,10 @@
       + '<p>Protect the ATOM Orb! Deep Strategy Tower Defense.</p>'
       + '<p class="tagRow"><span class="tagChip">Tower Defense</span><span class="tagChip">Space</span><span class="tagChip">Heroes</span><span class="tagChip">50 Waves</span><span class="tagChip">2 Maps</span></p>'
       + '<p><button class="playNow" data-play-btd style="width:100%">▶ PLAY NOW (FULLSCREEN)</button></p>'
-      + '<p><button data-dev-setup class="devSetup" style="width:100%">DEV STUDIO SETUP</button></p>'
       + '</article>'
       + '<button type="button" class="storeCard soon" data-search="coming soon title unannounced"><span>COMING SOON<small>(TITLE UNANNOUNCED)</small></span></button>'
       + '<button type="button" class="storeCard soon" data-search="coming soon title unannounced"><span>COMING SOON<small>(TITLE UNANNOUNCED)</small></span></button>';
     grid.querySelectorAll('[data-play-btd]').forEach(function (b) { b.addEventListener('click', function () { enterGameMode(true); }); });
-    grid.querySelectorAll('[data-dev-setup]').forEach(function (b) { b.addEventListener('click', function () { showView('devtools'); }); });
     grid.querySelectorAll('.storeCard.soon').forEach(function (c) { c.addEventListener('click', function () { toast('Coming soon.'); }); });
   }
   async function startSession() {
@@ -691,6 +689,12 @@
     if (sp) sp.value = String(hud.speed || 1);
     var p = document.getElementById('btnGamePause');
     if (p) p.textContent = hud.paused ? '▶ Resume' : '⏸ Pause';
+    var fo = document.getElementById('gameFoes');
+    if (fo) fo.textContent = (hud.balloonsRemaining != null ? hud.balloonsRemaining : '—');
+    var pp = document.getElementById('gamePops');
+    if (pp) pp.textContent = (hud.pops != null ? hud.pops : 0);
+    var cw = document.getElementById('btnCallWave');
+    if (cw) { var showCw = !!hud.betweenWaves && !hud.waveActive && !hud.won && !hud.lost; cw.style.display = showCw ? '' : 'none'; cw.textContent = '▶ Call Wave' + ((hud.wave || 0) > 0 ? ' +25g' : ''); }
   }
 
   function buildDeckOnce() {
@@ -774,12 +778,14 @@
       + '<p class="small"><span style="display:inline-block;width:100%;height:8px;background:#26314a;border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:' + cdPct + '%;background:#ffd166"></span></span>' + (cdLeft > 0 ? 'Ability recharging: ' + cdLeft + 's' : 'Ability ready') + '</p>';
     var playHtml = '<h4>Targeting &amp; Play</h4>'
       + '<label class="small" style="margin:0">Target <select id="abTarget" style="width:auto"><option value="first">First</option><option value="last">Last</option><option value="strong">Strong</option><option value="weak">Weak</option><option value="closest">Closest</option><option value="elite">Elite-only</option></select></label>'
-      + '<p><button id="abWave" class="primary">▶ Start wave</button> <button id="abEndless">Endless: ' + (hud.endless ? 'ON' : 'OFF') + '</button> <button id="abChallenge">Challenge: ' + (hud.challenge ? 'ON' : 'OFF') + '</button></p>'
+      + '<p class="small muted">Next: Wave ' + ((hud.wave || 0) + 1) + ' — ' + esc(hud.nextWave || '') + ' · Danger ' + esc(hud.nextWaveDanger || '') + (hud.nextWaveBoss ? ' · 👑 BOSS' : '') + '</p>'
+      + '<p><button id="abWave" class="primary">▶ Start wave</button> <button id="abUndo" class="ghost"' + (hud.undoAvailable ? '' : ' disabled') + '>↩ Undo last</button>  <button id="abEndless">Endless: ' + (hud.endless ? 'ON' : 'OFF') + '</button> <button id="abChallenge">Challenge: ' + (hud.challenge ? 'ON' : 'OFF') + '</button></p>'
       + '<p><button id="abHelp" class="ghost">⌨ Shortcuts</button> <button id="abShareCard" class="ghost">📤 Share run card</button></p>';
     box.innerHTML = upHtml + heroHtml + playHtml;
     var ts = document.getElementById('abTarget'); if (ts) { ts.value = hud.targeting || 'first'; ts.addEventListener('change', function () { if (handle) handle.setTargeting(ts.value); }); }
     var bind = function (id, fn) { var el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
     bind('abWave', function () { if (handle) handle.startWave(); });
+    bind('abUndo', function () { if (handle && handle.undoPlace) { if (!handle.undoPlace()) toast('Nothing to undo — placements lock when the wave starts.', 'warn'); } });
     bind('abUpgrade', function () { if (handle) handle.upgradeSelected(); });
     bind('abSell', function () { if (handle) handle.sellSelected(); });
     bind('abAbility', function () { if (handle) handle.heroAbility(); });
@@ -1037,7 +1043,16 @@
     }); });
     try { var mh = ctx.host.current && ctx.host.current.handle; var cur = (mh && mh.getMapSkin && mh.getMapSkin()) || 'space'; document.querySelectorAll('[data-map-skin]').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-map-skin') === cur); }); } catch (e) {}
     var _exitBtn = document.getElementById('btnExitGame'); if (_exitBtn) _exitBtn.addEventListener('click', function () { exitGameMode(); showView('store'); });
-    var _pauseBtn = document.getElementById('btnGamePause'); if (_pauseBtn) _pauseBtn.addEventListener('click', function () { var h = btdHandle(); if (h && h.setPaused) h.setPaused(!(ctx.hud && ctx.hud.paused)); });
+    var _pmEl = document.getElementById('pauseMenu');
+    var _showPause = function (show) { if (!_pmEl) return; _pmEl.hidden = !show; if (show) { var wv = document.getElementById('pmWave'); if (wv) wv.textContent = (ctx.hud && ctx.hud.wave) || 0; var gd = document.getElementById('pmGold'); if (gd) gd.textContent = (ctx.hud && ctx.hud.gold) || 0; var sh2 = document.getElementById('pmShield'); if (sh2) sh2.textContent = (ctx.hud && ctx.hud.lives) || 0; } };
+    var _pauseBtn = document.getElementById('btnGamePause'); if (_pauseBtn) _pauseBtn.addEventListener('click', function () { var h = btdHandle(); if (!h || !h.setPaused) return; var toPause = !(ctx.hud && ctx.hud.paused); h.setPaused(toPause); _showPause(toPause); });
+    var _callBtn = document.getElementById('btnCallWave'); if (_callBtn) _callBtn.addEventListener('click', function () { var h = btdHandle(); if (h) h.startWave(); });
+    var _muted = false; var _muteBtn = document.getElementById('btnGameMute'); if (_muteBtn) _muteBtn.addEventListener('click', function () { var h = btdHandle(); _muted = !_muted; if (h && h.setVolume) h.setVolume(_muted ? 0 : ((ctx.settings && ctx.settings.volume != null) ? ctx.settings.volume : 1)); _muteBtn.textContent = _muted ? '🔇' : '🔊'; });
+    var _pmResume = document.getElementById('pmResume'); if (_pmResume) _pmResume.addEventListener('click', function () { var h = btdHandle(); if (h && h.setPaused) h.setPaused(false); _showPause(false); });
+    var _pmRestart = document.getElementById('pmRestart'); if (_pmRestart) _pmRestart.addEventListener('click', function () { _showPause(false); if (typeof loadGame === 'function') loadGame('cosmos-btd'); });
+    var _pmSettings = document.getElementById('pmSettings'); if (_pmSettings) _pmSettings.addEventListener('click', function () { _showPause(false); if (typeof openSettings === 'function') openSettings(); });
+    var _pmExit = document.getElementById('pmExit'); if (_pmExit) _pmExit.addEventListener('click', function () { _showPause(false); exitGameMode(); showView('store'); });
+    document.querySelectorAll('[data-pm-map]').forEach(function (btn) { btn.addEventListener('click', function () { var skin = btn.getAttribute('data-pm-map'); var h = btdHandle(); if (h && h.setMapSkin) h.setMapSkin(skin); document.querySelectorAll('[data-map-skin]').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-map-skin') === skin); }); document.querySelectorAll('[data-pm-map]').forEach(function (x) { x.classList.toggle('on', x === btn); }); }); });
     var _autoBtn = document.getElementById('btnGameAuto'); if (_autoBtn) _autoBtn.addEventListener('click', function () { var h = btdHandle(); if (h) h.setAutoStart(!(ctx.hud && ctx.hud.autoStart)); });
     var _spd = document.getElementById('gameSpeed'); if (_spd) _spd.addEventListener('change', function () { var h = btdHandle(); if (h) h.setSpeed(Number(_spd.value)); });
     var _mk = document.getElementById('mkSearch'); if (_mk) _mk.addEventListener('input', renderInspectorMarket);
@@ -1051,7 +1066,7 @@
     var _lh = document.getElementById('btnListHero'); if (_lh) _lh.addEventListener('click', function () { if (!ctx.player) { toast('Connect your wallet first.', 'warn'); return; } showView('marketplace'); });
     var _ts2 = document.getElementById('btnTopSettings'); if (_ts2) _ts2.addEventListener('click', openSettings);
     var _lm = document.getElementById('btnLibMenu'); if (_lm) _lm.addEventListener('click', function () { var m = document.getElementById('libMenu'); if (m) m.hidden = !m.hidden; });
-    document.querySelectorAll('#libMenu [data-libmenu]').forEach(function (b) { b.addEventListener('click', function () { var m = document.getElementById('libMenu'); if (m) m.hidden = true; var k = b.getAttribute('data-libmenu'); if (k === 'updates') showView('updates'); else if (k === 'devtools') showView('devtools'); else if (k === 'settings') openSettings(); else if (k === 'shortcuts') toggleShortcuts(); }); });
+    document.querySelectorAll('#libMenu [data-libmenu]').forEach(function (b) { b.addEventListener('click', function () { var m = document.getElementById('libMenu'); if (m) m.hidden = true; var k = b.getAttribute('data-libmenu'); if (k === 'updates') showView('updates'); else if (k === 'settings') openSettings(); else if (k === 'shortcuts') toggleShortcuts(); }); });
     setInterval(renderPerf, 500);
     updateHubLoader(100, 'Ready');
     hideHubLoader();

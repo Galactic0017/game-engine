@@ -57,31 +57,38 @@
     (state.rentals || []).forEach(function (r) { if (r.status === 'available' || r.status === 'pending' || r.status === 'active') rentalHeroIds[r.heroId] = true; });
     var fee = state.feePercent;
     var ceo = state.ceoAddress;
-    el.innerHTML = '<p>CEO fee <strong>' + fee + '%</strong> · CEO address <code>' + ctx.esc(ceo) + '</code> · Orders close after <strong>' + state.orderTtlMinutes + ' min</strong> if not completed.</p>'
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button id="mkRefresh">↻ Refresh</button><input id="mkSearch" placeholder="Search heroes…" style="width:170px" value="' + ctx.esc(mkQ) + '"><select id="mkRarity" style="width:auto"><option value="">All rarities</option>' + rarities.map(function (r) { return '<option' + (mkRarity === r ? ' selected' : '') + '>' + ctx.esc(r) + '</option>'; }).join('') + '</select><select id="mkSort" style="width:auto"><option value="price-asc"' + (mkSort === 'price-asc' ? ' selected' : '') + '>Price ↑</option><option value="price-desc"' + (mkSort === 'price-desc' ? ' selected' : '') + '>Price ↓</option><option value="level"' + (mkSort === 'level' ? ' selected' : '') + '>Level</option><option value="name"' + (mkSort === 'name' ? ' selected' : '') + '>Name</option></select><span class="muted small">Send EXACTLY the full price. Memo must be exactly the listing ID.</span></div>'
+    var mkCount = listings.length;
+    var mkFloor = mkCount ? Math.min.apply(null, listings.map(function (l) { return l.priceAtom; })) : 0;
+    var mkAvg = mkCount ? listings.reduce(function (a, l) { return a + l.priceAtom; }, 0) / mkCount : 0;
+    el.innerHTML = '<div class="mkHead"><div><h3 style="margin:0">Hero Marketplace</h3><p class="small muted" style="margin:4px 0 0">Real ATOM, no contracts. Buyers send the full price to the CEO address (memo = listing ID). The CEO checks, moves the hero, then pays the seller minus the fee.</p></div><div class="mkStats"><span><b>' + mkCount + '</b> for sale</span><span>Floor <b>' + mkFloor + ' ATOM</b></span><span>Avg <b>' + mkAvg.toFixed(2) + ' ATOM</b></span></div></div>'
+      + '<p class="mkNotice">CEO fee <strong>' + fee + '%</strong> · CEO address <code>' + ctx.esc(ceo) + '</code> · Orders close after <strong>' + state.orderTtlMinutes + ' min</strong> if not completed. Send EXACTLY the full price — memo must be exactly the listing ID.</p>'
+      + '<div class="mkToolbar"><button id="mkRefresh">↻ Refresh</button><input id="mkSearch" placeholder="Search heroes…" style="width:170px" value="' + ctx.esc(mkQ) + '"><select id="mkRarity" style="width:auto"><option value="">All rarities</option>' + rarities.map(function (r) { return '<option' + (mkRarity === r ? ' selected' : '') + '>' + ctx.esc(r) + '</option>'; }).join('') + '</select><select id="mkSort" style="width:auto"><option value="price-asc"' + (mkSort === 'price-asc' ? ' selected' : '') + '>Price ↑</option><option value="price-desc"' + (mkSort === 'price-desc' ? ' selected' : '') + '>Price ↓</option><option value="level"' + (mkSort === 'level' ? ' selected' : '') + '>Level</option><option value="name"' + (mkSort === 'name' ? ' selected' : '') + '>Name</option></select></div>'
       + '<h4>For sale</h4>'
       + (listings.length ? '<div class="listingGrid">' + listings.map(function (l) {
-        return '<div class="listing"><h4>' + ctx.esc(l.heroName) + ' <span class="pill">' + ctx.esc(l.rarity) + '</span></h4>'
-          + '<div class="price">' + l.priceAtom + ' ATOM</div>'
-          + '<p class="small">Seller gets ' + l.sellerAmount + ' · CEO fee ' + l.ceoFee + ' (' + l.feePercent + '%)<br>Seller: <code>' + ctx.esc(ctx.shortAddr(l.sellerAddress)) + '</code> · Hero Lv ' + l.level + '</p>'
+        var hh = (state.heroes || []).filter(function (h) { return h.id === l.heroId; })[0] || { defId: defByHero[l.heroId] };
+        return '<article class="mkCard rar-' + String(l.rarity || '').toLowerCase() + '">'
+          + '<div class="mkThumb">' + (typeof ctx.heroImg === 'function' ? ctx.heroImg(hh) : '') + '<span class="mkLvl">Lv ' + l.level + '</span></div>'
+          + '<div class="mkBody"><h4>' + ctx.esc(l.heroName) + ' <span class="pill">' + ctx.esc(l.rarity) + '</span></h4>'
+          + '<div class="mkPrice">' + l.priceAtom + ' <span>ATOM</span></div>'
+          + '<p class="small muted">Seller gets ' + l.sellerAmount + ' ATOM · CEO fee ' + l.ceoFee + ' (' + l.feePercent + '%)<br>Seller: <code>' + ctx.esc(ctx.shortAddr(l.sellerAddress)) + '</code></p>'
           + '<p class="small">Price history: ' + historyLine(hist, defByHero[l.heroId]) + '</p>'
           + (l.acceptedOfferBuyer ? '<p class="small">Accepted offer: ' + l.priceAtom + ' ATOM reserved for <code>' + ctx.esc(ctx.shortAddr(l.acceptedOfferBuyer)) + '</code>' + (l.acceptedOfferBuyer === me ? ' (you)' : '') + '</p>' : '')
-          + '<button class="primary" data-buy="' + l.id + '">Buy with Keplr — send ' + l.priceAtom + ' ATOM</button> '
-          + '<button class="ghost" data-manual="' + l.id + '">I already sent — submit TXID</button>'
-          + ((me && l.sellerAddress !== me && !l.acceptedOfferBuyer) ? ' <button class="ghost" data-offer="' + l.id + '">Make offer (below list)</button>' : '') + '</div>';
-      }).join('') + '</div>' : '<p class="muted">Nothing for sale right now. List a hero below.</p>')
+          + '<div class="mkActions"><button class="primary" data-buy="' + l.id + '">Buy with Keplr</button> '
+          + '<button class="ghost" data-manual="' + l.id + '">Submit TXID</button>'
+          + ((me && l.sellerAddress !== me && !l.acceptedOfferBuyer) ? ' <button class="ghost" data-offer="' + l.id + '">Make offer</button>' : '') + '</div></div></article>';
+      }).join('') + '</div>' : '<div class="mkEmpty"><strong>Nothing for sale right now.</strong><br><span class="small muted">List one of your heroes below — buyers send the full price to the CEO address and the CEO moves the hero after checking.</span></div>')
       + '<h4 style="margin-top:18px">My orders</h4>'
-      + (myOrders.length ? '<table><tr><th>Order</th><th>Hero</th><th>Price</th><th>Status</th><th>Closes in</th><th>TX</th></tr>' + myOrders.map(function (s) {
+      + (myOrders.length ? '<div class="tableWrap"><table><tr><th>Order</th><th>Hero</th><th>Price</th><th>Status</th><th>Closes in</th><th>TX</th></tr>' + myOrders.map(function (s) {
         return '<tr><td class="mono small">' + ctx.esc(s.id) + '</td><td>' + ctx.esc(s.heroName) + '</td><td>' + s.priceAtom + ' ATOM</td><td><span class="pill ' + s.status + '">' + s.status + '</span></td><td><span class="timer" data-expires="' + (s.secondsLeft || 0) + '" data-now="' + Date.now() + '">' + fmtLeft(s.secondsLeft || 0) + '</span></td><td><a href="' + ctx.config.explorerTxUrl + s.txid + '" target="_blank" rel="noopener">Explorer</a></td></tr>';
-      }).join('') + '</table>' : '<p class="muted small">No orders yet.</p>')
+      }).join('') + '</table></div>' : '<p class="muted small">No orders yet.</p>')
       + '<h4 style="margin-top:18px">My offers</h4>'
       + (function () {
         var myOffers = (state.offers || []).filter(function (o) { return me && (o.buyerAddress === me || o.sellerAddress === me); }).slice().reverse();
         if (!myOffers.length) return '<p class="muted small">No offers yet. Make an offer below the list price on any listing.</p>';
-        return '<table><tr><th>Hero</th><th>Offer</th><th>Status</th><th>Action</th></tr>' + myOffers.map(function (o) {
+        return '<div class="tableWrap"><table><tr><th>Hero</th><th>Offer</th><th>Status</th><th>Action</th></tr>' + myOffers.map(function (o) {
           var canRespond = o.status === 'pending' && o.sellerAddress === me;
           return '<tr><td>' + ctx.esc(o.heroName) + '</td><td>' + o.amountAtom + ' ATOM</td><td><span class="pill ' + o.status + '">' + o.status + '</span></td><td>' + (canRespond ? '<button class="ghost" data-accept-offer="' + o.id + '">Accept</button> <button class="ghost" data-decline-offer="' + o.id + '">Decline</button>' : '<span class="small muted">' + (o.status === 'accepted' ? 'Reserved for the buyer at this price — they complete the normal CEO-escrow buy.' : o.buyerAddress === me ? 'Waiting on the seller.' : '') + '</span>') + '</td></tr>';
-        }).join('') + '</table>';
+        }).join('') + '</table></div>';
       })()
       + '<h4 style="margin-top:18px">Hero rentals — time-boxed loans, CEO escrow</h4>'
       + (function () {
@@ -89,11 +96,12 @@
         var mine = (state.rentals || []).filter(function (r) { return me && (r.ownerAddress === me || r.renterAddress === me); }).slice().reverse();
         var out = '';
         out += avail.length ? '<div class="listingGrid">' + avail.map(function (r) {
-          return '<div class="listing"><h4>' + ctx.esc(r.heroName) + ' <span class="pill">rental</span></h4><div class="price">' + r.priceAtom + ' ATOM / ' + r.days + ' day' + (r.days > 1 ? 's' : '') + '</div><p class="small">Owner gets ' + r.sellerAmount + ' &middot; CEO fee ' + r.ceoFee + '<br>Owner: <code>' + ctx.esc(ctx.shortAddr(r.ownerAddress)) + '</code></p><button class="primary" data-rent="' + r.id + '">Rent with Keplr — send ' + r.priceAtom + ' ATOM</button> <button class="ghost" data-manual-rent="' + r.id + '">I already sent — submit TXID</button></div>';
+          var rh = (state.heroes || []).filter(function (h) { return h.id === r.heroId; })[0] || { defId: defByHero[r.heroId] };
+          return '<article class="mkCard"><div class="mkThumb">' + (typeof ctx.heroImg === 'function' ? ctx.heroImg(rh) : '') + '<span class="mkLvl">Rental</span></div><div class="mkBody"><h4>' + ctx.esc(r.heroName) + ' <span class="pill">rental</span></h4><div class="mkPrice">' + r.priceAtom + ' <span>ATOM / ' + r.days + ' day' + (r.days > 1 ? 's' : '') + '</span></div><p class="small muted">Owner gets ' + r.sellerAmount + ' ATOM · CEO fee ' + r.ceoFee + '<br>Owner: <code>' + ctx.esc(ctx.shortAddr(r.ownerAddress)) + '</code></p><div class="mkActions"><button class="primary" data-rent="' + r.id + '">Rent with Keplr</button> <button class="ghost" data-manual-rent="' + r.id + '">Submit TXID</button></div></div></article>';
         }).join('') + '</div>' : '<p class="muted small">No heroes for rent right now.</p>';
-        out += mine.length ? '<table style="margin-top:10px"><tr><th>Hero</th><th>Price / days</th><th>Status</th><th>Role</th><th>Ends</th></tr>' + mine.map(function (r) {
+        out += mine.length ? '<div class="tableWrap"><table style="margin-top:10px"><tr><th>Hero</th><th>Price / days</th><th>Status</th><th>Role</th><th>Ends</th></tr>' + mine.map(function (r) {
           return '<tr><td>' + ctx.esc(r.heroName) + '</td><td>' + r.priceAtom + ' ATOM / ' + r.days + 'd</td><td><span class="pill ' + r.status + '">' + r.status + '</span></td><td class="small">' + (r.ownerAddress === me ? 'Owner' : 'Renter') + '</td><td class="small">' + (r.endsAtIso ? ctx.esc(r.endsAtIso.slice(0, 10)) : (r.status === 'active' ? r.daysLeft + 'd left' : '—')) + '</td></tr>';
-        }).join('') + '</table><p class="small muted">Active loans return automatically when the time ends — the hero goes back to its owner.</p>' : '';
+        }).join('') + '</table></div><p class="small muted">Active loans return automatically when the time ends — the hero goes back to its owner.</p>' : '';
         return out;
       })()
       + '<h4 style="margin-top:18px">Rent out a hero</h4>'
@@ -112,11 +120,7 @@
           return '<label class="checkRow" style="display:flex;gap:8px;align-items:center"><input type="checkbox" style="width:auto" data-bulk-hero="' + h.id + '"> ' + ctx.esc(h.name) + ' — Lv ' + h.level + ' <input type="number" min="0.000001" step="0.000001" placeholder="Price ATOM" style="width:130px" data-bulk-price="' + h.id + '"></label>';
         }).join('') + '<button id="mkBulkList" class="primary">List selected heroes</button>';
       })()
-      + '<h4 style="margin-top:18px">Skins (in-game credits)</h4>'
-      + '<div class="listingGrid">' + ((ctx.config.skins || []).map(function (sk) {
-        var owned = ctx.player && (ctx.player.skins || []).indexOf(sk.id) >= 0;
-        return '<div class="listing"><h4>' + ctx.esc(sk.name) + '</h4><p class="small">' + ctx.esc(sk.desc) + '</p><p><strong>' + sk.cost + ' credits</strong></p><button data-skin="' + sk.id + '">' + (owned ? 'Equip' : 'Buy + equip') + '</button></div>';
-      }).join('')) + '</div>';
+;
     startTimer(el, ctx);
     el.querySelector('#mkRefresh').addEventListener('click', async function () { await ctx.refreshState(); render(el, ctx); });
     el.querySelector('#mkSearch').addEventListener('change', function (ev) { mkQ = ev.target.value; render(el, ctx); });
@@ -130,12 +134,6 @@
         try { var r = await ctx.api('/api/listings', 'POST', { heroId: el.querySelector('#mkHero').value, address: me, sellerAddress: me, priceAtom: Number(priceInput.value) }); ctx.toast('Listed: ' + r.listing.heroName + ' for ' + r.listing.priceAtom + ' ATOM.', 'ok'); await ctx.refreshState(); render(el, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
       });
     }
-    el.querySelectorAll('[data-skin]').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        if (!me) return ctx.toast('Connect your wallet first.', 'warn');
-        try { await ctx.api('/api/shop/buy-skin', 'POST', { address: me, skinId: btn.getAttribute('data-skin') }); ctx.toast('Skin equipped.', 'ok'); await ctx.refreshState(); render(el, ctx); } catch (e) { ctx.toast(e.message, 'err'); }
-      });
-    });
     el.querySelectorAll('[data-buy]').forEach(function (btn) {
       btn.addEventListener('click', function () { buyFlow(btn.getAttribute('data-buy'), ctx, el); });
     });
