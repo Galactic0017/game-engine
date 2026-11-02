@@ -466,6 +466,7 @@
       return '<div class="effRow"><span>' + esc(label) + '</span><div class="statBar"><div style="width:' + Math.round(100 * Math.max(0, Math.min(max, val)) / max) + '%;' + (color ? 'background:' + color + ';' : '') + '"></div></div><span>' + val + '</span></div>';
     };
     card.hidden = false;
+    if (typeof showCenterTab === 'function') showCenterTab('details');
     card.innerHTML = '<h3>🔍 ' + esc(ins.name) + ' — Lv ' + ins.level + (ins.maxed ? ' (MAX)' : '') + '</h3>'
       + bar('Damage', ins.dmg, 10, '#ff6b35')
       + bar('Range', ins.range, 350, '#00f6ff')
@@ -731,7 +732,7 @@
     bind('abPause', function () { if (handle && handle.setPaused) handle.setPaused(!hud.paused); });
     bind('abEndless', function () { if (handle && handle.setEndless) { handle.setEndless(!hud.endless); toast(!hud.endless ? 'Endless mode ON: waves continue past 50.' : 'Endless mode OFF.'); } });
     bind('abChallenge', function () { if (handle && handle.setChallenge) { handle.setChallenge(!hud.challenge); toast(!hud.challenge ? 'Challenge mode: 100 gold, 20 lives. Applies on restart.' : 'Challenge mode OFF.'); } });
-    bind('abHelp', function () { var h = document.getElementById('helpCard'); if (h) h.hidden = !h.hidden; });
+    bind('abHelp', function () { var h = document.getElementById('helpCard'); if (h) { h.hidden = !h.hidden; if (!h.hidden && typeof showCenterTab === 'function') showCenterTab('details'); } });
   }
   /* Batch 7 (Pillar 5): Dev Tools view — map editor, mod loader,
    * debug console. All three work on the live BTD handle only; with
@@ -815,9 +816,25 @@
   function showRailTab(name) {
     railTab = name;
     document.querySelectorAll('#railTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-rail') === name); });
-    document.querySelectorAll('.railPane').forEach(function (p) { p.classList.toggle('active', p.id === 'railPane-' + name); });
+    document.querySelectorAll('.rail-right .railPane').forEach(function (p) { p.classList.toggle('active', p.id === 'railPane-' + name); });
   }
   document.querySelectorAll('#railTabs button').forEach(function (b) { b.addEventListener('click', function () { showRailTab(b.getAttribute('data-rail')); }); });
+  /* Left + center tab groups (redesign): same pattern as the rail tabs,
+   * each scoped to its own container so panes never cross-hide. */
+  var leftTab = 'play';
+  function showLeftTab(name) {
+    leftTab = name;
+    document.querySelectorAll('#leftTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-left') === name); });
+    document.querySelectorAll('.rail-left .railPane').forEach(function (p) { p.classList.toggle('active', p.id === 'leftPane-' + name); });
+  }
+  document.querySelectorAll('#leftTabs button').forEach(function (b) { b.addEventListener('click', function () { showLeftTab(b.getAttribute('data-left')); }); });
+  var centerTab = 'games';
+  function showCenterTab(name) {
+    centerTab = name;
+    document.querySelectorAll('#centerTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-center') === name); });
+    document.querySelectorAll('.centerPane').forEach(function (p) { p.classList.toggle('active', p.id === 'centerPane-' + name); });
+  }
+  document.querySelectorAll('#centerTabs button').forEach(function (b) { b.addEventListener('click', function () { showCenterTab(b.getAttribute('data-center')); }); });
   async function init() {
     try { var refParam = new URLSearchParams(window.location.search).get('ref'); if (refParam) localStorage.setItem('game-referral', refParam); } catch (e) {}
     var startGame = 'cosmos-btd';
