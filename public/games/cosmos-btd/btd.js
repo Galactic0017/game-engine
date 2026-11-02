@@ -628,39 +628,69 @@
   /* Jungle map skin: bright grass, foliage borders, stone-slab path.
    * Same track geometry as the space skin; only the painting differs,
    * so waves, towers and the ATOM orb play identically. */
+  /* Jungle map skin, realistic pass: meadow patches, cliff borders,
+   * pond shores with reeds and lily pads, pebble-edged stone path,
+   * layered foliage. Same track geometry as the space skin. */
   function paintJungleBackground(b) {
     var g = b.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, '#82c957'); g.addColorStop(0.5, '#5ea843'); g.addColorStop(1, '#4b9334');
     b.fillStyle = g; b.fillRect(0, 0, W, H);
     var i, x, y;
+    // soft meadow patches: large translucent blobs of varied green
+    for (i = 0; i < 12; i++) {
+      var mx = rnd() * W, my = rnd() * H, mr = 90 + rnd() * 130;
+      var mg = b.createRadialGradient(mx, my, 8, mx, my, mr);
+      var light = rnd() > 0.5;
+      mg.addColorStop(0, light ? 'rgba(190,230,130,.20)' : 'rgba(30,90,30,.20)');
+      mg.addColorStop(1, 'rgba(0,0,0,0)');
+      b.fillStyle = mg; b.fillRect(mx - mr, my - mr, mr * 2, mr * 2);
+    }
     for (x = 0; x < W; x += 80) { if (Math.floor(x / 80) % 2 === 0) { b.fillStyle = 'rgba(255,255,255,.05)'; b.fillRect(x, 0, 80, H); } }
     for (i = 0; i < 1100; i++) { b.fillStyle = ['rgba(255,255,255,.12)', 'rgba(20,80,20,.20)', 'rgba(255,240,150,.22)'][i % 3]; b.fillRect(rnd() * W, rnd() * H, 2, 2); }
-    for (i = 0; i < 240; i++) {
+    for (i = 0; i < 380; i++) {
       x = rnd() * W; y = rnd() * H;
       b.strokeStyle = 'rgba(28,96,28,.55)'; b.lineWidth = 1.5; b.beginPath();
       b.moveTo(x, y); b.lineTo(x - 3, y - 7); b.moveTo(x, y); b.lineTo(x + 3, y - 8); b.stroke();
+      if (i % 5 === 0) { b.fillStyle = '#e8e4b0'; b.beginPath(); b.arc(x + 3, y - 8, 1.6, 0, TAU); b.fill(); }
     }
-    for (i = 0; i < 70; i++) { b.fillStyle = ['#ffd166', '#ff6b9d', '#ffffff', '#c792ea'][i % 4]; b.beginPath(); b.arc(rnd() * W, rnd() * H, 2.6, 0, TAU); b.fill(); }
+    for (i = 0; i < 90; i++) { b.fillStyle = ['#ffd166', '#ff6b9d', '#ffffff', '#c792ea', '#ff8c42'][i % 5]; b.beginPath(); b.arc(rnd() * W, rnd() * H, 2.6, 0, TAU); b.fill(); }
+    // rocky cliff borders along the top and left edges (clear of the track)
+    var rock = function (rx, ry, r) {
+      b.fillStyle = 'rgba(0,0,0,.28)'; b.beginPath(); b.ellipse(rx + 5, ry + 7, r, r * 0.4, 0, 0, TAU); b.fill();
+      b.fillStyle = '#8a8578'; b.beginPath(); b.arc(rx, ry, r, 0, TAU); b.fill();
+      b.fillStyle = '#a39d8e'; b.beginPath(); b.arc(rx - r * 0.3, ry - r * 0.3, r * 0.55, 0, TAU); b.fill();
+      b.strokeStyle = 'rgba(50,48,42,.55)'; b.lineWidth = 2; b.beginPath(); b.moveTo(rx - r * 0.5, ry + r * 0.2); b.lineTo(rx + r * 0.1, ry - r * 0.1); b.lineTo(rx + r * 0.55, ry + r * 0.35); b.stroke();
+      b.fillStyle = '#6f6a5e'; b.beginPath(); b.arc(rx + r * 0.35, ry + r * 0.3, r * 0.3, 0, TAU); b.fill();
+    };
+    [80, 200, 320, 440, 560, 680, 800, 920].forEach(function (rx) { rock(rx, 14, 20 + rnd() * 10); });
+    [60, 250, 340, 430, 520].forEach(function (ry) { rock(14, ry, 18 + rnd() * 8); });
     var pond = function (cx, cy, rx, ry) {
       if (typeof distToPath === 'function' && distToPath(cx, cy) < 70) return;
+      b.fillStyle = '#d8c69a'; b.beginPath(); b.ellipse(cx, cy, rx + 9, ry + 8, 0, 0, TAU); b.fill();
       b.fillStyle = '#5a93b5'; b.beginPath(); b.ellipse(cx, cy, rx + 5, ry + 5, 0, 0, TAU); b.fill();
       b.fillStyle = '#8fc7e2'; b.beginPath(); b.ellipse(cx, cy, rx, ry, 0, 0, TAU); b.fill();
       b.fillStyle = 'rgba(255,255,255,.28)'; b.beginPath(); b.ellipse(cx - rx * 0.25, cy - ry * 0.3, rx * 0.45, ry * 0.4, 0, 0, TAU); b.fill();
-      b.fillStyle = '#3f7a4d'; b.beginPath(); b.arc(cx + rx * 0.4, cy + ry * 0.25, 4, 0, TAU); b.fill();
+      b.fillStyle = '#3f7a4d'; b.beginPath(); b.arc(cx + rx * 0.4, cy + ry * 0.25, 5, 0, TAU); b.fill();
+      b.fillStyle = '#57b04a'; b.beginPath(); b.arc(cx - rx * 0.5, cy + ry * 0.3, 4, 0, TAU); b.fill();
+      b.strokeStyle = '#2f7a2e'; b.lineWidth = 2;
+      [[-rx - 4, 2], [rx + 3, -3], [rx * 0.7, -ry - 5]].forEach(function (rp) {
+        b.beginPath(); b.moveTo(cx + rp[0], cy + rp[1]); b.lineTo(cx + rp[0] - 3, cy + rp[1] - 12); b.moveTo(cx + rp[0], cy + rp[1]); b.lineTo(cx + rp[0] + 3, cy + rp[1] - 10); b.stroke();
+      });
     };
     pond(790, 55, 55, 30); pond(100, 530, 45, 26); pond(770, 550, 35, 24);
     var bush = function (bx, by, r) {
       b.fillStyle = 'rgba(20,70,20,.35)'; b.beginPath(); b.arc(bx + 5, by + 6, r, 0, TAU); b.fill();
       b.fillStyle = '#2f7a2e'; b.beginPath(); b.arc(bx, by, r * 0.8, 0, TAU); b.fill();
       b.fillStyle = '#5cb84d'; b.beginPath(); b.arc(bx - r * 0.25, by - r * 0.25, r * 0.45, 0, TAU); b.fill();
+      b.fillStyle = '#8fd07a'; b.beginPath(); b.arc(bx - r * 0.35, by - r * 0.4, r * 0.2, 0, TAU); b.fill();
     };
     [[40, 40], [180, 24], [340, 36], [520, 26], [700, 38], [860, 30], [930, 90], [24, 200], [30, 420], [40, 560], [920, 180], [935, 540], [240, 575], [480, 580], [660, 575], [800, 570]].forEach(function (p) { bush(p[0], p[1], 26 + rnd() * 14); });
-    // stone-slab path: dirt bed + slabs laid along the track
+    // stone-slab path: dirt bed + slabs + pebble edges along the track
     var slabAlong = function (pts) {
       b.lineCap = 'round'; b.lineJoin = 'round';
       var under = function (w, col) { b.strokeStyle = col; b.lineWidth = w; b.beginPath(); b.moveTo(pts[0][0], pts[0][1]); pts.forEach(function (p) { b.lineTo(p[0], p[1]); }); b.stroke(); };
       under(46, 'rgba(90,60,30,.55)'); under(40, '#b99a6b'); under(36, '#c9b489');
-      var acc = 0;
+      var acc = 0, peb = 0;
       for (var s = 0; s < pts.length - 1; s++) {
         var ax = pts[s][0], ay = pts[s][1], bx2 = pts[s + 1][0], by2 = pts[s + 1][1];
         var seg = Math.hypot(bx2 - ax, by2 - ay), ang = Math.atan2(by2 - ay, bx2 - ax);
@@ -673,6 +703,14 @@
           b.strokeStyle = 'rgba(120,105,80,.5)'; b.lineWidth = 1; b.beginPath(); b.moveTo(-14, 0); b.lineTo(14, 0); b.stroke();
           b.restore();
           d += 24;
+        }
+        var pd = 48 - (acc % 48);
+        while (pd < seg) {
+          var px = ax + Math.cos(ang) * pd, py = ay + Math.sin(ang) * pd;
+          var side = (peb % 2 === 0) ? 1 : -1; peb++;
+          var ox = px + Math.cos(ang + Math.PI / 2) * 25 * side, oy = py + Math.sin(ang + Math.PI / 2) * 25 * side;
+          b.fillStyle = '#a89a80'; b.beginPath(); b.arc(ox, oy, 3 + rnd() * 2, 0, TAU); b.fill();
+          pd += 48;
         }
         acc += seg;
       }
@@ -687,6 +725,7 @@
       b.fillStyle = '#2f7a2e'; b.beginPath(); b.arc(tx2, ty2 - 22, 24, 0, TAU); b.fill();
       b.fillStyle = '#57b04a'; b.beginPath(); b.arc(tx2 - 8, ty2 - 30, 14, 0, TAU); b.fill();
       b.fillStyle = '#8fd07a'; b.beginPath(); b.arc(tx2 - 10, ty2 - 34, 7, 0, TAU); b.fill();
+      b.fillStyle = '#3f7a4d'; b.beginPath(); b.arc(tx2 + 12, ty2 - 14, 10, 0, TAU); b.fill();
     });
     [[250, 540], [640, 84], [830, 540], [430, 520], [180, 556]].forEach(function (pos) {
       var rx = pos[0], ry = pos[1];
@@ -764,7 +803,7 @@
       balloons: [], towers: [], projectiles: [], beams: [], floaters: [], spikes: [],
       particles: [], spawnCount: 0, spawnQueue: [], spawnTimer: 0, betweenWaves: true,
       speed: 1, autoStart: false, targeting: 'first', placing: null,
-      selected: null, hoverTower: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
+      selected: null, hoverTower: null, lastPlaced: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
       skipBonuses: 0, skipBonusTotal: 0,
       fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', _lastFrameT: 0, _dynFactor: 1,
       sessionId: null, sessionNonce: null, pendingReports: [],
@@ -969,7 +1008,7 @@
     st.wave++;
     st.spawnQueue = (st.customWaves && st.customWaves[st.wave]) ? st.customWaves[st.wave].slice() : waveComposition(st.wave);
     st.spawnTimer = 0.4;
-    st.waveActive = true; st.betweenWaves = false;
+    st.waveActive = true; st.betweenWaves = false; st.lastPlaced = null;
     if (st.wave % 10 === 0) setWeather(st, 'blizzard', 8);
     else if (st.wave % 5 === 0) setWeather(st, 'storm', 8);
     floater(st, W / 2, 60, 'WAVE ' + st.wave, '#00f6ff');
@@ -1593,7 +1632,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', mapSkin: st.mapSkin || 'space', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, undoAvailable: !!st.lastPlaced && !st.waveActive && !!st.betweenWaves, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', mapSkin: st.mapSkin || 'space', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -1713,7 +1752,7 @@
       ctx.beginPath(); ctx.arc((i - (cols.length - 1) / 2) * 9, -r - 8, 3.5, 0, TAU); ctx.fill();
     }
   }
-  function drawTower(ctx, t, time) {
+  function drawTower(ctx, t, time, skin) {
     var def = TOWER_DEFS[t.kind];
     var spr = SPRITES[TOWER_SPRITES[t.kind]];
     if (t.kind === 'beacon') {
@@ -1737,6 +1776,11 @@
       var kx = Math.cos(t.angle || 0) * kick, ky = Math.sin(t.angle || 0) * kick;
       ctx.save(); ctx.translate(t.x - kx, t.y - ky);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(3, 10, 18, 6, 0, 0, TAU); ctx.fill();
+      var ped = ctx.createLinearGradient(0, 2, 0, 18);
+      if (skin === 'jungle') { ped.addColorStop(0, '#b8b2a4'); ped.addColorStop(1, '#7d776c'); }
+      else { ped.addColorStop(0, '#4a5a78'); ped.addColorStop(1, '#232f47'); }
+      ctx.fillStyle = ped; ctx.beginPath(); ctx.ellipse(0, 9, 22, 8, 0, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(20,18,14,.55)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(0, 9, 22, 8, 0, 0, TAU); ctx.stroke();
       var sz = t.level >= 5 ? 60 : t.level >= 4 ? 52 : 44;
       var preT = prerender('tower-spr:' + TOWER_SPRITES[t.kind] + ':' + sz, sz, sz, function (c) { c.drawImage(spr, 0, 0, sz, sz); });
       if (preT) ctx.drawImage(preT, -sz / 2, -sz / 2, sz, sz);
@@ -1822,13 +1866,13 @@
       ctx.beginPath(); ctx.moveTo(kb.x - 24, kb.y); ctx.lineTo(kb.x - 8, kb.y); ctx.moveTo(kb.x + 8, kb.y); ctx.lineTo(kb.x + 24, kb.y); ctx.moveTo(kb.x, kb.y - 24); ctx.lineTo(kb.x, kb.y - 8); ctx.moveTo(kb.x, kb.y + 8); ctx.lineTo(kb.x, kb.y + 24); ctx.stroke();
       ctx.restore();
     }
-    if (st.selected) { var sel = st.selected; ctx.strokeStyle = '#00f6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.range || 150, 0, TAU); ctx.stroke(); ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.arc(sel.x, sel.y, 20, 0, TAU); ctx.stroke();
+    if (st.selected) { var sel = st.selected; ctx.strokeStyle = '#00f6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.range || 150, 0, TAU); ctx.stroke(); ctx.fillStyle = 'rgba(0,246,255,.07)'; ctx.fill(); ctx.strokeStyle = 'rgba(0,246,255,.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(sel.x, sel.y, (sel.range || 150) + 10, 0, TAU); ctx.stroke(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.arc(sel.x, sel.y, 20, 0, TAU); ctx.stroke();
       /* Batch 20: selected splash towers show their blast radius too
        * (splash + branch splashBonus), dashed like the ghost ring. */
       var selSplash = splashRadiusFor(sel.kind) + (sel.splashBonus || 0);
       if (selSplash > 0) { if (ctx.setLineDash) ctx.setLineDash([8, 6]); ctx.strokeStyle = 'rgba(0,246,255,.85)'; ctx.beginPath(); ctx.arc(sel.x, sel.y, selSplash, 0, TAU); ctx.stroke(); if (ctx.setLineDash) ctx.setLineDash([]); } }
     for (var i = 0; i < st.balloons.length; i++) drawBalloon(ctx, st.balloons[i], st.time, st.alpha, st.colorblind);
-    for (i = 0; i < st.towers.length; i++) drawTower(ctx, st.towers[i], st.time);
+    for (i = 0; i < st.towers.length; i++) drawTower(ctx, st.towers[i], st.time, st.mapSkin);
     for (i = 0; i < st.spikes.length; i++) { var spk = st.spikes[i]; ctx.fillStyle = '#c9ced6'; ctx.beginPath(); ctx.moveTo(spk.x, spk.y - 6); ctx.lineTo(spk.x - 6, spk.y + 5); ctx.lineTo(spk.x + 6, spk.y + 5); ctx.closePath(); ctx.fill(); }
     if (st.heroPlaced && st.hero) {
       var h = st.hero;
@@ -2083,7 +2127,7 @@
     for (var i = 0; i < st.towers.length; i++) if (dist(x, y, st.towers[i].x, st.towers[i].y) < 30) { if (st.opts.onToast) st.opts.onToast('Too close to another tower.', 'warn'); return false; }
     st.gold -= def.cost;
     st.towers.push({ kind: st.placing, x: x, y: y, range: def.range, rate: def.rate, dmg: def.dmg, color: def.color, cd: 0, angle: 0, flash: 0, recoil: 0, level: 1, canSeeCamo: !!def.camo, maxed: false, branch: null, paths: { speed: 0, power: 0 }, splashBonus: 0, evolved: false, invested: def.cost });
-    var tw0 = st.towers[st.towers.length - 1]; tw0.ecsId = ecsAdd(st, 'tower', { position: tw0, combat: tw0, render: tw0 });
+    var tw0 = st.towers[st.towers.length - 1]; tw0.ecsId = ecsAdd(st, 'tower', { position: tw0, combat: tw0, render: tw0 }); st.lastPlaced = tw0;
     st.audio.place(); st.placing = null; emitHud(st);
     return true;
   }
@@ -2185,7 +2229,7 @@
       getMapSkin: function () { return st.mapSkin || 'space'; },
       getDuelSeed: function () { return st.duelSeed != null ? st.duelSeed : duelSeed(); },
       setTargeting: function (m) { if (['first', 'last', 'strong', 'weak', 'closest', 'elite'].indexOf(m) >= 0) { st.targeting = m; emitHud(st); } },
-      setSpeed: function (s) { st.speed = clamp(Math.round(s) || 1, 1, 3); emitHud(st); },
+      setSpeed: function (s) { st.speed = clamp(Math.round(s) || 1, 1, 4); emitHud(st); },
       setAutoStart: function (v) { st.autoStart = !!v; emitHud(st); },
       startWave: function () { startWave(st, { manual: true }); },
       pause: function () { st.running = false; emitHud(st); },
@@ -2207,6 +2251,7 @@
       upgradeSelected: function () { return upgradeSelected(st); },
       upgradeBranch: function (branch) { return upgradeBranchSelected(st, branch); },
       sellSelected: function () { return sellSelected(st); },
+      undoPlace: function () { return undoPlace(st); },
       heroAbility: function () { return heroAbility(st); },
       setHeroPatrol: function (v) { if (st.hero) st.hero.patrol = !!v; emitHud(st); },
       equipHero: function (itemId) { return equipHero(st, itemId); },
@@ -2241,6 +2286,16 @@
     else { t.dmg += 1; t.range += 10; t.rate = Math.max(0.25, t.rate * 0.9); }
     st.audio.coin(); emitHud(st); return true;
   }
+  function undoPlace(st) {
+    var t = st.lastPlaced; if (!t) return false;
+    if (st.towers.indexOf(t) < 0) { st.lastPlaced = null; return false; }
+    if (st.waveActive || !st.betweenWaves) return false;
+    if (t.ecsId) ecsRemove(st, t.ecsId);
+    st.gold += investedFor(t, TOWER_DEFS[t.kind]);
+    st.towers.splice(st.towers.indexOf(t), 1);
+    if (st.selected === t) st.selected = null;
+    st.lastPlaced = null; emitHud(st); return true;
+  }
   function sellSelected(st) {
     var t = st.selected; if (!t) return false;
     var def = TOWER_DEFS[t.kind];
@@ -2273,7 +2328,7 @@
     var keep = { gold: 650, lives: 100, wave: 0, score: 0, pops: 0, heroXp: 0 };
     st.gold = st.challenge ? 100 : keep.gold; st.lives = st.challenge ? 20 : keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
     st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = []; st.spikes = []; st.lights = []; st.ecs = createECS(); st.acc = 0; st.alpha = 1; st.paused = false;
-    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null; st.runStartedAt = null; st.runDuration = null; if (st.kbCursor) { st.kbCursor.x = 480; st.kbCursor.y = 300; st.kbCursor.active = false; }
+    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null; st.lastPlaced = null; st.runStartedAt = null; st.runDuration = null; if (st.kbCursor) { st.kbCursor.x = 480; st.kbCursor.y = 300; st.kbCursor.active = false; }
     st.weather = { kind: 'clear', until: 0, strikeT: 0 }; st.reroutes = 0; st.hazardSlows = 0; st.spawnCount = 0; st.skipBonuses = 0; st.skipBonusTotal = 0;
     if (st.hero) { st.hero.patrol = false; st.hero.patrolDist = 0; st.hero.patrolDir = 1; st.hero.kills = 0; }
     emitHud(st);
