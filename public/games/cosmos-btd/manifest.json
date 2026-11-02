@@ -1,6 +1,6 @@
 {
  "canvas": true,
- "description": "Space tower defense: protect the ATOM orb across 50 waves \u2014 8 towers, heroes, targeting, 1x-3x speed. Dev tools: map editor, mod loader, debug console. Batch 18: shared duel seed (setDuelSeed) for live duel races. Batch 20: selected splash ring + next-wave danger rating. Batch 21: invested sell refunds + boss-wave warning. Batch 22: hero XP progress to the next level. Batch 23: balloons-remaining counter. Batch 24: army value (total gold invested in towers). Batch 25: pops-per-wave average. Batch 26: score-per-wave average. Batch 27: hero-XP-per-wave average. Batch 28: hero-kills-per-wave average. Batch 29: towers-per-wave average. Batch 30: skip-bonus-per-wave average. Batch 31: pops-per-tower average. Batch 32: score-per-tower average. Batch 33: hero-kills-per-tower average. Batch 34: hero-XP-per-tower average. Batch 35: skip-bonus-per-tower average. Batch 36: hero-kill-share percent. Batch 37: score-per-hero-kill average. Batch 38: reroutes-per-wave average. Batch 39: hazard-slows-per-wave average. Batch 40: gold-per-tower average. Batch 41: gold-per-wave average.",
+ "description": "Space tower defense: protect the ATOM orb across 50 waves \u2014 8 towers, heroes, targeting, 1x-3x speed. Dev tools: map editor, mod loader, debug console. Batch 18: shared duel seed (setDuelSeed) for live duel races. Batch 20: selected splash ring + next-wave danger rating. Batch 21: invested sell refunds + boss-wave warning. Batch 22: hero XP progress to the next level. Batch 23: balloons-remaining counter. Batch 24: army value (total gold invested in towers). Batch 25: pops-per-wave average. Batch 26: score-per-wave average. Batch 27: hero-XP-per-wave average. Batch 28: hero-kills-per-wave average. Batch 29: towers-per-wave average. Batch 30: skip-bonus-per-wave average. Batch 31: pops-per-tower average. Batch 32: score-per-tower average. Batch 33: hero-kills-per-tower average. Batch 34: hero-XP-per-tower average. Batch 35: skip-bonus-per-tower average. Batch 36: hero-kill-share percent. Batch 37: score-per-hero-kill average. Batch 38: reroutes-per-wave average. Batch 39: hazard-slows-per-wave average. Batch 40: gold-per-tower average. Batch 41: gold-per-wave average. Batch 42: pops-per-minute average.",
  "entry": "btd.js",
  "id": "cosmos-btd",
  "image": "assets/sprites/battlefield.jpg",
@@ -12,5 +12,5 @@
   "Heroes",
   "50 Waves"
  ],
- "version": "3.40.0"
+ "version": "3.41.0"
 }
