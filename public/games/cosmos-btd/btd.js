@@ -62,13 +62,13 @@
   function duelSeed() { return seed >>> 0; }
 
   var TOWER_DEFS = {
-    dart:   { name: 'Dart Archer',   key: '1', cost: 100, range: 112, rate: 0.45, dmg: 1, color: '#ffb703', desc: 'Fast darts, one target. Cannot crack lead.' },
-    cannon: { name: 'Cannon',        key: '2', cost: 175, range: 125, rate: 1.15, dmg: 2, splash: 58, color: '#ff6b35', desc: 'Splash damage. Cracks lead. Shakes the screen.' },
-    sniper: { name: 'Sniper',        key: '3', cost: 250, range: 999, rate: 1.45, dmg: 3, color: '#c792ea', camo: true, desc: 'Global range. Instant beam. Cracks lead. Sees camo.' },
-    frost:  { name: 'Frost Beam',    key: '4', cost: 150, range: 98,  rate: 0.90, dmg: 1, slow: 0.5, slowDur: 1.3, color: '#7bdff2', desc: 'Slows everything it touches.' },
-    mortar: { name: 'Plasma Mortar', key: '5', cost: 350, range: 330, rate: 2.30, dmg: 4, splash: 82, color: '#00f6ff', desc: 'Long-range lobbed plasma. Huge splash. Cracks lead.' },
+    dart:   { name: 'Dart Archer',    key: '1', cost: 100, range: 112, rate: 0.45, dmg: 1, color: '#ffb703', desc: 'Fast darts, one target. Cannot crack lead.' },
+    mortar: { name: 'Plasma Mortar',  key: '2', cost: 350, range: 330, rate: 2.30, dmg: 4, splash: 82, color: '#00f6ff', desc: 'Long-range lobbed plasma. Huge splash. Cracks lead.' },
+    frost:  { name: 'Freeze Ray',     key: '3', cost: 150, range: 98,  rate: 0.90, dmg: 1, slow: 0.5, slowDur: 1.3, color: '#7bdff2', desc: 'Slows everything it touches.' },
+    sniper: { name: 'Laser Sniper',   key: '4', cost: 250, range: 999, rate: 1.45, dmg: 3, color: '#c792ea', camo: true, desc: 'Global range. Instant beam. Cracks lead. Sees camo.' },
+    cannon: { name: 'Cannon',         key: '5', cost: 175, range: 125, rate: 1.15, dmg: 2, splash: 58, color: '#ff6b35', desc: 'Splash damage. Cracks lead. Shakes the screen.' },
     tesla:  { name: 'Tesla Coil',     key: '6', cost: 300, range: 140, rate: 1.10, dmg: 2, chains: 3, color: '#facc15', camo: true, desc: 'Chain lightning hits 3. Sees camo.' },
-    spikes: { name: 'Spike Factory', key: '7', cost: 220, range: 90,  rate: 0.80, dmg: 1, color: '#94a3b8', desc: 'Drops spikes that pop on contact.' },
+    spikes: { name: 'Spike Factory',  key: '7', cost: 220, range: 90,  rate: 0.80, dmg: 1, color: '#94a3b8', desc: 'Drops spikes that pop on contact.' },
     beacon: { name: 'Synergy Beacon', key: '8', cost: 200, range: 130, rate: 0, dmg: 0, color: '#22d3ee', support: true, desc: 'No attack. Nearby towers fire 20%+ faster.' }
   };
 
@@ -692,7 +692,7 @@
       skipBonuses: 0, skipBonusTotal: 0,
       fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', _lastFrameT: 0, _dynFactor: 1,
       sessionId: null, sessionNonce: null, pendingReports: [],
-      shake: 0, waveActive: false, won: false, lost: false, runStartedAt: null, runDuration: null,
+      shake: 0, orbHitT: 0, waveActive: false, won: false, lost: false, runStartedAt: null, runDuration: null,
       mouse: { x: -999, y: -999 },
       audio: makeAudio(),
       grid: new Map(), ecs: createECS(),
@@ -905,7 +905,7 @@
     var lane = (typeIdx === -1) ? 0 : (st.spawnCount % 3 === 0 ? 1 : 0);
     if (typeIdx === -1) {
       var pt = pointAtLane(0, 0);
-      var bossLayers = 60 + (st.wave > 50 ? (st.wave - 50) * 2 : 0);
+      var bossLayers = 60 + (st.wave > 50 ? (st.wave - 50) * 2 : st.wave >= 26 ? (st.wave - 25) * 2 : 0);
       st.balloons.push({ boss: true, x: pt[0], y: pt[1], dist: 0, prevDist: 0, lane: 0, layers: bossLayers, maxLayers: bossLayers, r: 34, speed: 26, reward: 250, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, shieldUntil: st.wave >= 30 ? st.time + 5 : 0, sprite: 'monster-4', type: BALLOON_TYPES[3] });
       var bb0 = st.balloons[st.balloons.length - 1]; bb0.ecsId = ecsAdd(st, 'balloon', { position: bb0, health: bb0, path: bb0, render: bb0 });
       return;
@@ -913,6 +913,7 @@
     var t = BALLOON_TYPES[typeIdx], p2 = pointAtLane(0, lane);
     var layers = t.layers, spd = t.speed * (1 + st.wave * 0.012);
     if (st.wave > 50) { var lg = Math.log(st.wave - 49); layers = t.layers + Math.min(6, Math.floor(lg * 2)); spd = spd * (1 + 0.35 * lg); }
+    else if (st.wave >= 26) { var ramp = st.wave - 25; layers = t.layers + Math.floor(ramp / 5); spd = spd * (1 + 0.01 * ramp); }
     st.balloons.push({ boss: false, x: p2[0], y: p2[1], dist: 0, prevDist: 0, lane: lane, layers: layers, maxLayers: layers, r: 11 + layers * 1.5, speed: spd, reward: t.reward, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: !!t.armored, splits: !!t.splits, camo: !!t.camo, fortified: !!t.fortified, regen: !!t.regen, regenT: 0, sprite: t.sprite, type: t });
     var bb1 = st.balloons[st.balloons.length - 1]; bb1.ecsId = ecsAdd(st, 'balloon', { position: bb1, health: bb1, path: bb1, render: bb1 });
   }
@@ -1048,7 +1049,8 @@
       if (b.dist >= laneLen(b)) {
         b.dead = true; b.leaked = true;
         var dmg = b.boss ? 25 : b.layers;
-        st.lives -= dmg; addShake(st, 8); st.audio.leak();
+        st.lives -= dmg; addShake(st, 8); st.audio.leak(); st.orbHitT = 0.6;
+        spawnParticle(st, 918, 420, '#ff2d2d', 12, 170, 'spark'); spawnParticle(st, 918, 420, '#ff5a5a', 3, 60, 'ring');
         spawnParticle(st, 918, 420, '#7bdff2', 8, 90, 'splash');
         floater(st, W - 90, 400, '-' + dmg + ' HP', '#ff5a5a');
         if (st.lives <= 0) { st.lives = 0; st.lost = true; markRunEnded(st); st.audio.over(); emitHud(st); }
@@ -1153,6 +1155,7 @@
   }
   function stepPhysics(st, dt) {
     st.time += dt;
+    if (st.orbHitT > 0) st.orbHitT = Math.max(0, st.orbHitT - dt);
     st.windX = Math.sin(st.time * 0.4) * 14;
     /* Batch 6: hero commander patrol — the hero walks the spline
      * back and forth instead of standing at its placed spot. */
@@ -1496,6 +1499,16 @@
     if (!heroKills || heroKills <= 0) return 0;
     return Math.round((gold || 0) / heroKills * 10) / 10;
   }
+  /* ---- Batch 50: hero XP per hero kill ---- * Hero
+   * XP earned per hero kill, to one decimal.
+   * 0 with no hero kills yet. Exposed in the
+   * HUD/state as heroXpPerHeroKill, mirroring
+   * goldPerHeroKillFor (the XP view: hero XP
+   * per hero kill, not gold per hero kill). */
+  function heroXpPerHeroKillFor(heroXp, heroKills) {
+    if (!heroKills || heroKills <= 0) return 0;
+    return Math.round((heroXp || 0) / heroKills * 10) / 10;
+  }
   function heroXpPerMinuteFor(heroXp, seconds) {
     if (!seconds || seconds <= 0) return 0;
     return Math.round((heroXp || 0) / (seconds / 60) * 10) / 10;
@@ -1504,7 +1517,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -1771,7 +1784,73 @@
     }
     ctx.globalAlpha = 1;
   }
+  /* Blueprint: animated ATOM Orb overlay — rotating electron rings,
+   * pulsing glow, pedestal, in-canvas shield bar, hit lightning. The
+   * static background keeps the base orb art; this overlay animates it
+   * every frame on top of the entities. */
+  function drawOrbOverlay(ctx, st) {
+    var ox = 918, oy = 420, t = st.time || 0;
+    var frac = Math.max(0, Math.min(1, (st.lives || 0) / 100));
+    ctx.save();
+    ctx.fillStyle = 'rgba(10,14,30,.85)';
+    ctx.beginPath(); ctx.ellipse(ox, oy + 34, 46, 12, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,246,255,.5)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(ox, oy + 34, 46, 12, 0, 0, TAU); ctx.stroke();
+    var pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
+    var gr = 52 + 10 * pulse;
+    var og = ctx.createRadialGradient(ox, oy, 4, ox, oy, gr + 18);
+    og.addColorStop(0, 'rgba(0,246,255,' + (0.35 + 0.2 * pulse).toFixed(2) + ')');
+    og.addColorStop(0.6, 'rgba(139,92,246,' + (0.18 + 0.1 * pulse).toFixed(2) + ')');
+    og.addColorStop(1, 'rgba(0,246,255,0)');
+    ctx.fillStyle = og;
+    ctx.beginPath(); ctx.arc(ox, oy, gr + 18, 0, TAU); ctx.fill();
+    var rings = [[52, 20, 0.5, 0.7], [44, 16, -0.5, -0.9], [58, 24, 1.1, 0.5]];
+    rings.forEach(function (o, ri) {
+      ctx.save(); ctx.translate(ox, oy); ctx.rotate(o[2] + t * o[3]);
+      ctx.strokeStyle = ri === 1 ? 'rgba(167,139,250,.8)' : 'rgba(0,246,255,.75)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(0, 0, o[0], o[1], 0, 0, TAU); ctx.stroke();
+      var ea = t * o[3] * 2 + ri * 2.1;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(Math.cos(ea) * o[0], Math.sin(ea) * o[1], 3, 0, TAU); ctx.fill();
+      ctx.restore();
+    });
+    var body = ctx.createRadialGradient(ox - 7, oy - 8, 3, ox, oy, 26);
+    body.addColorStop(0, '#ffffff'); body.addColorStop(0.45, '#7bdff2'); body.addColorStop(1, '#1d4ed8');
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.arc(ox, oy, 24, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#0b1124';
+    ctx.beginPath(); ctx.arc(ox, oy, 9, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#00f6ff';
+    ctx.beginPath(); ctx.arc(ox - 3, oy - 3, 3, 0, TAU); ctx.fill();
+    var bw = 120, bx = ox - bw / 2, by = oy - 66;
+    ctx.fillStyle = 'rgba(5,8,20,.75)'; ctx.fillRect(bx - 2, by - 2, bw + 4, 13);
+    ctx.fillStyle = '#1a2342'; ctx.fillRect(bx, by, bw, 9);
+    if (frac > 0) { ctx.fillStyle = frac > 0.25 ? '#00f6ff' : '#ff5a5a'; ctx.fillRect(bx, by, Math.round(bw * frac), 9); }
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, 9);
+    ctx.fillStyle = '#eaf6ff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('ATOM SHIELD: ' + Math.max(0, st.lives || 0) + '/100', ox, by - 6);
+    if (st.orbHitT > 0 && !st.reducedMotion) {
+      var k = st.orbHitT / 0.6;
+      ctx.save(); ctx.globalAlpha = k;
+      ctx.strokeStyle = '#ff2d2d'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(ox, oy, 30 + (1 - k) * 90, 0, TAU); ctx.stroke();
+      for (var li = 0; li < 3; li++) {
+        var a0 = Math.random() * TAU, x0 = ox, y0 = oy;
+        ctx.beginPath(); ctx.moveTo(x0, y0);
+        for (var s2 = 1; s2 <= 4; s2++) {
+          x0 += Math.cos(a0 + (Math.random() - 0.5) * 1.2) * 22;
+          y0 += Math.sin(a0 + (Math.random() - 0.5) * 1.2) * 22;
+          ctx.lineTo(x0, y0);
+        }
+        ctx.stroke();
+      }
+      ctx.restore(); ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
   function drawOverlays(ctx, st) {
+    drawOrbOverlay(ctx, st);
     if (st.weather && st.weather.kind !== 'clear') {
       ctx.fillStyle = st.weather.kind === 'storm' ? '#ffd166' : '#7bdff2'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'left';
       ctx.fillText((st.weather.kind === 'storm' ? '⛈ STORM ' : '❄ BLIZZARD ') + Math.ceil(Math.max(0, st.weather.until - st.time)) + 's', 12, 22);
@@ -2062,7 +2141,7 @@
       registerCustomEnemy: function (def) { return registerCustomEnemy(st, def); },
       registerCustomWave: function (waveNum, composition) { return registerCustomWave(st, waveNum, composition); },
       getDebugStats: function () { return getDebugStats(st); },
-      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), sessionId: st.sessionId, weather: (st.weather && st.weather.kind) || 'clear', heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, customMap: st.customMapName || null, customTowers: (st.customTowers || []).slice(), customWaves: Object.keys(st.customWaves || {}).map(Number), leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st) }; },
+      getState: function () { return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, heroXp: st.heroXp, heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), towers: st.towers.length, spikes: st.spikes.length, endless: st.endless, paused: st.paused, won: st.won, lost: st.lost, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), sessionId: st.sessionId, weather: (st.weather && st.weather.kind) || 'clear', heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, customMap: st.customMapName || null, customTowers: (st.customTowers || []).slice(), customWaves: Object.keys(st.customWaves || {}).map(Number), leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st) }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -2134,5 +2213,5 @@
 
   var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.20.0', description: 'Space tower defense: protect the ATOM orb across 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. v3.8.0: space ATOM-orb battlefield with glowing energy lane. Dev tools: custom-track map editor, JSON mod loader, debug stats. Batch 16: colorblind palette + labels, reduced-motion mode, keyboard-only placement, larger touch targets. Batch 18: shared duel seed for live duel races. Batch 21: sell refund counts full investment, boss-wave warning.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _waveDangerRating: waveDangerRating, _isBossWave: isBossWave, _heroXpProgress: heroXpProgress, _balloonsRemaining: balloonsRemaining, _armyValueFor: armyValueFor, _popsPerWaveFor: popsPerWaveFor, _scorePerWaveFor: scorePerWaveFor, _heroXpPerWaveFor: heroXpPerWaveFor, _heroKillsPerWaveFor: heroKillsPerWaveFor, _towersPerWaveFor: towersPerWaveFor, _skipBonusPerWaveFor: skipBonusPerWaveFor, _popsPerTowerFor: popsPerTowerFor, _scorePerTowerFor: scorePerTowerFor, _heroKillsPerTowerFor: heroKillsPerTowerFor, _heroXpPerTowerFor: heroXpPerTowerFor, _skipBonusPerTowerFor: skipBonusPerTowerFor, _heroKillShareFor: heroKillShareFor, _scorePerHeroKillFor: scorePerHeroKillFor, _reroutesPerWaveFor: reroutesPerWaveFor, _hazardSlowsPerWaveFor: hazardSlowsPerWaveFor, _goldPerTowerFor: goldPerTowerFor, _goldPerWaveFor: goldPerWaveFor, _popsPerMinuteFor: popsPerMinuteFor, _scorePerMinuteFor: scorePerMinuteFor, _heroXpPerMinuteFor: heroXpPerMinuteFor, _popsPerHeroKillFor: popsPerHeroKillFor, _goldPerMinuteFor: goldPerMinuteFor, _armyValuePerWaveFor: armyValuePerWaveFor, _armyValuePerTowerFor: armyValuePerTowerFor, _goldPerHeroKillFor: goldPerHeroKillFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded, _spriteCacheStats: spriteCacheStats, _clearSpriteCache: clearSpriteCache, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle, _addShake: addShake, _displayBalloonType: displayBalloonType, COLORBLIND_PALETTE: COLORBLIND_PALETTE, _balloonPopColor: balloonPopColor, _setDuelSeed: setDuelSeed, _duelSeed: duelSeed, _rnd: rnd };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _waveDangerRating: waveDangerRating, _isBossWave: isBossWave, _heroXpProgress: heroXpProgress, _balloonsRemaining: balloonsRemaining, _armyValueFor: armyValueFor, _popsPerWaveFor: popsPerWaveFor, _scorePerWaveFor: scorePerWaveFor, _heroXpPerWaveFor: heroXpPerWaveFor, _heroKillsPerWaveFor: heroKillsPerWaveFor, _towersPerWaveFor: towersPerWaveFor, _skipBonusPerWaveFor: skipBonusPerWaveFor, _popsPerTowerFor: popsPerTowerFor, _scorePerTowerFor: scorePerTowerFor, _heroKillsPerTowerFor: heroKillsPerTowerFor, _heroXpPerTowerFor: heroXpPerTowerFor, _skipBonusPerTowerFor: skipBonusPerTowerFor, _heroKillShareFor: heroKillShareFor, _scorePerHeroKillFor: scorePerHeroKillFor, _reroutesPerWaveFor: reroutesPerWaveFor, _hazardSlowsPerWaveFor: hazardSlowsPerWaveFor, _goldPerTowerFor: goldPerTowerFor, _goldPerWaveFor: goldPerWaveFor, _popsPerMinuteFor: popsPerMinuteFor, _scorePerMinuteFor: scorePerMinuteFor, _heroXpPerMinuteFor: heroXpPerMinuteFor, _popsPerHeroKillFor: popsPerHeroKillFor, _goldPerMinuteFor: goldPerMinuteFor, _armyValuePerWaveFor: armyValuePerWaveFor, _armyValuePerTowerFor: armyValuePerTowerFor, _goldPerHeroKillFor: goldPerHeroKillFor, _heroXpPerHeroKillFor: heroXpPerHeroKillFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded, _spriteCacheStats: spriteCacheStats, _clearSpriteCache: clearSpriteCache, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle, _addShake: addShake, _displayBalloonType: displayBalloonType, COLORBLIND_PALETTE: COLORBLIND_PALETTE, _balloonPopColor: balloonPopColor, _setDuelSeed: setDuelSeed, _duelSeed: duelSeed, _rnd: rnd };
 })(typeof window !== 'undefined' ? window : globalThis);
