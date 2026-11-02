@@ -797,10 +797,34 @@
    "id": "honest-feature-count",
    "tested": "server test: features.json totalFeatures equals features array length and /api/config totalFeatures matches it",
    "title": "Honest total feature count in features.json and /api/config, read from the same file the server serves"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "sell-refund-invested",
+   "tested": "BTD harness: maxed dart tower with 4 upgrades + branch point shows sellRefund 784 (70% of 1120 invested, was 70 for base cost only); sellSelected pays the same refund; towers without an invested field fall back to base cost",
+   "title": "Sell refund counts full investment \u2014 70% of base cost + upgrades + branch points, not just the base cost"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "boss-wave-warning",
+   "tested": "BTD harness: isBossWave true for waves 10/20/50, false for 9/11; nextWaveBoss in HUD true when the next wave is a boss wave",
+   "title": "Boss-wave warning \u2014 HUD flags the next wave as a boss wave (every 10th wave) before it starts"
+  },
+  {
+   "category": "Games",
+   "id": "shooter-graze-bonus",
+   "tested": "shooter harness: asteroid skimmed within 22px of contact (no hit) pays +5 once, grazes counter 1, no life lost, no second payment on later frames; restart resets grazes",
+   "title": "Shooter graze bonus \u2014 skimming an asteroid without touching it pays +5 score, once per asteroid"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-rich-vein",
+   "tested": "miner harness: the mine that takes totalMined to a multiple of 10 yields +2 ore of the same type and richVeins +1; other mines yield +1; R restart resets richVeins",
+   "title": "Rich vein \u2014 every 10th mined rock yields a bonus ore of the same type"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 133,
+ "totalFeatures": 137,
  "updated": "2026-11-01",
- "version": "3.19.0"
+ "version": "3.20.0"
 }
