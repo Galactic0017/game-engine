@@ -43,7 +43,7 @@
     <div id="gameList"></div>
     <button id="btnExploreStore" class="primary" style="width:100%">Explore Store</button>
     <h3>Settings</h3>
-    <p><button id="btnSettings" class="ghost">⚙ Settings</button></p>
+    <p><button id="btnSettings" class="ghost">⚙ Settings</button> <button id="btnShortcuts" class="ghost">⌨ Shortcuts (?)</button></p>
     <h3>Links</h3>
     <p class="small"><a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a></p>
     <p class="small muted">Real wallet sends only. No contracts. Buyer sends full price to the CEO address; CEO moves the item, then sends the seller their cut after the fee. Always check the address and memo in your wallet before signing. Test with a tiny amount first.</p>
@@ -152,8 +152,16 @@
   </div>
 </div>
 
+<div id="shortcutsOverlay" class="modalOverlay" hidden>
+  <div class="card modalCard" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <h3>⌨ Keyboard shortcuts</h3>
+    <div id="shortcutsOverlayBody"></div>
+    <p><button id="btnCloseShortcuts">Close</button></p>
+  </div>
+</div>
+
 <div id="toasts" aria-live="polite"></div>
-<footer id="hubFooter">GAME · <span id="hubFooterVersion">v3.18.0</span> · <span id="hubFooterDate">Build 2026-11-01</span> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a> · <a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://game.atomstaking.app/">game.atomstaking.app</a> · GalacticTools · Real ATOM sends are irreversible. Verify every address, amount and memo in your wallet before signing.</footer>
+<footer id="hubFooter">GAME · <span id="hubFooterVersion">v3.19.0</span> · <span id="hubFooterDate">Build 2026-11-01</span> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a> · <a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://game.atomstaking.app/">game.atomstaking.app</a> · GalacticTools · Real ATOM sends are irreversible. Verify every address, amount and memo in your wallet before signing.</footer>
 
 <script src="engine/event-bus.js"></script>
 <script src="engine/wallet.js"></script>
