@@ -731,9 +731,33 @@
    "id": "clicker-bests-conversion",
    "tested": "server test: Save Best posts game=atom-clicker and the Clicker leaderboard sorts by best combo, BTD bestScore untouched; /api/convert-shards converts 100-5000 (multiple of 100) at 100 shards = 10 credits, rejects 150 and 5100; harness: convert math 250 shards -> 200 + 20 credits, 50 remainder",
    "title": "Clicker server bests + shard conversion — Save Best records best combo on the Clicker leaderboard; 100 banked shards convert to 10 in-game credits (capped, ledger-recorded)"
+  },
+  {
+   "category": "PvP Duels",
+   "id": "live-duel-race",
+   "tested": "server test: accept then start sets live + 600s expiry, both players post live scores (monotonic max), GET live polls scores/leader/secondsLeft, finish decides by higher score, non-participant 403, start before accept 400; shell live panel + 5s polling code-reviewed only (no browser/DOM harness)",
+   "title": "Live duel races — after accept, either player starts a 10-minute score race on one shared seed; both post live scores, the panel polls every 5s for scores, leader and countdown, and Finish decides the race"
+  },
+  {
+   "category": "PvP Duels",
+   "id": "duel-entry-fee",
+   "tested": "server test: 100-credit duel deducts 100 from each at start (pot 200), winner gets 180 (90%, 10% rake ledgered), draw refunds both, insufficient credits blocks start, invalid fee 150 rejected, legacy result on a fee duel rejected, no fee deducted before start; credits only, no ATOM",
+   "title": "Duel entry fee in credits — 0/50/100/250 credits, held from both balances at race start; winner takes most (90% of the pot, 10% rake), a draw refunds both fees"
+  },
+  {
+   "category": "PvP Duels",
+   "id": "duel-history-rematch",
+   "tested": "server test: history lists decided duels newest-first with won/lost/draw outcome + scores + fee + payout for the viewer, rematch creates a fresh pending duel with the same rival and fee and a new seed, rematch of a pending duel rejected, non-participant 403; shell history + rematch UI code-reviewed only",
+   "title": "Duel history + rematch — finished duels list with outcome, scores, fee and payout; one click sends a rematch invite to the same rival with the same entry fee and a fresh seed"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "duel-shared-seed",
+   "tested": "BTD harness: setDuelSeed(12345) reseeds the decor generator (identical rnd sequence), getDuelSeed/HUD/state expose the seed, init with duelSeed applies it before the background paints; wave compositions are deterministic so both racers face the same waves (spawn jitter still uses Math.random)",
+   "title": "Shared duel seed in BTD — setDuelSeed/getDuelSeed reseed the background and starfield decor so both duel racers share one seed; exposed in HUD and state"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.16.0"
+ "version": "3.17.0"
 }
