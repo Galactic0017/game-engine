@@ -1751,10 +1751,16 @@
       "category": "Hub",
       "title": "Hero Shop buy row: real costs from config + credit balance, buy/claim/upgrade in one place",
       "tested": "serve checks: buyHeroSel + btnBuyHero in shell.js"
+    },
+    {
+      "id": "spa-deep-link",
+      "category": "Hub",
+      "title": "Deep links /game/cosmos-btd serve the hub HTML (path-preserving rewrite + SPA fallback)",
+      "tested": "live curl: /game/cosmos-btd 200 with hub ids"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 292,
+  "totalFeatures": 293,
   "updated": "2026-11-02",
-  "version": "3.49.2"
+  "version": "3.49.3"
 }
