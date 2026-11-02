@@ -1091,10 +1091,34 @@
    "id": "share-image-pro",
    "tested": "serve check: og-share.jpg 1200x630 returns 200; og/twitter tags point to it with the new description",
    "title": "Professional share image — 1200×630 OG image with GAME branding, Protect the ATOM orb, and a positive, honest description for shared links"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-score-per-tower",
+   "tested": "BTD harness: _scorePerTowerFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose scorePerTower",
+   "title": "Score per tower - average score per tower placed, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-score-per-kill",
+   "tested": "shooter harness: _scorePerKillFor(0,0)=0, (500,10)=50, (7,3)=2.3; HUD + state expose scorePerKill and the game-over screen shows Score/kill",
+   "title": "Score per kill - average score per kill, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-rich-vein-rate",
+   "tested": "miner harness: _richVeinRateFor(0,0)=0, (5,50)=10, (1,3)=33.3; HUD + state expose richVeinRate",
+   "title": "Rich-vein rate - percent of ore mined that triggered a rich vein, in HUD and state"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-banked-per-click",
+   "tested": "tycoon/clicker harness: _bankedPerClickFor(0,0)=0, (20,10)=2, (7,3)=2.3; getState exposes bankedPerClick and the panel shows the Banked/click line",
+   "title": "Banked per click - banked shards per click, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 182,
+ "totalFeatures": 186,
  "updated": "2026-11-02",
- "version": "3.30.1"
+ "version": "3.31.0"
 }
