@@ -23,6 +23,14 @@
   var PRESTIGE_COST = 5000;
   function prestigeMultiplierFor(count) { return 1 + 0.25 * (count || 0); }
   function canPrestige(state) { return Math.floor(state.credits || 0) >= PRESTIGE_COST; }
+  /* Batch 23: prestige progress — percent toward PRESTIGE_COST plus
+   * credits remaining, so the panel can show how close prestige is
+   * without re-deriving the cost. Exposed in state as
+   * prestigeProgress { pct, remaining, canPrestige }. */
+  function prestigeProgressFor(credits) {
+    var c = Math.max(0, Math.floor(credits || 0));
+    return { pct: Math.min(100, Math.round(c / PRESTIGE_COST * 100)), remaining: Math.max(0, PRESTIGE_COST - c), canPrestige: c >= PRESTIGE_COST };
+  }
   function calcOfflineEarnings(rigs, elapsedSeconds, multiplier) {
     var capped = Math.min(Math.max(0, Math.floor(elapsedSeconds)), OFFLINE_CAP_SEC);
     var total = 0;
@@ -76,6 +84,7 @@
     function render() {
       var rate = 0; state.rigs.forEach(function (r) { rate += (r.outputRate || 0) * (r.level || 1); });
       var skin = skinFor(state.skin);
+      var prog = prestigeProgressFor(state.credits);
       var html = '<div class="miniGame"><h2>🛰 Space Tycoon</h2><p class="muted">Local save only — rig earnings stay in this game.</p>'
         + '<p><strong>Credits:</strong> ' + Math.floor(state.credits) + ' &nbsp; <strong>Rate:</strong> ' + (rate * boost()).toFixed(1) + '/s'
         + ' &nbsp; <strong>Prestige:</strong> ' + state.prestigeCount + ' (x' + prestigeMultiplierFor(state.prestigeCount).toFixed(2) + ')'
@@ -92,6 +101,7 @@
           return '<div class="rigCard" style="border-color:' + skin.color + '"><strong>' + d.name + '</strong><br>Level ' + (owned ? owned.level : 0) + ' · ' + d.outputRate + '/s per level<br><button data-buy="' + d.id + '" ' + (state.credits < cost ? 'disabled' : '') + '>Buy / Upgrade — ' + cost + '</button></div>';
         }).join('') + '</div>'
         + '<p><button id="tycCollect">Collect now</button> <button id="tycOverseer">Assign my hero as overseer (+10%)</button> <button id="tycPrestige" ' + (canPrestige(state) ? '' : 'disabled') + '>Prestige — reset for +25% forever (' + PRESTIGE_COST + ' credits)</button></p>'
+        + '<p class="muted">Prestige progress: ' + prog.pct + '% — ' + (prog.remaining > 0 ? prog.remaining + ' credits to go.' : 'ready to prestige!') + '</p>'
         + '<p class="muted">Overseers: ' + (state.overseers.length ? state.overseers.join(', ') : 'none') + '</p></div>';
       viewport.innerHTML = html;
       viewport.querySelectorAll('[data-buy]').forEach(function (btn) {
@@ -133,12 +143,12 @@
     if (opts.bus) opts.bus.emit('game:start', 'space-tycoon', []);
     return {
       state: state,
-      getState: function () { return { credits: Math.floor(state.credits), rigs: state.rigs, overseers: state.overseers, prestigeCount: state.prestigeCount, prestigeMultiplier: prestigeMultiplierFor(state.prestigeCount), lifetimeEarned: Math.floor(state.lifetimeEarned), skin: state.skin, skinOwned: state.skinOwned.slice() }; },
+      getState: function () { return { credits: Math.floor(state.credits), rigs: state.rigs, overseers: state.overseers, prestigeCount: state.prestigeCount, prestigeMultiplier: prestigeMultiplierFor(state.prestigeCount), prestigeProgress: prestigeProgressFor(state.credits), lifetimeEarned: Math.floor(state.lifetimeEarned), skin: state.skin, skinOwned: state.skinOwned.slice() }; },
       prestige: doPrestige,
       buySkin: buySkin,
       collectEarnings: collectEarnings,
       destroy: function () { destroyed = true; if (timer) clearInterval(timer); if (opts.bus) opts.bus.emit('game:ended', 'space-tycoon', {}); }
     };
   }
-  global.SpaceTycoon = { manifest: { id: 'space-tycoon', name: 'Space Tycoon' }, init: init, calculateOfflineEarnings: calcOfflineEarnings, RIG_DEFS: RIG_DEFS, SKIN_DEFS: SKIN_DEFS, PRESTIGE_COST: PRESTIGE_COST, _prestigeMultiplierFor: prestigeMultiplierFor, _canPrestige: canPrestige, _normalizeSave: normalizeSave };
+  global.SpaceTycoon = { manifest: { id: 'space-tycoon', name: 'Space Tycoon' }, init: init, calculateOfflineEarnings: calcOfflineEarnings, RIG_DEFS: RIG_DEFS, SKIN_DEFS: SKIN_DEFS, PRESTIGE_COST: PRESTIGE_COST, _prestigeMultiplierFor: prestigeMultiplierFor, _canPrestige: canPrestige, _prestigeProgressFor: prestigeProgressFor, _normalizeSave: normalizeSave };
 })(typeof window !== 'undefined' ? window : globalThis);
