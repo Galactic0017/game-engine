@@ -62,7 +62,7 @@ function isCeoRequest(req, bodyForMessage) {
   const message = effPath + '\n' + canonicalJson(bodyForMessage || {}) + '\n' + String(ts);
   return verifyAdr36(address, message, sig, pub);
 }
-const VERSION = '3.29.0';
+const VERSION = '3.30.0';
 const BUILD_DATE = '2026-11-01';
 /* Batch 20: honest feature count — read once from the same
  * public/features.json the server serves, so /api/config can never
