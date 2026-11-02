@@ -1,6 +1,6 @@
 {
  "canvas": false,
- "description": "Build mining rigs, hire overseers, earn while away. Prestige for a permanent multiplier, rig skins. Local save. Batch 23: prestige progress. Batch 24: earnings rate (credits/sec after prestige + overseer boost) in state. Batch 26: seconds to prestige at the current earnings rate, in state + panel. Batch 27: next rig cost + seconds to next rig, in state + panel.",
+ "description": "Build mining rigs, hire overseers, earn while away. Prestige for a permanent multiplier, rig skins. Local save. Batch 23: prestige progress. Batch 24: earnings rate (credits/sec after prestige + overseer boost) in state. Batch 26: seconds to prestige at the current earnings rate, in state + panel. Batch 27: next rig cost + seconds to next rig, in state + panel. Batch 29: lifetime earnings per owned rig, in state + panel.",
  "entry": "tycoon.js",
  "id": "space-tycoon",
  "image": "assets/sprites/tower-validator.png",
