@@ -62,7 +62,7 @@ function isCeoRequest(req, bodyForMessage) {
   const message = effPath + '\n' + canonicalJson(bodyForMessage || {}) + '\n' + String(ts);
   return verifyAdr36(address, message, sig, pub);
 }
-const VERSION = '3.16.0';
+const VERSION = '3.17.0';
 const MODE = (process.env.MODE || 'live').toLowerCase();
 const EXPLORER = process.env.EXPLORER_TX_URL || 'https://www.mintscan.io/cosmos/txs/';
 const CHAIN_ID = process.env.CHAIN_ID || 'cosmoshub-4';
@@ -226,7 +226,116 @@ function seasonTop3(season, gameId) {
 }
 function duelView(d) {
   var c = db.players[d.challenger] || {}, r = db.players[d.rival] || {};
-  return Object.assign({}, d, { challengerName: c.name || null, rivalName: r.name || null });
+  var live = d.status === 'live' && d.expiresAt;
+  return Object.assign({}, d, {
+    challengerName: c.name || null, rivalName: r.name || null,
+    seed: d.seed || 0, entryFee: d.entryFee || 0, raceSeconds: d.raceSeconds || DUEL_RACE_SECONDS,
+    liveScores: d.liveScores || { challenger: 0, rival: 0 },
+    liveWaves: d.liveWaves || { challenger: 0, rival: 0 },
+    feePaid: !!d.feePaid, pot: d.pot || 0,
+    secondsLeft: live ? Math.max(0, Math.round((d.expiresAt - Date.now()) / 1000)) : 0,
+  });
+}
+// --- Batch 18: PvP duels II — live score race, credits-only entry fee,
+// duel history + rematch. In-game credits only; this never moves ATOM
+// and never touches the CEO-escrow marketplace model. The entry fee is
+// held in the players' own credit balances (deducted at race start,
+// paid out at finish) — no on-chain escrow, no contract. ---
+const DUEL_ENTRY_FEES = [0, 50, 100, 250];
+const DUEL_RACE_SECONDS = 600;
+const DUEL_RAKE_PERCENT = 10;
+function duelSeedFor() { return 1 + crypto.randomInt(2147483646); }
+function duelScores(d) { return d.liveScores || { challenger: 0, rival: 0 }; }
+function duelWaves(d) { return d.liveWaves || { challenger: 0, rival: 0 }; }
+function duelLeader(d) {
+  var s = duelScores(d);
+  if (s.challenger > s.rival) return 'challenger';
+  if (s.rival > s.challenger) return 'rival';
+  var w = duelWaves(d);
+  if (w.challenger > w.rival) return 'challenger';
+  if (w.rival > w.challenger) return 'rival';
+  return 'tie';
+}
+function duelLiveView(d) {
+  var v = duelView(d);
+  v.leader = d.status === 'live' ? duelLeader(d) : null;
+  return v;
+}
+// Decide a live duel exactly once. Winner takes most of the pot
+// (90%, 10% rake removed from circulation and ledger-recorded); a
+// draw refunds both entry fees. Both players' bests/season bests
+// update from their live scores. Returns the winner address or null.
+function finishLiveDuel(d, reason) {
+  if (!d || d.status !== 'live') return null;
+  var cs = duelScores(d).challenger, rs = duelScores(d).rival;
+  var cw = duelWaves(d).challenger, rw = duelWaves(d).rival;
+  var winner = null, isDraw = false;
+  if (cs > rs || (cs === rs && cw > rw)) winner = d.challenger;
+  else if (rs > cs || (cs === rs && rw > cw)) winner = d.rival;
+  else isDraw = true;
+  d.status = isDraw ? 'draw' : (winner === d.challenger ? 'challenger_won' : 'challenger_lost');
+  d.winner = winner; d.score = cs; d.rivalScore = rs;
+  d.decidedAt = new Date().toISOString(); d.finishReason = reason || 'finished';
+  var cp = db.players[d.challenger], rp = db.players[d.rival];
+  var creditSide = function (pl, score, wave) {
+    if (!pl) return;
+    pl.gamesPlayed = (pl.gamesPlayed || 0) + 1;
+    if (score > (pl.bestScore || 0)) pl.bestScore = score;
+    pl.bests = pl.bests || {};
+    if (score > (pl.bests['cosmos-btd'] || 0)) pl.bests['cosmos-btd'] = score;
+    recordSeasonBest(pl, 'cosmos-btd', score);
+    if (wave > (pl.bestWave || 0)) pl.bestWave = wave;
+  };
+  creditSide(cp, cs, cw); creditSide(rp, rs, rw);
+  var achUnlocked = [];
+  if (d.feePaid && d.entryFee > 0) {
+    if (isDraw) {
+      if (cp) cp.credits = (cp.credits || 0) + d.entryFee;
+      if (rp) rp.credits = (rp.credits || 0) + d.entryFee;
+      d.payout = 0; d.refund = d.entryFee;
+      addLedger('duel_draw_refund', { duelId: d.id, challenger: d.challenger, rival: d.rival, entryFee: d.entryFee, refundEach: d.entryFee });
+    } else {
+      var pot = d.pot || (2 * d.entryFee);
+      var share = Math.floor(pot * (100 - DUEL_RAKE_PERCENT) / 100);
+      var rake = pot - share;
+      var wp = winner === d.challenger ? cp : rp;
+      if (wp) wp.credits = (wp.credits || 0) + share;
+      d.payout = share; d.rake = rake;
+      addLedger('duel_payout', { duelId: d.id, winner, entryFee: d.entryFee, pot, payout: share, rake });
+    }
+  }
+  if (isDraw) {
+    if (cp) cp.xp = (cp.xp || 0) + 20;
+    if (rp) rp.xp = (rp.xp || 0) + 20;
+  } else {
+    var wp2 = winner === d.challenger ? cp : rp;
+    var lp = winner === d.challenger ? rp : cp;
+    if (wp2) { wp2.wins = (wp2.wins || 0) + 1; wp2.xp = (wp2.xp || 0) + 100; ensureQuests(wp2); wp2.questProgress.duelsWon = (wp2.questProgress.duelsWon || 0) + 1; achUnlocked = checkAchievements(wp2); }
+    if (lp) { lp.losses = (lp.losses || 0) + 1; lp.xp = (lp.xp || 0) + 20; }
+  }
+  save(db);
+  return { winner, isDraw, achievementsUnlocked: achUnlocked };
+}
+function expireLiveDuels() {
+  var now = Date.now(), changed = false;
+  for (var i = 0; i < db.duels.length; i++) {
+    var d = db.duels[i];
+    if (d.status === 'live' && d.expiresAt && now > d.expiresAt) { finishLiveDuel(d, 'expired'); changed = true; }
+  }
+  return changed;
+}
+function duelHistoryView(d, addr) {
+  var v = duelView(d);
+  var mineIsChallenger = d.challenger === addr;
+  var outcome = d.status === 'draw' ? 'draw' : d.status === 'declined' ? 'declined'
+    : ((d.status === 'challenger_won') === mineIsChallenger ? 'won' : 'lost');
+  return Object.assign(v, {
+    opponent: mineIsChallenger ? d.rival : d.challenger,
+    opponentName: mineIsChallenger ? v.rivalName : v.challengerName,
+    outcome,
+    myScore: mineIsChallenger ? (d.score != null ? d.score : duelScores(d).challenger) : (d.rivalScore != null ? d.rivalScore : duelScores(d).rival),
+    opponentScore: mineIsChallenger ? (d.rivalScore != null ? d.rivalScore : duelScores(d).rival) : (d.score != null ? d.score : duelScores(d).challenger),
+  });
 }
 // --- On-chain TX lookup (LCD REST). Notification/verification aid only:
 // the server never moves ATOM and never holds keys. Fail closed: any
@@ -430,12 +539,12 @@ async function handle(req, res) {
   const u = new URL(req.url, 'http://x'); let p = u.pathname;
   if (p === '/api/index' && u.searchParams.get('__path')) p = u.searchParams.get('__path');
   ensureMarketplaceArrays();
-  expireSweep(); expireOfferSweep(); rentalSweep(); publishDueAnnouncements();
+  expireSweep(); expireOfferSweep(); rentalSweep(); expireLiveDuels(); publishDueAnnouncements();
   const fee = feePercent(), ttl = orderTtlMinutes();
   if (p === '/api/health') return send(res, 200, { ok: true, version: VERSION, platform: 'GAME', time: new Date().toISOString(), players: Object.keys(db.players).length, listings: db.listings.filter(l => l.status === 'active').length, pendingOrders: db.sales.filter(s => s.status === 'pending').length });
   const shooterPlayable = fs.existsSync(path.join(__dirname, 'public', 'games', 'space-shooter', 'shooter.js'));
   const minerPlayable = fs.existsSync(path.join(__dirname, 'public', 'games', 'asteroid-miner', 'miner.js'));
-  if (p === '/api/config') return send(res, 200, { version: VERSION, mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, walletConnect: true, realWalletSend: true, noContracts: true, escrowModel: 'ceo-escrow', feePercent: fee, orderTtlMinutes: ttl, shardConversion: SHARD_CONVERSION, autoVerifyEnabled: autoVerifyEnabled(), ceoAddress: CEO_ADDRESS, lcdUrls: LCD_URLS, wsUrl: WS_URL, heroDefs: HERO_DEFS, skins: SKIN_DEFS, platform: 'GAME', domain: 'game.atomstaking.app', games: [{ id: 'cosmos-btd', name: 'Cosmos BTD', status: 'playable', tagline: 'Space tower defense: protect the ATOM orb. 50 waves + endless, 8 towers, heroes.', tags: ['Tower Defense', 'Space', 'Heroes', '50 Waves'] }, { id: 'space-shooter', name: 'Space Shooter', status: shooterPlayable ? 'playable' : 'coming-soon', tagline: 'Dodge asteroids, blast drones, survive the waves.', tags: ['Arcade', 'Shooter', 'Space'] }, { id: 'asteroid-miner', name: 'Asteroid Miner', status: minerPlayable ? 'playable' : 'coming-soon', tagline: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression.', tags: ['Mining', 'Clicker', 'Space'] }, { id: 'space-tycoon', name: 'Space Tycoon', status: 'playable', tagline: 'Build rigs, earn offline. Local save.', tags: ['Idle', 'Tycoon', 'Space'] }, { id: 'atom-clicker', name: 'ATOM Core Clicker', status: 'playable', tagline: 'Tap the core, earn shards. Local save.', tags: ['Clicker', 'Idle', 'ATOM'] }], unlockLevels: UNLOCK });
+  if (p === '/api/config') return send(res, 200, { version: VERSION, mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, walletConnect: true, realWalletSend: true, noContracts: true, escrowModel: 'ceo-escrow', feePercent: fee, orderTtlMinutes: ttl, shardConversion: SHARD_CONVERSION, duels: { entryFees: DUEL_ENTRY_FEES, raceSeconds: DUEL_RACE_SECONDS, rakePercent: DUEL_RAKE_PERCENT }, autoVerifyEnabled: autoVerifyEnabled(), ceoAddress: CEO_ADDRESS, lcdUrls: LCD_URLS, wsUrl: WS_URL, heroDefs: HERO_DEFS, skins: SKIN_DEFS, platform: 'GAME', domain: 'game.atomstaking.app', games: [{ id: 'cosmos-btd', name: 'Cosmos BTD', status: 'playable', tagline: 'Space tower defense: protect the ATOM orb. 50 waves + endless, 8 towers, heroes.', tags: ['Tower Defense', 'Space', 'Heroes', '50 Waves'] }, { id: 'space-shooter', name: 'Space Shooter', status: shooterPlayable ? 'playable' : 'coming-soon', tagline: 'Dodge asteroids, blast drones, survive the waves.', tags: ['Arcade', 'Shooter', 'Space'] }, { id: 'asteroid-miner', name: 'Asteroid Miner', status: minerPlayable ? 'playable' : 'coming-soon', tagline: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression.', tags: ['Mining', 'Clicker', 'Space'] }, { id: 'space-tycoon', name: 'Space Tycoon', status: 'playable', tagline: 'Build rigs, earn offline. Local save.', tags: ['Idle', 'Tycoon', 'Space'] }, { id: 'atom-clicker', name: 'ATOM Core Clicker', status: 'playable', tagline: 'Tap the core, earn shards. Local save.', tags: ['Clicker', 'Idle', 'ATOM'] }], unlockLevels: UNLOCK });
   if (p === '/api/state') return send(res, 200, { mode: MODE, chainId: CHAIN_ID, explorerTxUrl: EXPLORER, feePercent: fee, orderTtlMinutes: ttl, ceoAddress: CEO_ADDRESS, players: Object.values(db.players).map(x => ({ address: x.address, name: x.name, credits: x.credits || 0, xp: x.xp || 0, level: levelForXp(x.xp || 0), bestScore: x.bestScore || 0, bestWave: x.bestWave || 0, totalPops: x.totalPops || 0, achievements: (x.achievements || []).length, bests: x.bests || {}, referralCode: referralCodeFor(x.address), referralCount: (x.referrals || []).length, seasonBests: x.seasonBests || {}, banned: isBanned(x.address) })), heroes: db.heroes, listings: db.listings.filter(l => l.status === 'active'), sales: db.sales.map(saleView), offers: (db.offers || []), rentals: (db.rentals || []).map(rentalView), priceHistory: priceHistoryByDef(), announcements: (db.announcements || []).slice(0, 3), leaderboard: leaderboard() });
   if (p === '/api/leaderboard') { var _g = u.searchParams.get('game') || ''; var _s = u.searchParams.get('season') || ''; if (_s === 'current') _s = seasonKey(); var _seasonOk = /^\d{4}-\d{2}$/.test(_s); var _prev = previousSeasonKey(); return send(res, 200, { leaderboard: _seasonOk ? seasonLeaderboard(_g, _s) : leaderboard(_g), feePercent: fee, season: { key: seasonKey(), requested: _seasonOk ? _s : null, previousKey: _prev, top3: seasonTop3(_prev, _g) } }); }
   if (req.method === 'POST' && p === '/api/player') { const b = await readBody(req); if (!isAddress(b.address)) return send(res, 400, { error: 'Need a valid Cosmos address (cosmos1...). Connect Keplr.' }); if (isBanned(b.address)) return send(res, 403, { error: 'This address is banned.' }); var isNewPlayer = !db.players[b.address]; if (isNewPlayer) db.players[b.address] = { address: b.address, name: String(b.name || 'Player').slice(0, 40), credits: 1000, xp: 0, bestScore: 0, wins: 0, losses: 0, gamesPlayed: 0, skins: [], equippedSkin: null, achievements: [], questDay: '', questProgress: { pops: 0, waves: 0, duelsWon: 0 }, questClaimed: [], bestWave: 0, totalPops: 0, totalWaves: 0, listingsCreated: 0, salesClosed: 0, bests: {}, seasonBests: {}, referralCode: referralCodeFor(b.address), referredBy: null, referrals: [], createdAt: new Date().toISOString() }; else if (b.name) db.players[b.address].name = String(b.name).slice(0, 40); db.players[b.address].skins = db.players[b.address].skins || []; var _pl0 = db.players[b.address]; _pl0.referralCode = referralCodeFor(b.address); _pl0.seasonBests = _pl0.seasonBests || {}; _pl0.referrals = _pl0.referrals || []; if (isNewPlayer && b.referredBy) { var _ref = playerByReferralCode(String(b.referredBy)); if (!_ref && isAddress(String(b.referredBy))) _ref = db.players[String(b.referredBy)] || null; if (_ref && _ref.address !== b.address) { _pl0.referredBy = _ref.address; _ref.referrals = _ref.referrals || []; if (_ref.referrals.indexOf(b.address) < 0) _ref.referrals.push(b.address); } } save(db); const pl = db.players[b.address]; return send(res, 200, { player: { ...pl, level: levelForXp(pl.xp || 0) }, heroes: db.heroes.filter(h => h.owner === b.address) }); }
@@ -499,10 +608,16 @@ async function handle(req, res) {
   if (req.method === 'POST' && p === '/api/marketplace/rentals/request') { const b = await readBody(req); const rental = db.rentals.find(r => r.id === b.rentalId); if (!rental || rental.status !== 'available') return send(res, 400, { error: 'Rental not available' }); if (!isAddress(b.renterAddress)) return send(res, 400, { error: 'Renter Cosmos address required (connected wallet).' }); if (isBanned(b.renterAddress)) return send(res, 403, { error: 'This address is banned.' }); if (b.renterAddress === rental.ownerAddress) return send(res, 400, { error: 'Owner cannot rent their own hero.' }); if (!isTxid(b.txid)) return send(res, 400, { error: 'One TXID required: the single send to the CEO address, 64 hex characters.' }); const tx = b.txid.toLowerCase(); if (db.usedTxids.includes(tx)) return send(res, 400, { error: 'This TXID was already used for another order.' }); if (Number(b.amountAtom) !== Number(rental.priceAtom)) return send(res, 400, { error: 'Amount must be exactly the full rental price: ' + rental.priceAtom + ' ATOM to the CEO address.' }); if (String(b.memo || '').trim() !== rental.id) return send(res, 400, { error: 'Memo must be exactly the rental ID: ' + rental.id }); rental.status = 'pending'; rental.renterAddress = b.renterAddress; rental.txid = tx; rental.amountAtom = Number(b.amountAtom); rental.memo = rental.id; rental.expiresAt = Date.now() + ttl * 60000; db.usedTxids.push(tx); addLedger('rental_order_created', { rentalId: rental.id, heroId: rental.heroId, heroName: rental.heroName, priceAtom: rental.priceAtom, ceoFee: rental.ceoFee, sellerAmount: rental.sellerAmount, renterAddress: rental.renterAddress, ownerAddress: rental.ownerAddress, txid: tx, expiresAt: new Date(rental.expiresAt).toISOString() }); save(db); return send(res, 200, { rental: rentalView(rental), note: 'Pending CEO check. The loan starts only after the CEO verifies the send to the CEO address.' }); }
   if (req.method === 'POST' && p === '/api/marketplace/rentals/cancel') { const b = await readBody(req); const rental = db.rentals.find(r => r.id === b.rentalId); if (!rental) return send(res, 404, { error: 'Rental not found' }); if (rental.ownerAddress !== b.address) return send(res, 403, { error: 'Only the owner can cancel this rental.' }); if (rental.status !== 'available') return send(res, 400, { error: 'Only an available rental can be cancelled (status: ' + rental.status + ')' }); rental.status = 'cancelled'; addLedger('rental_cancelled', { rentalId: rental.id, heroId: rental.heroId, heroName: rental.heroName, ownerAddress: rental.ownerAddress }); save(db); return send(res, 200, { rental: rentalView(rental) }); }
   if (p === '/api/marketplace/rentals') { const addr = u.searchParams.get('address') || ''; rentalSweep(); return send(res, 200, { rentals: db.rentals.filter(r => !addr || r.ownerAddress === addr || r.renterAddress === addr).slice().reverse().map(rentalView) }); }
-  if (req.method === 'POST' && p === '/api/duels') { const b = await readBody(req); if (!db.players[b.challengerAddress] || !db.players[b.rivalAddress]) return send(res, 400, { error: 'Both players must connect wallet first.' }); if (b.challengerAddress === b.rivalAddress) return send(res, 400, { error: 'Cannot duel yourself.' }); if (isBanned(b.challengerAddress) || isBanned(b.rivalAddress)) return send(res, 403, { error: 'A banned address cannot duel.' }); const duel = { id: uid('duel'), challenger: b.challengerAddress, rival: b.rivalAddress, rivalBest: db.players[b.rivalAddress].bestScore || 0, status: 'pending', rivalResponse: null, game: 'cosmos-btd', createdAt: new Date().toISOString() }; db.duels.push(duel); save(db); return send(res, 200, { duel: duelView(duel) }); }
+  if (req.method === 'POST' && p === '/api/duels') { const b = await readBody(req); if (!db.players[b.challengerAddress] || !db.players[b.rivalAddress]) return send(res, 400, { error: 'Both players must connect wallet first.' }); if (b.challengerAddress === b.rivalAddress) return send(res, 400, { error: 'Cannot duel yourself.' }); if (isBanned(b.challengerAddress) || isBanned(b.rivalAddress)) return send(res, 403, { error: 'A banned address cannot duel.' }); const entryFee = Number(b.entryFee) || 0; if (DUEL_ENTRY_FEES.indexOf(entryFee) < 0) return send(res, 400, { error: 'Entry fee must be one of: ' + DUEL_ENTRY_FEES.join(', ') + ' credits.' }); const duel = { id: uid('duel'), challenger: b.challengerAddress, rival: b.rivalAddress, rivalBest: db.players[b.rivalAddress].bestScore || 0, status: 'pending', rivalResponse: null, game: 'cosmos-btd', seed: duelSeedFor(), entryFee, raceSeconds: DUEL_RACE_SECONDS, liveScores: { challenger: 0, rival: 0 }, liveWaves: { challenger: 0, rival: 0 }, feePaid: false, pot: 0, createdAt: new Date().toISOString() }; db.duels.push(duel); save(db); return send(res, 200, { duel: duelView(duel) }); }
   if (p === '/api/duels') { const addr = u.searchParams.get('address'); const pl = db.players[addr]; if (!pl) return send(res, 400, { error: 'Connect wallet / create player first.' }); return send(res, 200, { duels: db.duels.filter(function (d) { return d.challenger === addr || d.rival === addr; }).slice().reverse().map(duelView) }); }
+  if (p === '/api/duels/history') { const addr = u.searchParams.get('address'); const pl = db.players[addr]; if (!pl) return send(res, 400, { error: 'Connect wallet / create player first.' }); expireLiveDuels(); const decided = ['challenger_won', 'challenger_lost', 'draw', 'declined']; return send(res, 200, { history: db.duels.filter(function (d) { return (d.challenger === addr || d.rival === addr) && decided.indexOf(d.status) >= 0; }).slice().reverse().slice(0, 20).map(function (d) { return duelHistoryView(d, addr); }) }); }
+  if (req.method === 'GET' && p.indexOf('/api/duels/') === 0 && p.endsWith('/live')) { const duelId = p.slice('/api/duels/'.length, -'/live'.length); const addr = u.searchParams.get('address'); const duel = db.duels.find(function (d) { return d.id === duelId; }); if (!duel) return send(res, 404, { error: 'Duel not found' }); if (duel.challenger !== addr && duel.rival !== addr) return send(res, 403, { error: 'Only duel participants can poll the live race.' }); expireLiveDuels(); return send(res, 200, { duel: duelLiveView(duel) }); }
+  if (req.method === 'POST' && p === '/api/duels/start') { const b = await readBody(req); const duel = db.duels.find(function (d) { return d.id === b.duelId; }); if (!duel) return send(res, 404, { error: 'Duel not found' }); if (duel.challenger !== b.address && duel.rival !== b.address) return send(res, 403, { error: 'Only duel participants can start the race.' }); if (duel.status !== 'pending' || duel.rivalResponse !== 'accepted') return send(res, 400, { error: 'The rival must accept the invite before the race can start (status: ' + duel.status + ').' }); const cp = db.players[duel.challenger], rp = db.players[duel.rival]; if (duel.entryFee > 0 && ((cp.credits || 0) < duel.entryFee || (rp.credits || 0) < duel.entryFee)) return send(res, 400, { error: 'Both players need at least ' + duel.entryFee + ' credits to start this duel.' }); if (duel.entryFee > 0) { cp.credits -= duel.entryFee; rp.credits -= duel.entryFee; duel.feePaid = true; duel.pot = 2 * duel.entryFee; addLedger('duel_entry_fee', { duelId: duel.id, challenger: duel.challenger, rival: duel.rival, entryFee: duel.entryFee, pot: duel.pot }); } duel.status = 'live'; duel.startedAt = new Date().toISOString(); duel.expiresAt = Date.now() + duel.raceSeconds * 1000; duel.liveScores = { challenger: 0, rival: 0 }; duel.liveWaves = { challenger: 0, rival: 0 }; save(db); return send(res, 200, { duel: duelLiveView(duel) }); }
+  if (req.method === 'POST' && p === '/api/duels/live') { const b = await readBody(req); const duel = db.duels.find(function (d) { return d.id === b.duelId; }); if (!duel) return send(res, 404, { error: 'Duel not found' }); expireLiveDuels(); if (duel.status !== 'live') return send(res, 400, { error: 'The live race is not running (status: ' + duel.status + ').' }); if (duel.challenger !== b.address && duel.rival !== b.address) return send(res, 403, { error: 'Only duel participants can post live scores.' }); const score = Number(b.score); const wave = Number(b.wave); if (!isFinite(score) || !Number.isInteger(score) || score < 0 || score > 100000) return send(res, 400, { error: 'Live score must be an integer 0-100000.' }); if (b.wave !== undefined && (!isFinite(wave) || !Number.isInteger(wave) || wave < 0 || wave > 200)) return send(res, 400, { error: 'Live wave must be an integer 0-200.' }); const side = duel.challenger === b.address ? 'challenger' : 'rival'; duel.liveScores = duelScores(duel); duel.liveWaves = duelWaves(duel); if (score > duel.liveScores[side]) duel.liveScores[side] = score; if (b.wave !== undefined && wave > duel.liveWaves[side]) duel.liveWaves[side] = wave; save(db); return send(res, 200, { duel: duelLiveView(duel) }); }
+  if (req.method === 'POST' && p === '/api/duels/finish') { const b = await readBody(req); const duel = db.duels.find(function (d) { return d.id === b.duelId; }); if (!duel) return send(res, 404, { error: 'Duel not found' }); if (duel.challenger !== b.address && duel.rival !== b.address) return send(res, 403, { error: 'Only duel participants can finish the race.' }); expireLiveDuels(); if (duel.status === 'live') { const outcome = finishLiveDuel(duel, 'finished'); return send(res, 200, { duel: duelView(duel), winner: outcome && outcome.winner, isDraw: !!(outcome && outcome.isDraw), achievementsUnlocked: (outcome && outcome.achievementsUnlocked) || [] }); } if (['challenger_won', 'challenger_lost', 'draw'].indexOf(duel.status) >= 0) return send(res, 200, { duel: duelView(duel), winner: duel.winner || null, isDraw: duel.status === 'draw', achievementsUnlocked: [] }); return send(res, 400, { error: 'Duel cannot finish from status: ' + duel.status }); }
+  if (req.method === 'POST' && p === '/api/duels/rematch') { const b = await readBody(req); const orig = db.duels.find(function (d) { return d.id === b.duelId; }); if (!orig) return send(res, 404, { error: 'Duel not found' }); if (orig.challenger !== b.address && orig.rival !== b.address) return send(res, 403, { error: 'Only duel participants can request a rematch.' }); if (['challenger_won', 'challenger_lost', 'draw', 'declined'].indexOf(orig.status) < 0) return send(res, 400, { error: 'Only a decided duel can be rematched (status: ' + orig.status + ').' }); if (isBanned(orig.challenger) || isBanned(orig.rival)) return send(res, 403, { error: 'A banned address cannot duel.' }); const duel = { id: uid('duel'), challenger: orig.challenger, rival: orig.rival, rivalBest: db.players[orig.rival].bestScore || 0, status: 'pending', rivalResponse: null, game: 'cosmos-btd', seed: duelSeedFor(), entryFee: orig.entryFee || 0, raceSeconds: DUEL_RACE_SECONDS, liveScores: { challenger: 0, rival: 0 }, liveWaves: { challenger: 0, rival: 0 }, feePaid: false, pot: 0, rematchOf: orig.id, createdAt: new Date().toISOString() }; db.duels.push(duel); save(db); return send(res, 200, { duel: duelView(duel) }); }
   if (req.method === 'POST' && p === '/api/duels/respond') { const b = await readBody(req); const duel = db.duels.find(function (d) { return d.id === b.duelId; }); if (!duel) return send(res, 404, { error: 'Duel not found' }); if (duel.rival !== b.address) return send(res, 403, { error: 'Only the rival can accept or decline this invite.' }); if (duel.status !== 'pending') return send(res, 400, { error: 'Duel is not pending (status: ' + duel.status + ')' }); if (duel.rivalResponse) return send(res, 400, { error: 'You already responded to this invite.' }); if (b.accept === true) { duel.rivalResponse = 'accepted'; } else if (b.accept === false) { duel.rivalResponse = 'declined'; duel.status = 'declined'; duel.decidedAt = new Date().toISOString(); } else return send(res, 400, { error: 'accept must be true or false.' }); save(db); return send(res, 200, { duel: duelView(duel) }); }
-  if (req.method === 'POST' && p === '/api/duels/result') { const b = await readBody(req); const duel = db.duels.find(d => d.id === b.duelId); if (!duel || duel.status !== 'pending') return send(res, 400, { error: 'Duel not pending' }); if (duel.challenger !== b.address) return send(res, 403, { error: 'Only the challenger submits the result.' }); const score = Math.max(0, Math.min(100000, Number(b.score) || 0)); const won = score > duel.rivalBest; duel.status = won ? 'challenger_won' : 'challenger_lost'; duel.score = score; duel.decidedAt = new Date().toISOString(); const pl = db.players[b.address]; pl.gamesPlayed = (pl.gamesPlayed || 0) + 1; if (score > (pl.bestScore || 0)) pl.bestScore = score; if (won) { pl.wins = (pl.wins || 0) + 1; pl.credits = (pl.credits || 0) + 150; pl.xp = (pl.xp || 0) + 100; ensureQuests(pl); pl.questProgress.duelsWon = (pl.questProgress.duelsWon || 0) + 1; } else { pl.losses = (pl.losses || 0) + 1; pl.xp = (pl.xp || 0) + 20; } pl.bests = pl.bests || {}; if (score > (pl.bests['cosmos-btd'] || 0)) pl.bests['cosmos-btd'] = score; recordSeasonBest(pl, 'cosmos-btd', score); const achUnlocked = checkAchievements(pl); save(db); return send(res, 200, { duel: duelView(duel), won, rivalBest: duel.rivalBest, achievementsUnlocked: achUnlocked }); }
+  if (req.method === 'POST' && p === '/api/duels/result') { const b = await readBody(req); const duel = db.duels.find(d => d.id === b.duelId); if (!duel || duel.status !== 'pending') return send(res, 400, { error: 'Duel not pending' }); if (duel.challenger !== b.address) return send(res, 403, { error: 'Only the challenger submits the result.' }); if ((duel.entryFee || 0) > 0) return send(res, 400, { error: 'This duel has a credits entry fee: start the live race and finish it there.' }); const score = Math.max(0, Math.min(100000, Number(b.score) || 0)); const won = score > duel.rivalBest; duel.status = won ? 'challenger_won' : 'challenger_lost'; duel.score = score; duel.decidedAt = new Date().toISOString(); const pl = db.players[b.address]; pl.gamesPlayed = (pl.gamesPlayed || 0) + 1; if (score > (pl.bestScore || 0)) pl.bestScore = score; if (won) { pl.wins = (pl.wins || 0) + 1; pl.credits = (pl.credits || 0) + 150; pl.xp = (pl.xp || 0) + 100; ensureQuests(pl); pl.questProgress.duelsWon = (pl.questProgress.duelsWon || 0) + 1; } else { pl.losses = (pl.losses || 0) + 1; pl.xp = (pl.xp || 0) + 20; } pl.bests = pl.bests || {}; if (score > (pl.bests['cosmos-btd'] || 0)) pl.bests['cosmos-btd'] = score; recordSeasonBest(pl, 'cosmos-btd', score); const achUnlocked = checkAchievements(pl); save(db); return send(res, 200, { duel: duelView(duel), won, rivalBest: duel.rivalBest, achievementsUnlocked: achUnlocked }); }
   // ---------------- CEO PANEL (ADR-36 signed, every action) ----------------
   const ceoOnly = async (body) => { if (!isCeoRequest(req, body)) { send(res, 401, { error: 'CEO wallet signature required: connect Keplr with the CEO address and sign.' }); return false; } return true; };
   if (p === '/api/admin/pending') { if (!(await ceoOnly({}))) return; return send(res, 200, { sales: db.sales.filter(s => s.status === 'pending').map(saleView), rentals: (db.rentals || []).filter(r => r.status === 'pending').map(rentalView), flags: db.flags.filter(f => !f.resolved), openDisputes: db.sales.filter(s => s.dispute && !s.dispute.resolved).length, settings: db.settings, feePercent: fee, orderTtlMinutes: ttl, ceoAddress: CEO_ADDRESS }); }
