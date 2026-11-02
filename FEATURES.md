@@ -4,6 +4,12 @@ Every feature shipped in `public/features.json` (also served live at
 `/features.json` and shown in the hub's **Updates** view). Counts here
 are only features actually built and tested — never claims.
 
+## v3.41.1 — Redesign: new look, no escapes, everything in side tabs
+
+- Removed every literal unicode escape from user-visible text (real characters everywhere, including link titles).
+- Aurora-dusk look: new palette, button gradients and tab styling across the shell; same space/ATOM identity and own art.
+- Left sidebar in Play/System tabs; center below the game in Your Games/Guide/Details tabs; right-rail switching scoped to its rail.
+
 ## v3.39.1 — Right sidebar tabs
 
 - Right sidebar organized into Social / You / Play tabs; wallet pinned above.
