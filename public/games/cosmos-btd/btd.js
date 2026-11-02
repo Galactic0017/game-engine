@@ -159,6 +159,36 @@
     { layers: 4, color: '#f472b6', dark: '#be185d', speed: 80,  reward: 10, name: 'Regen', regen: true, sprite: 'monster-1' }
   ];
 
+  /* ---- Batch 16: colorblind palette (Okabe-Ito-inspired hues) ----
+   * Balloon layers are normally told apart by color alone. In
+   * colorblind mode each type gets a maximally distinct hue plus a
+   * 3-letter code label drawn under the balloon, so no two types rely
+   * on hue alone. Sprite art itself is unchanged (images cannot be
+   * recolored); the ring + label carry the distinction there. */
+  var COLORBLIND_PALETTE = {
+    Red:       { color: '#e69f00', dark: '#8a5a00', label: 'RED' },
+    Blue:      { color: '#0072b2', dark: '#004a73', label: 'BLU' },
+    Green:     { color: '#009e73', dark: '#00664a', label: 'GRN' },
+    Gold:      { color: '#f0e442', dark: '#a89a00', label: 'GLD' },
+    Pink:      { color: '#cc79a7', dark: '#8a4a6d', label: 'PNK' },
+    Lead:      { color: '#999999', dark: '#555555', label: 'LED' },
+    Zebra:     { color: '#ffffff', dark: '#333333', label: 'ZEB' },
+    Camo:      { color: '#56b4e9', dark: '#1f6f9e', label: 'CAM' },
+    Fortified: { color: '#d55e00', dark: '#7a3600', label: 'FOR' },
+    Regen:     { color: '#7b3294', dark: '#4a1a5e', label: 'REG' }
+  };
+  function displayBalloonType(type, colorblind) {
+    if (!colorblind || !type) return { color: type.color, dark: type.dark, label: null };
+    var p = COLORBLIND_PALETTE[type.name];
+    /* Mod/custom enemies have no palette entry: keep their color but
+     * still give them a name label, so they never rely on hue alone. */
+    if (!p) return { color: type.color, dark: type.dark, label: String(type.name || '').slice(0, 3).toUpperCase() || null };
+    return { color: p.color, dark: p.dark, label: p.label };
+  }
+  function balloonPopColor(b, colorblind) {
+    return displayBalloonType(b && b.type, colorblind).color;
+  }
+
   /* ---- Image sprites (procedural fallback when assets are missing) ---- */
   var SPRITES = {};
   var TOWER_SPRITES = { dart: 'tower-validator', cannon: 'tower-railgun', sniper: 'tower-nova', frost: 'tower-cryo', mortar: 'tower-ion', tesla: 'tower-nova', spikes: 'tower-validator', beacon: 'tower-validator' };
@@ -647,7 +677,7 @@
       opts: opts || {},
       canvas: null, ctx: null, bg: null,
       running: false, destroyed: false, rafId: 0, lastT: 0, time: 0,
-      gold: 650, lives: 100, wave: 0, score: 0, pops: 0, endless: false, challenge: false, paused: false, quality: 'high', shakeOn: true, fps: 0, _fpsN: 0, _fpsT: 0,
+      gold: 650, lives: 100, wave: 0, score: 0, pops: 0, endless: false, challenge: false, paused: false, quality: 'high', shakeOn: true, colorblind: false, reducedMotion: false, kbCursor: { x: 480, y: 300, active: false }, fps: 0, _fpsN: 0, _fpsT: 0,
       balloons: [], towers: [], projectiles: [], beams: [], floaters: [], spikes: [],
       particles: [], spawnCount: 0, spawnQueue: [], spawnTimer: 0, betweenWaves: true,
       speed: 1, autoStart: false, targeting: 'first', placing: null,
@@ -772,6 +802,7 @@
 
   /* ---- Particle system: pooled, kinds, wind (Pillar 1) ---- */
   function spawnParticle(st, x, y, color, n, speed, kind) {
+    if (st.reducedMotion) return; /* Batch 16: reduced motion disables bursts */
     if (st.quality === 'low') return;
     var densityMul = st.particleDensity === 'low' ? 0.35 : st.particleDensity === 'med' ? 0.65 : 1;
     densityMul *= (st._dynFactor || 1);
@@ -799,7 +830,7 @@
     st.floaters.push(fl);
   }
   function addBeam(st, b) { b.ecsId = ecsAdd(st, 'beam', { render: b, lifetime: b }); st.beams.push(b); return b; }
-  function addShake(st, amt) { st.shake = Math.max(st.shake, amt); }
+  function addShake(st, amt) { if (st.reducedMotion) return; st.shake = Math.max(st.shake, amt); }
   function addLight(st, x, y, radius, color, life, intensity) {
     if (st.lights.length > 24) { var oldL = st.lights.shift(); if (oldL && oldL.ecsId) ecsRemove(st, oldL.ecsId); }
     var l = { x: x, y: y, radius: radius, color: color, life: life, max: life, intensity: intensity || 1 };
@@ -901,13 +932,13 @@
     if (b.layers <= 0) {
       b.dead = true; st.gold += b.reward; st.score += 10;
       if (st.floaters.length < 24) floater(st, b.x, b.y - 28, '+' + b.reward + 'g', '#ffd166', { kind: 'coin' });
-      spawnParticle(st, b.x, b.y, b.type.color, 10, 110);
+      spawnParticle(st, b.x, b.y, balloonPopColor(b, st.colorblind), 10, 110);
       if (heroNear) st.heroXp += 2;
       if (b.splits) { for (var i = 0; i < 2; i++) { var nb = { boss: false, x: b.x + (i ? 8 : -8), y: b.y, dist: b.dist, prevDist: b.dist, lane: b.lane || 0, layers: 2, maxLayers: 2, r: 14, speed: b.speed * 1.15, reward: 7, wob: Math.random() * TAU, slowUntil: 0, slowF: 1, armored: false, splits: false, sprite: 'monster-2', type: BALLOON_TYPES[1] }; nb.ecsId = ecsAdd(st, 'balloon', { position: nb, health: nb, path: nb, render: nb }); st.balloons.push(nb); } }
       st.audio.pop();
     } else {
       b.r = 11 + b.layers * 1.5;
-      spawnParticle(st, b.x, b.y, b.type.color, 4, 70);
+      spawnParticle(st, b.x, b.y, balloonPopColor(b, st.colorblind), 4, 70);
       if (dmg >= 3 && st.floaters.length < 24) floater(st, b.x, b.y - 16, (crit || dmg >= 5 ? 'CRIT -' : '-') + dmg, (crit || dmg >= 5) ? '#ffd166' : '#ffffff', { kind: (crit || dmg >= 5) ? 'crit' : 'damage' });
     }
   }
@@ -1158,7 +1189,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, fps: st.fps, nextWave: wavePreview(st.wave + 1), spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -1177,7 +1208,7 @@
   }
 
   /* ---- Drawing ---- */
-  function drawBalloon(ctx, b, time, alpha) {
+  function drawBalloon(ctx, b, time, alpha, colorblind) {
     var wob = Math.sin(b.wob) * 2.2;
     var rd = lerp(b.prevDist == null ? b.dist : b.prevDist, b.dist, alpha == null ? 1 : alpha);
     var rp = pointAtLane(rd, b.lane || 0);
@@ -1197,6 +1228,7 @@
       ctx.restore(); return;
     }
     var t = b.type;
+    var disp = displayBalloonType(t, colorblind);
     var spr = SPRITES[b.sprite];
     if (spriteReady(spr)) {
       drawSpeedLines(ctx, b, x, y, rd);
@@ -1205,6 +1237,7 @@
       var preSpr = prerender('balloon-spr:' + b.sprite + ':' + Math.round(sz), sz, sz, function (c) { c.drawImage(spr, 0, 0, sz, sz); });
       if (preSpr) ctx.drawImage(preSpr, -sz / 2, -sz / 2, sz, sz);
       else ctx.drawImage(spr, -sz / 2, -sz / 2, sz, sz);
+      if (disp.label) { ctx.strokeStyle = disp.color; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, sz / 2 + 3, 0, TAU); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center'; ctx.fillText(disp.label, 0, sz / 2 + 16); }
       ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.fillText(String(b.layers), 0, -sz / 2 - 4);
       if (st_slow(b, time)) { ctx.strokeStyle = 'rgba(123,223,242,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, sz / 2 + 3, 0, TAU); ctx.stroke(); }
       if (b.camo) { ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = 'bold 8px Arial'; ctx.fillText('CAMO', 0, sz / 2 + 10); }
@@ -1217,10 +1250,10 @@
      * highlight, armored ring); layer text / slow ring / status dots
      * stay dynamic. Falls back to direct drawing without a canvas. */
     var br = b.r, bcx = br + 4, bcy = br + 4;
-    var body = prerender('balloon:' + t.color + ':' + t.dark + ':' + Math.round(br * 10) + ':' + (b.armored ? 1 : 0), br * 2 + 8, br * 2 + 16, function (c) {
+    var body = prerender('balloon:' + disp.color + ':' + disp.dark + ':' + Math.round(br * 10) + ':' + (b.armored ? 1 : 0), br * 2 + 8, br * 2 + 16, function (c) {
       c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(bcx + 2, bcy + br * 0.9, br * 0.8, 4, 0, 0, TAU); c.fill();
       var g2 = c.createRadialGradient(bcx - br * 0.35, bcy - br * 0.4, 2, bcx, bcy, br * 1.2);
-      g2.addColorStop(0, '#ffffff'); g2.addColorStop(0.25, t.color); g2.addColorStop(1, t.dark);
+      g2.addColorStop(0, '#ffffff'); g2.addColorStop(0.25, disp.color); g2.addColorStop(1, disp.dark);
       c.fillStyle = g2; c.beginPath(); c.ellipse(bcx, bcy, br * 0.82, br, 0, 0, TAU); c.fill();
       c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1; c.beginPath(); c.moveTo(bcx, bcy + br); c.quadraticCurveTo(bcx + 2, bcy + br + 8, bcx, bcy + br + 12); c.stroke();
       c.fillStyle = 'rgba(255,255,255,.9)'; c.beginPath(); c.ellipse(bcx - br * 0.3, bcy - br * 0.4, br * 0.24, br * 0.16, -0.5, 0, TAU); c.fill();
@@ -1230,12 +1263,13 @@
     else {
       ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(2, b.r * 0.9, b.r * 0.8, 4, 0, 0, TAU); ctx.fill();
       var g2f = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.4, 2, 0, 0, b.r * 1.2);
-      g2f.addColorStop(0, '#ffffff'); g2f.addColorStop(0.25, t.color); g2f.addColorStop(1, t.dark);
+      g2f.addColorStop(0, '#ffffff'); g2f.addColorStop(0.25, disp.color); g2f.addColorStop(1, disp.dark);
       ctx.fillStyle = g2f; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.82, b.r, 0, 0, TAU); ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, b.r); ctx.quadraticCurveTo(2, b.r + 8, 0, b.r + 12); ctx.stroke();
       ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.ellipse(-b.r * 0.3, -b.r * 0.4, b.r * 0.24, b.r * 0.16, -0.5, 0, TAU); ctx.fill();
       if (b.armored) { ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.82, b.r, 0, 0, TAU); ctx.stroke(); }
     }
+    if (disp.label) { ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.fillText(disp.label, 0, b.r + 16); }
     if (b.armored) { ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.fillText('LEAD', 0, 3); }
     else if (b.layers > 1) { ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.fillText(String(b.layers), 0, 4); }
     if (st_slow(b, time)) { ctx.strokeStyle = 'rgba(123,223,242,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, b.r + 3, b.r + 4, 0, 0, TAU); ctx.stroke(); }
@@ -1372,8 +1406,20 @@
         if (ctx.setLineDash) ctx.setLineDash([]);
       }
     }
+    /* Batch 16: keyboard cursor crosshair — visible whenever arrow
+     * keys have taken over positioning, so placement without a
+     * mouse is fully visible. */
+    if (st.kbCursor && st.kbCursor.active) {
+      var kb = st.kbCursor;
+      ctx.save(); ctx.strokeStyle = '#00f6ff'; ctx.lineWidth = 2;
+      if (ctx.setLineDash) ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.arc(kb.x, kb.y, 18, 0, TAU); ctx.stroke();
+      if (ctx.setLineDash) ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(kb.x - 24, kb.y); ctx.lineTo(kb.x - 8, kb.y); ctx.moveTo(kb.x + 8, kb.y); ctx.lineTo(kb.x + 24, kb.y); ctx.moveTo(kb.x, kb.y - 24); ctx.lineTo(kb.x, kb.y - 8); ctx.moveTo(kb.x, kb.y + 8); ctx.lineTo(kb.x, kb.y + 24); ctx.stroke();
+      ctx.restore();
+    }
     if (st.selected) { var sel = st.selected; ctx.strokeStyle = '#00f6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.range || 150, 0, TAU); ctx.stroke(); ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.arc(sel.x, sel.y, 20, 0, TAU); ctx.stroke(); }
-    for (var i = 0; i < st.balloons.length; i++) drawBalloon(ctx, st.balloons[i], st.time, st.alpha);
+    for (var i = 0; i < st.balloons.length; i++) drawBalloon(ctx, st.balloons[i], st.time, st.alpha, st.colorblind);
     for (i = 0; i < st.towers.length; i++) drawTower(ctx, st.towers[i], st.time);
     for (i = 0; i < st.spikes.length; i++) { var spk = st.spikes[i]; ctx.fillStyle = '#c9ced6'; ctx.beginPath(); ctx.moveTo(spk.x, spk.y - 6); ctx.lineTo(spk.x - 6, spk.y + 5); ctx.lineTo(spk.x + 6, spk.y + 5); ctx.closePath(); ctx.fill(); }
     if (st.heroPlaced && st.hero) {
@@ -1482,7 +1528,7 @@
     if (!st.vigCv) return;
     ctx.drawImage(st.vigCv, 0, 0);
     if (st.lives <= 20 && !st.won && !st.lost && st.lives > 0) {
-      var a = 0.18 + 0.14 * Math.sin(st.time * 4);
+      var a = st.reducedMotion ? 0.18 : 0.18 + 0.14 * Math.sin(st.time * 4);
       var g = ctx.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.72);
       g.addColorStop(0, 'rgba(255,30,30,0)'); g.addColorStop(1, 'rgba(255,30,30,' + a + ')');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -1500,7 +1546,7 @@
     sceneCtx.restore();
     if (sceneCv) {
       ctx.save(); ctx.drawImage(sceneCv, 0, 0);
-      if (st.dof && st.blurCtx) {
+      if (st.dof && !st.reducedMotion && st.blurCtx) {
         var b = st.blurCtx;
         b.save(); b.clearRect(0, 0, 240, 150);
         try { b.filter = 'blur(2px)'; } catch (e) {}
@@ -1596,13 +1642,12 @@
     if (opts.bus) opts.bus.emit('game:start', 'cosmos-btd', opts.hero ? [opts.hero.id] : []);
     var onMove = function (ev) {
       var pos = canvasPos(st, ev); st.mouse = pos;
+      if (st.kbCursor) st.kbCursor.active = false; /* mouse takes over */
       var prevHover = st.hoverTower; st.hoverTower = null;
       if (!st.placing) for (var i = 0; i < st.towers.length; i++) if (dist(pos.x, pos.y, st.towers[i].x, st.towers[i].y) < 22) { st.hoverTower = st.towers[i]; break; }
       if (st.hoverTower !== prevHover) emitHud(st);
     };
-    var onClick = function (ev) {
-      st.audio.unlock();
-      var pos = canvasPos(st, ev);
+    var activateAt = function (pos) {
       if (st.placing) { tryPlace(st, pos.x, pos.y); return; }
       if (st.hero && !st.heroPlaced) {
         if (distToPath(pos.x, pos.y) <= 34) { if (opts.onToast) opts.onToast('Hero cannot stand on the path.', 'warn'); return; }
@@ -1618,11 +1663,32 @@
       if (found && opts.onTowerSelect) opts.onTowerSelect(found);
       emitHud(st);
     };
+    var onClick = function (ev) {
+      st.audio.unlock();
+      activateAt(canvasPos(st, ev));
+    };
     var onKey = function (ev) {
-      if (ev.key === ' ') { ev.preventDefault(); if (!st.waveActive && !st.won && !st.lost) startWave(st, { manual: true }); }
-      else if (ev.key === 'Escape') { st.placing = null; st.selected = null; emitHud(st); }
+      if (ev.key === ' ') { if (ev.preventDefault) ev.preventDefault(); if (!st.waveActive && !st.won && !st.lost) startWave(st, { manual: true }); }
+      else if (ev.key === 'Escape') { st.placing = null; st.selected = null; if (st.kbCursor) st.kbCursor.active = false; emitHud(st); }
       else if (ev.key === 'r' || ev.key === 'R') { reset(st); }
       else if (ev.key === 'p' || ev.key === 'P') { st.paused = !st.paused; emitHud(st); }
+      else if (ev.key === 'u' || ev.key === 'U') { upgradeSelected(st); }
+      else if (ev.key === 'x' || ev.key === 'X') { sellSelected(st); }
+      else if (ev.key === 'Enter') { if (ev.preventDefault) ev.preventDefault(); st.audio.unlock(); if (st.kbCursor) { st.kbCursor.active = true; st.mouse = { x: st.kbCursor.x, y: st.kbCursor.y }; } activateAt({ x: st.kbCursor.x, y: st.kbCursor.y }); }
+      else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight' || ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
+        if (ev.preventDefault) ev.preventDefault();
+        var step = ev.shiftKey ? 96 : 24;
+        if (st.kbCursor) {
+          st.kbCursor.active = true;
+          if (ev.key === 'ArrowLeft') st.kbCursor.x -= step;
+          if (ev.key === 'ArrowRight') st.kbCursor.x += step;
+          if (ev.key === 'ArrowUp') st.kbCursor.y -= step;
+          if (ev.key === 'ArrowDown') st.kbCursor.y += step;
+          st.kbCursor.x = clamp(st.kbCursor.x, 0, W); st.kbCursor.y = clamp(st.kbCursor.y, 0, H);
+          st.mouse = { x: st.kbCursor.x, y: st.kbCursor.y };
+          emitHud(st);
+        }
+      }
       else if (ev.key >= '1' && ev.key <= '8') { var kinds = Object.keys(TOWER_DEFS); setPlacing(st, kinds[Number(ev.key) - 1]); }
     };
     canvas.addEventListener('mousemove', onMove);
@@ -1654,6 +1720,9 @@
       setFpsTarget: function (v) { st.fpsTarget = [30, 60, 120].indexOf(Number(v)) >= 0 ? Number(v) : 60; },
       setParticleDensity: function (v) { st.particleDensity = ['low', 'med', 'high'].indexOf(v) >= 0 ? v : 'high'; },
       setMotionBlur: function (v) { st.motionBlur = v !== false; },
+      setColorblind: function (v) { st.colorblind = v !== false; clearSpriteCache(); emitHud(st); },
+      setReducedMotion: function (v) { st.reducedMotion = v !== false; if (st.reducedMotion) st.shake = 0; emitHud(st); },
+      moveKbCursor: function (dx, dy) { if (st.kbCursor) { st.kbCursor.active = true; st.kbCursor.x = clamp(st.kbCursor.x + (dx || 0), 0, W); st.kbCursor.y = clamp(st.kbCursor.y + (dy || 0), 0, H); st.mouse = { x: st.kbCursor.x, y: st.kbCursor.y }; emitHud(st); } return st.kbCursor; },
       setDisplayScale: function (v) { st.displayScale = ['auto', '1', '1.5', '2'].indexOf(String(v)) >= 0 ? String(v) : 'auto'; applyDisplayScale(st); },
       setVolume: function (v) { if (st.audio && st.audio.setVolume) st.audio.setVolume(v); },
       upgradeSelected: function () { return upgradeSelected(st); },
@@ -1725,7 +1794,7 @@
     var keep = { gold: 650, lives: 100, wave: 0, score: 0, pops: 0, heroXp: 0 };
     st.gold = st.challenge ? 100 : keep.gold; st.lives = st.challenge ? 20 : keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
     st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = []; st.spikes = []; st.lights = []; st.ecs = createECS(); st.acc = 0; st.alpha = 1; st.paused = false;
-    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null; st.runStartedAt = null; st.runDuration = null;
+    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null; st.runStartedAt = null; st.runDuration = null; if (st.kbCursor) { st.kbCursor.x = 480; st.kbCursor.y = 300; st.kbCursor.active = false; }
     st.weather = { kind: 'clear', until: 0, strikeT: 0 }; st.reroutes = 0; st.hazardSlows = 0; st.spawnCount = 0; st.skipBonuses = 0; st.skipBonusTotal = 0;
     if (st.hero) { st.hero.patrol = false; st.hero.patrolDist = 0; st.hero.patrolDir = 1; st.hero.kills = 0; }
     emitHud(st);
@@ -1741,7 +1810,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'cosmos-btd', { score: st.score, wave: st.wave });
   }
 
-  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.9.0', description: 'Space tower defense: protect the ATOM orb across 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. v3.8.0: space ATOM-orb battlefield with glowing energy lane. Dev tools: custom-track map editor, JSON mod loader, debug stats.', entry: 'btd.js', canvas: true, maxWaves: 50 };
+  var manifest = { id: 'cosmos-btd', name: 'Cosmos BTD', version: '3.15.0', description: 'Space tower defense: protect the ATOM orb across 50 waves + endless, 8 towers, multi-lane fork/rejoin path, closest/elite targeting, status effects (burn/poison/stun/shred), synergy beacons, boss phase shields, logarithmic endless scaling, hero radial cooldowns, branching trees, hero commander, hazards + weather, ECS + spatial hash, fixed timestep, post-processing. Batch 8: mortar splash preview, sell refund preview, hero cooldown bar, wave-skip bonus, fast-balloon speed lines. Batch 9: muzzle flash + recoil, leak warning at 80% path progress, victory/defeat end screens with run stats, animated hub starfield, equipped-hero portrait glow. v3.8.0: space ATOM-orb battlefield with glowing energy lane. Dev tools: custom-track map editor, JSON mod loader, debug stats. Batch 16: colorblind palette + labels, reduced-motion mode, keyboard-only placement, larger touch targets.', entry: 'btd.js', canvas: true, maxWaves: 50 };
 
-  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded, _spriteCacheStats: spriteCacheStats, _clearSpriteCache: clearSpriteCache, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
+  global.CosmosBTD = { manifest: manifest, init: init, TOWER_DEFS: TOWER_DEFS, TOWER_SPRITES: TOWER_SPRITES, BALLOON_TYPES: BALLOON_TYPES, _createState: createState, AssetManager: AssetManager, createECS: createECS, _ecsEntitiesOfKind: ecsEntitiesOfKind, _towerInspect: towerInspect, BRANCH_DEFS: BRANCH_DEFS, HERO_GEAR: HERO_GEAR, HAZARDS: HAZARDS, _hazardAt: hazardAt, _routeOffset: routeOffset, _heroAbilityTier: heroAbilityTier, _heroGearBonus: heroGearBonus, _weatherSlowFactor: weatherSlowFactor, _applyStatus: applyStatus, _hasStatus: hasStatus, _buffFactor: buffFactor, _damageBalloon: damageBalloon, _spawnBalloon: spawnBalloon, _pointAtLane: pointAtLane, _branchTotal: branchTotal, _totalLen: totalLen, _validateMap: validateMap, _exportMap: exportMap, _validateTowerDef: validateTowerDef, _validateEnemyDef: validateEnemyDef, _getDebugStats: getDebugStats, DEFAULT_CTRL: DEFAULT_CTRL, _splashRadiusFor: splashRadiusFor, _isFastBalloon: isFastBalloon, _heroCooldownMax: heroCooldownMax, WAVE_SKIP_BONUS: WAVE_SKIP_BONUS, FAST_BALLOON_SPEED: FAST_BALLOON_SPEED, LEAK_WARNING_FRAC: LEAK_WARNING_FRAC, _balloonProgress: balloonProgress, _leakProgress: leakProgress, _leakWarningActive: leakWarningActive, _recoilOffset: recoilOffset, _muzzleFlashActive: muzzleFlashActive, _runSummary: runSummary, _formatRunTime: formatRunTime, _markRunEnded: markRunEnded, _spriteCacheStats: spriteCacheStats, _clearSpriteCache: clearSpriteCache, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle, _addShake: addShake, _displayBalloonType: displayBalloonType, COLORBLIND_PALETTE: COLORBLIND_PALETTE, _balloonPopColor: balloonPopColor };
 })(typeof window !== 'undefined' ? window : globalThis);
