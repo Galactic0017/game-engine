@@ -470,14 +470,14 @@
     st.terrain = (map.terrain || []).map(function (t) { return { x: t.x, y: t.y, kind: t.kind }; });
     st.customMapName = typeof map.name === 'string' ? map.name : 'Custom map';
     st.customMap = exportMap(st, st.customMapName);
-    if (st.canvas && typeof document !== 'undefined') { try { st.bg = paintBackground(); } catch (e) {} }
+    if (st.canvas && typeof document !== 'undefined') { try { st.bg = paintBackground(st.mapSkin); } catch (e) {} }
     emitHud(st);
     return { ok: true, map: st.customMap };
   }
   function resetMap(st) {
     rebuildTrack(DEFAULT_CTRL);
     st.terrain = []; st.customMapName = null; st.customMap = null;
-    if (st.canvas && typeof document !== 'undefined') { try { st.bg = paintBackground(); } catch (e) {} }
+    if (st.canvas && typeof document !== 'undefined') { try { st.bg = paintBackground(st.mapSkin); } catch (e) {} }
     emitHud(st);
     return { ok: true, map: exportMap(st, 'Default track') };
   }
@@ -575,9 +575,14 @@
   }
 
   /* ---- Background: pre-rendered once ---- */
-  function paintBackground() {
+  function paintBackground(skin) {
     var bg = document.createElement('canvas'); bg.width = W; bg.height = H;
     var b = bg.getContext('2d');
+    if (skin === 'jungle') paintJungleBackground(b); else paintSpaceBackground(b);
+    paintOrbBase(b);
+    return bg;
+  }
+  function paintSpaceBackground(b) {
     var bgImg = SPRITES.bg;
     if (spriteReady(bgImg)) { b.drawImage(bgImg, 0, 0, W, H); b.fillStyle = 'rgba(6,10,22,.18)'; b.fillRect(0, 0, W, H); }
     var g = b.createLinearGradient(0, 0, 0, H);
@@ -618,8 +623,79 @@
       var rg = b.createLinearGradient(x - 16, y - 12, x + 16, y + 10); rg.addColorStop(0, '#8fb4d8'); rg.addColorStop(1, '#3a4a6b');
       b.fillStyle = rg; b.beginPath(); b.moveTo(x - 18, y + 6); b.lineTo(x - 8, y - 12); b.lineTo(x + 10, y - 10); b.lineTo(x + 18, y + 6); b.closePath(); b.fill();
     });
-    // ATOM orb: the objective at the end of the energy lane.
-    (function () {
+  }
+
+  /* Jungle map skin: bright grass, foliage borders, stone-slab path.
+   * Same track geometry as the space skin; only the painting differs,
+   * so waves, towers and the ATOM orb play identically. */
+  function paintJungleBackground(b) {
+    var g = b.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#82c957'); g.addColorStop(0.5, '#5ea843'); g.addColorStop(1, '#4b9334');
+    b.fillStyle = g; b.fillRect(0, 0, W, H);
+    var i, x, y;
+    for (x = 0; x < W; x += 80) { if (Math.floor(x / 80) % 2 === 0) { b.fillStyle = 'rgba(255,255,255,.05)'; b.fillRect(x, 0, 80, H); } }
+    for (i = 0; i < 1100; i++) { b.fillStyle = ['rgba(255,255,255,.12)', 'rgba(20,80,20,.20)', 'rgba(255,240,150,.22)'][i % 3]; b.fillRect(rnd() * W, rnd() * H, 2, 2); }
+    for (i = 0; i < 240; i++) {
+      x = rnd() * W; y = rnd() * H;
+      b.strokeStyle = 'rgba(28,96,28,.55)'; b.lineWidth = 1.5; b.beginPath();
+      b.moveTo(x, y); b.lineTo(x - 3, y - 7); b.moveTo(x, y); b.lineTo(x + 3, y - 8); b.stroke();
+    }
+    for (i = 0; i < 70; i++) { b.fillStyle = ['#ffd166', '#ff6b9d', '#ffffff', '#c792ea'][i % 4]; b.beginPath(); b.arc(rnd() * W, rnd() * H, 2.6, 0, TAU); b.fill(); }
+    var pond = function (cx, cy, rx, ry) {
+      if (typeof distToPath === 'function' && distToPath(cx, cy) < 70) return;
+      b.fillStyle = '#5a93b5'; b.beginPath(); b.ellipse(cx, cy, rx + 5, ry + 5, 0, 0, TAU); b.fill();
+      b.fillStyle = '#8fc7e2'; b.beginPath(); b.ellipse(cx, cy, rx, ry, 0, 0, TAU); b.fill();
+      b.fillStyle = 'rgba(255,255,255,.28)'; b.beginPath(); b.ellipse(cx - rx * 0.25, cy - ry * 0.3, rx * 0.45, ry * 0.4, 0, 0, TAU); b.fill();
+      b.fillStyle = '#3f7a4d'; b.beginPath(); b.arc(cx + rx * 0.4, cy + ry * 0.25, 4, 0, TAU); b.fill();
+    };
+    pond(790, 55, 55, 30); pond(100, 530, 45, 26); pond(770, 550, 35, 24);
+    var bush = function (bx, by, r) {
+      b.fillStyle = 'rgba(20,70,20,.35)'; b.beginPath(); b.arc(bx + 5, by + 6, r, 0, TAU); b.fill();
+      b.fillStyle = '#2f7a2e'; b.beginPath(); b.arc(bx, by, r * 0.8, 0, TAU); b.fill();
+      b.fillStyle = '#5cb84d'; b.beginPath(); b.arc(bx - r * 0.25, by - r * 0.25, r * 0.45, 0, TAU); b.fill();
+    };
+    [[40, 40], [180, 24], [340, 36], [520, 26], [700, 38], [860, 30], [930, 90], [24, 200], [30, 420], [40, 560], [920, 180], [935, 540], [240, 575], [480, 580], [660, 575], [800, 570]].forEach(function (p) { bush(p[0], p[1], 26 + rnd() * 14); });
+    // stone-slab path: dirt bed + slabs laid along the track
+    var slabAlong = function (pts) {
+      b.lineCap = 'round'; b.lineJoin = 'round';
+      var under = function (w, col) { b.strokeStyle = col; b.lineWidth = w; b.beginPath(); b.moveTo(pts[0][0], pts[0][1]); pts.forEach(function (p) { b.lineTo(p[0], p[1]); }); b.stroke(); };
+      under(46, 'rgba(90,60,30,.55)'); under(40, '#b99a6b'); under(36, '#c9b489');
+      var acc = 0;
+      for (var s = 0; s < pts.length - 1; s++) {
+        var ax = pts[s][0], ay = pts[s][1], bx2 = pts[s + 1][0], by2 = pts[s + 1][1];
+        var seg = Math.hypot(bx2 - ax, by2 - ay), ang = Math.atan2(by2 - ay, bx2 - ax);
+        var d = 24 - (acc % 24);
+        while (d < seg) {
+          var cx = ax + Math.cos(ang) * d, cy = ay + Math.sin(ang) * d;
+          b.save(); b.translate(cx, cy); b.rotate(ang);
+          b.fillStyle = '#ddd6c4'; b.fillRect(-14, -10, 28, 20);
+          b.strokeStyle = '#a89a80'; b.lineWidth = 2; b.strokeRect(-14, -10, 28, 20);
+          b.strokeStyle = 'rgba(120,105,80,.5)'; b.lineWidth = 1; b.beginPath(); b.moveTo(-14, 0); b.lineTo(14, 0); b.stroke();
+          b.restore();
+          d += 24;
+        }
+        acc += seg;
+      }
+    };
+    slabAlong(pathPts); slabAlong(branchPts);
+    b.fillStyle = '#2c5a1e'; b.font = 'bold 13px Arial'; b.textAlign = 'center'; b.fillText('START', 64, 84);
+    // leafy trees + rocks (kept clear of the path by fixed placement)
+    [[76, 306], [392, 108], [640, 528], [884, 84], [306, 548], [700, 540], [472, 566], [908, 540], [52, 214], [560, 72]].forEach(function (pos) {
+      var tx2 = pos[0], ty2 = pos[1];
+      b.fillStyle = 'rgba(0,0,0,.25)'; b.beginPath(); b.ellipse(tx2 + 6, ty2 + 8, 26, 8, 0, 0, TAU); b.fill();
+      b.fillStyle = '#7a5230'; b.fillRect(tx2 - 4, ty2 - 6, 8, 16);
+      b.fillStyle = '#2f7a2e'; b.beginPath(); b.arc(tx2, ty2 - 22, 24, 0, TAU); b.fill();
+      b.fillStyle = '#57b04a'; b.beginPath(); b.arc(tx2 - 8, ty2 - 30, 14, 0, TAU); b.fill();
+      b.fillStyle = '#8fd07a'; b.beginPath(); b.arc(tx2 - 10, ty2 - 34, 7, 0, TAU); b.fill();
+    });
+    [[250, 540], [640, 84], [830, 540], [430, 520], [180, 556]].forEach(function (pos) {
+      var rx = pos[0], ry = pos[1];
+      var rg = b.createLinearGradient(rx - 16, ry - 12, rx + 16, ry + 10); rg.addColorStop(0, '#a8a294'); rg.addColorStop(1, '#6f6a5e');
+      b.fillStyle = rg; b.beginPath(); b.moveTo(rx - 18, ry + 6); b.lineTo(rx - 8, ry - 12); b.lineTo(rx + 10, ry - 10); b.lineTo(rx + 18, ry + 6); b.closePath(); b.fill();
+    });
+  }
+
+  function paintOrbBase(b) {
       var ox = 918, oy = 420;
       var og = b.createRadialGradient(ox, oy, 4, ox, oy, 64); og.addColorStop(0, 'rgba(0,246,255,.55)'); og.addColorStop(1, 'rgba(0,246,255,0)');
       b.fillStyle = og; b.beginPath(); b.arc(ox, oy, 64, 0, TAU); b.fill();
@@ -629,8 +705,6 @@
       b.fillStyle = body; b.beginPath(); b.arc(ox, oy, 24, 0, TAU); b.fill();
       b.fillStyle = '#0b1124'; b.beginPath(); b.arc(ox, oy, 9, 0, TAU); b.fill();
       b.fillStyle = '#00f6ff'; b.font = 'bold 13px Arial'; b.textAlign = 'center'; b.fillText('ATOM ORB', ox, oy + 48);
-    })();
-    return bg;
   }
 
   /* ---- Synthesized audio (Web Audio, muted + torn down on destroy) ---- */
@@ -678,13 +752,15 @@
     };
   }
 
+  function loadMapSkin() { try { if (typeof localStorage !== 'undefined') { var s = localStorage.getItem('cosmos-btd-map'); if (s === 'jungle' || s === 'space') return s; } } catch (e) {} return 'jungle'; }
+
   /* ---- Engine state ---- */
   function createState(opts) {
     return {
       opts: opts || {},
       canvas: null, ctx: null, bg: null,
       running: false, destroyed: false, rafId: 0, lastT: 0, time: 0,
-      gold: 650, lives: 100, wave: 0, score: 0, pops: 0, endless: false, challenge: false, paused: false, quality: 'high', shakeOn: true, colorblind: false, reducedMotion: false, kbCursor: { x: 480, y: 300, active: false }, fps: 0, _fpsN: 0, _fpsT: 0,
+      gold: 650, lives: 100, wave: 0, score: 0, pops: 0, endless: false, challenge: false, paused: false, quality: 'high', mapSkin: loadMapSkin(), shakeOn: true, colorblind: false, reducedMotion: false, kbCursor: { x: 480, y: 300, active: false }, fps: 0, _fpsN: 0, _fpsT: 0,
       balloons: [], towers: [], projectiles: [], beams: [], floaters: [], spikes: [],
       particles: [], spawnCount: 0, spawnQueue: [], spawnTimer: 0, betweenWaves: true,
       speed: 1, autoStart: false, targeting: 'first', placing: null,
@@ -1517,7 +1593,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', mapSkin: st.mapSkin || 'space', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -1823,13 +1899,13 @@
     ctx.beginPath(); ctx.arc(ox, oy, 9, 0, TAU); ctx.fill();
     ctx.fillStyle = '#00f6ff';
     ctx.beginPath(); ctx.arc(ox - 3, oy - 3, 3, 0, TAU); ctx.fill();
-    var bw = 120, bx = ox - bw / 2, by = oy - 66;
+    var bw = 120, bx = Math.min(ox - bw / 2, W - bw - 4), by = oy - 66;
     ctx.fillStyle = 'rgba(5,8,20,.75)'; ctx.fillRect(bx - 2, by - 2, bw + 4, 13);
     ctx.fillStyle = '#1a2342'; ctx.fillRect(bx, by, bw, 9);
     if (frac > 0) { ctx.fillStyle = frac > 0.25 ? '#00f6ff' : '#ff5a5a'; ctx.fillRect(bx, by, Math.round(bw * frac), 9); }
     ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, 9);
     ctx.fillStyle = '#eaf6ff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
-    ctx.fillText('ATOM SHIELD: ' + Math.max(0, st.lives || 0) + '/100', ox, by - 6);
+    ctx.fillText('ATOM SHIELD: ' + Math.max(0, st.lives || 0) + '/100', bx + bw / 2, by - 6);
     if (st.orbHitT > 0 && !st.reducedMotion) {
       var k = st.orbHitT / 0.6;
       ctx.save(); ctx.globalAlpha = k;
@@ -2035,8 +2111,8 @@
     var vgr = vg.createRadialGradient(W / 2, H / 2, H * 0.34, W / 2, H / 2, H * 0.75);
     vgr.addColorStop(0, 'rgba(0,0,0,0)'); vgr.addColorStop(1, 'rgba(0,0,0,.38)');
     vg.fillStyle = vgr; vg.fillRect(0, 0, W, H);
-    st.bg = paintBackground();
-    loadSprites(function () { st.bg = paintBackground(); });
+    st.bg = paintBackground(st.mapSkin);
+    loadSprites(function () { st.bg = paintBackground(st.mapSkin); });
     if (opts.hero) { st.hero = opts.hero; }
     if (opts.bus) opts.bus.emit('game:start', 'cosmos-btd', opts.hero ? [opts.hero.id] : []);
     var onMove = function (ev) {
@@ -2104,7 +2180,9 @@
       setPlacing: function (kind) { setPlacing(st, kind); },
       setHero: function (hero) { st.hero = hero; st.heroPlaced = false; },
       setSession: function (sessionId, nonce) { st.sessionId = sessionId; st.sessionNonce = nonce; },
-      setDuelSeed: function (s) { setDuelSeed(s); st.duelSeed = duelSeed(); try { if (st.canvas && typeof document !== 'undefined') st.bg = paintBackground(); } catch (e) {} emitHud(st); return st.duelSeed; },
+      setDuelSeed: function (s) { setDuelSeed(s); st.duelSeed = duelSeed(); try { if (st.canvas && typeof document !== 'undefined') st.bg = paintBackground(st.mapSkin); } catch (e) {} emitHud(st); return st.duelSeed; },
+      setMapSkin: function (skin) { if (skin !== 'jungle' && skin !== 'space') return st.mapSkin; st.mapSkin = skin; try { if (typeof localStorage !== 'undefined') localStorage.setItem('cosmos-btd-map', skin); } catch (e) {} try { if (st.canvas && typeof document !== 'undefined') st.bg = paintBackground(st.mapSkin); } catch (e) {} emitHud(st); return st.mapSkin; },
+      getMapSkin: function () { return st.mapSkin || 'space'; },
       getDuelSeed: function () { return st.duelSeed != null ? st.duelSeed : duelSeed(); },
       setTargeting: function (m) { if (['first', 'last', 'strong', 'weak', 'closest', 'elite'].indexOf(m) >= 0) { st.targeting = m; emitHud(st); } },
       setSpeed: function (s) { st.speed = clamp(Math.round(s) || 1, 1, 3); emitHud(st); },
