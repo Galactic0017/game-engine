@@ -101,7 +101,7 @@
       mouse: { x: W / 2, y: 240, down: false },
       mining: false, mineTarget: null, mineCd: 0, beamFlash: 0,
       asteroids: [], particles: [], floaters: [],
-      belt: 1, mined: 0, quota: beltQuota(1), totalMined: 0,
+      belt: 1, mined: 0, quota: beltQuota(1), totalMined: 0, richVeins: 0,
       ore: { iron: 0, nickel: 0, cobalt: 0, gold: 0, platinum: 0, atom: 0 },
       credits: 0, bankedValue: 0,
       powerLevel: 1, autoLevel: 0, scannerLevel: 0,
@@ -217,6 +217,14 @@
     st.ore[a.ore] = (st.ore[a.ore] || 0) + 1;
     st.mined++; st.totalMined++;
     var ore = oreById(a.ore);
+    /* Batch 21: rich vein — every 10th mined rock yields a bonus ore
+     * of the same type. Deterministic on totalMined, so it cannot
+     * double-pay for one rock. */
+    if (st.totalMined % 10 === 0) {
+      st.richVeins++;
+      st.ore[a.ore]++;
+      floater(st, a.x, a.y - 24, 'RICH VEIN +1 ' + ore.name, '#ffd166');
+    }
     spawnParticle(st, a.x, a.y, ore.color, 16, 150);
     floater(st, a.x, a.y, '+1 ' + ore.name + (byAuto ? ' (auto)' : ''), ore.color);
     if (st.mined >= st.quota) advanceBelt(st);
@@ -275,7 +283,7 @@
   }
   function reset(st) {
     st.asteroids = []; st.particles = []; st.floaters = [];
-    st.belt = 1; st.mined = 0; st.totalMined = 0; st.bankedValue = 0;
+    st.belt = 1; st.mined = 0; st.totalMined = 0; st.bankedValue = 0; st.richVeins = 0;
     st.ore = { iron: 0, nickel: 0, cobalt: 0, gold: 0, platinum: 0, atom: 0 };
     // Drill upgrades + credits persist across shifts (they are in the local save).
     st.mining = false; st.mineTarget = null; st.shiftEnded = false; st.paused = false;
@@ -334,7 +342,7 @@
   function emitHud(st) { if (st.opts.onHud) st.opts.onHud(getHud(st)); }
   function getHud(st) {
     return {
-      belt: st.belt, mined: st.mined, quota: st.quota, totalMined: st.totalMined,
+      belt: st.belt, mined: st.mined, quota: st.quota, totalMined: st.totalMined, richVeins: st.richVeins,
       ore: st.ore, cargoValue: cargoValue(st), credits: st.credits,
       bankedValue: st.bankedValue, powerLevel: st.powerLevel, autoLevel: st.autoLevel,
       scannerLevel: st.scannerLevel, bestBelt: st.bestBelt, bestValue: st.bestValue,
@@ -345,7 +353,7 @@
   }
   function getState(st) {
     return {
-      belt: st.belt, mined: st.mined, quota: st.quota, totalMined: st.totalMined,
+      belt: st.belt, mined: st.mined, quota: st.quota, totalMined: st.totalMined, richVeins: st.richVeins,
       ore: st.ore, cargoValue: cargoValue(st), credits: st.credits,
       bankedValue: st.bankedValue, powerLevel: st.powerLevel, autoLevel: st.autoLevel,
       scannerLevel: st.scannerLevel, bestBelt: st.bestBelt, bestValue: st.bestValue,
@@ -575,7 +583,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'asteroid-miner', { score: st.bankedValue, wave: st.belt, kills: st.totalMined });
   }
 
-  var manifest = { id: 'asteroid-miner', name: 'Asteroid Miner', version: '1.1.0', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', entry: 'miner.js', canvas: true };
+  var manifest = { id: 'asteroid-miner', name: 'Asteroid Miner', version: '1.2.0', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests. Batch 21: rich-vein bonus ore every 10th rock.', entry: 'miner.js', canvas: true };
 
   global.AsteroidMiner = { manifest: manifest, init: init, _createState: createState, _ORES: ORES, _pickOre: pickOre, _beltQuota: beltQuota, _upgradeCost: upgradeCost, _cargoValue: cargoValue, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
 })(typeof window !== 'undefined' ? window : globalThis);
