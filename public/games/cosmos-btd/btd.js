@@ -1737,7 +1737,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, undoAvailable: !!st.lastPlaced && !st.waveActive && !!st.betweenWaves, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), enemyInspect: enemyInspect(st), ecsMode: 'tables', mapSkin: st.mapSkin || 'space', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, undoAvailable: !!st.lastPlaced && !st.waveActive && !!st.betweenWaves, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), enemyInspect: enemyInspect(st), render3d: !!st.render3d, ecsMode: 'tables', mapSkin: st.mapSkin || 'space', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -2159,7 +2159,86 @@
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     }
   }
+  /* ---- 3D rendering (Stage 1): delegate frames to CosmosBTD3D
+   * when available. The 2D canvas stays laid out underneath (input
+   * mapping uses its box); the WebGL canvas overlays it and forwards
+   * mouse/touch events to the same handlers. Any 3D failure falls
+   * back to 2D immediately and permanently for the run. ---- */
+  function buildSnapshot3d(st) {
+    var balloons = [], towers = [], parts = [], i, b, t, pa;
+    for (i = 0; i < st.balloons.length; i++) {
+      b = st.balloons[i]; if (b.dead) continue;
+      balloons.push({ x: b.x, y: b.y, r: b.r || 14, color: (b.type && b.type.color) || '#ff5a5a', layers: b.layers || 1, boss: !!b.boss });
+    }
+    for (i = 0; i < st.towers.length; i++) {
+      t = st.towers[i];
+      towers.push({ x: t.x, y: t.y, kind: t.kind, level: t.level || 1, angle: t.angle || 0 });
+    }
+    for (i = 0; i < st.particles.length; i++) {
+      pa = st.particles[i];
+      parts.push({ x: pa.x, y: pa.y, color: pa.color || '#ffffff', life: Math.max(0, pa.life || 0), max: Math.max(0.01, pa.max || 0.7), size: pa.size || 3 });
+    }
+    var ghost = null;
+    if (st.placing && st.mouse && st.mouse.x >= 0) {
+      var def = TOWER_DEFS[st.placing];
+      ghost = { x: st.mouse.x, y: st.mouse.y, valid: distToPath(st.mouse.x, st.mouse.y) > 34, range: def ? def.range : 100 };
+    }
+    var sel = null;
+    if (st.selected) sel = { x: st.selected.x, y: st.selected.y, range: st.selected.range || 150 };
+    return {
+      balloons: balloons, towers: towers, particles: parts,
+      orbShield: Math.max(0, Math.min(1, (st.lives || 0) / 100)), orbHit: st.orbHitT > 0,
+      time: st.time || 0, placing: !!st.placing, ghost: ghost, selected: sel,
+      mapSkin: st.mapSkin || 'space',
+      hero: (st.heroPlaced && st.hero) ? { x: st.hero.x, y: st.hero.y, level: st.hero.level || 1, color: st.hero.color || '#ffd166' } : null
+    };
+  }
+  function teardownRenderer3d(st) {
+    if (st._r3dListeners) {
+      var L = st._r3dListeners;
+      try {
+        L.cv.removeEventListener('mousemove', L.onMove);
+        L.cv.removeEventListener('click', L.onClick);
+        L.cv.removeEventListener('touchstart', L.onTouch);
+      } catch (e) {}
+      st._r3dListeners = null;
+    }
+    if (st._r3d) { try { st._r3d.dispose(); } catch (e) {} st._r3d = null; }
+  }
+  function ensureRenderer3d(st) {
+    if (st._r3d || typeof window === 'undefined' || !window.CosmosBTD3D) return;
+    var viewport = st.canvas && st.canvas.parentNode;
+    if (!viewport) return;
+    var r = window.CosmosBTD3D.createRenderer(viewport, {
+      sampleLane: function (d) { return pointAtLane(d, 0); },
+      laneLength: totalLen,
+      mapSkin: st.mapSkin
+    });
+    st._r3d = r;
+    if (r.canvas && st._listeners) {
+      st._r3dListeners = { cv: r.canvas, onMove: st._listeners.onMove, onClick: st._listeners.onClick, onTouch: st._listeners.onTouch };
+      r.canvas.addEventListener('mousemove', st._listeners.onMove);
+      r.canvas.addEventListener('click', st._listeners.onClick);
+      r.canvas.addEventListener('touchstart', st._listeners.onTouch);
+    }
+  }
+  function setRender3d(st, on) {
+    st.render3d = !!on;
+    if (st.render3d && !st._r3d) {
+      try { ensureRenderer3d(st); } catch (e) { st._r3d = null; }
+      if (!st._r3d) st.render3d = false;
+    }
+    if (!st.render3d) teardownRenderer3d(st);
+    emitHud(st);
+  }
   function draw(st) {
+    if (st.render3d && st._r3d) {
+      var ok3d = true;
+      try { st._r3d.render(buildSnapshot3d(st), 0.016); } catch (e) { ok3d = false; }
+      if (ok3d) return;
+      st.render3d = false;
+      teardownRenderer3d(st);
+    }
     var useFx = st.quality === 'high' && st.postfx;
     var ctx = st.ctx;
     var sceneCtx = ctx, sceneCv = null;
@@ -2258,6 +2337,8 @@
     st.sceneCv = mkCv(W, H); st.sceneCtx = st.sceneCv.getContext('2d');
     st.blurCv = mkCv(240, 150); st.blurCtx = st.blurCv.getContext('2d');
     st.vigCv = mkCv(W, H);
+    st.render3d = false; st._r3d = null; st._r3dListeners = null;
+    try { if ((!opts || opts.render3d !== false) && typeof window !== 'undefined' && window.CosmosBTD3D && window.CosmosBTD3D.isAvailable()) { st.render3d = true; ensureRenderer3d(st); if (!st._r3d) st.render3d = false; } } catch (e) { st.render3d = false; st._r3d = null; }
     var vg = st.vigCv.getContext('2d');
     var vgr = vg.createRadialGradient(W / 2, H / 2, H * 0.34, W / 2, H / 2, H * 0.75);
     vgr.addColorStop(0, 'rgba(0,0,0,0)'); vgr.addColorStop(1, 'rgba(0,0,0,.38)');
@@ -2350,9 +2431,11 @@
       setPaused: function (v) { st.paused = !!v; emitHud(st); },
       setEndless: function (v) { st.endless = !!v; emitHud(st); },
       setChallenge: function (v) { st.challenge = !!v; if (st.challenge && st.wave === 0 && !st.waveActive) { st.gold = 100; st.lives = 20; } emitHud(st); },
-      setQuality: function (q) { st.quality = q === 'low' ? 'low' : 'high'; },
+      setQuality: function (q) { st.quality = q === 'low' ? 'low' : 'high'; if (st._r3d && st._r3d.setQuality) { try { st._r3d.setQuality(st.quality); } catch (e) {} } },
       setPostFx: function (v) { st.postfx = v !== false; },
       setDof: function (v) { st.dof = v !== false; },
+      setRender3d: function (on) { setRender3d(st, !!on); },
+      isRender3d: function () { return !!st.render3d; },
       setFpsTarget: function (v) { st.fpsTarget = [30, 60, 120].indexOf(Number(v)) >= 0 ? Number(v) : 60; },
       setParticleDensity: function (v) { st.particleDensity = ['low', 'med', 'high'].indexOf(v) >= 0 ? v : 'high'; },
       setMotionBlur: function (v) { st.motionBlur = v !== false; },
@@ -2448,6 +2531,7 @@
   }
   function destroy(st) {
     st.destroyed = true; st.running = false;
+    teardownRenderer3d(st);
     if (typeof cancelAnimationFrame !== 'undefined') { try { cancelAnimationFrame(st.rafId); } catch (e) {} }
     else { try { clearTimeout(st.rafId); } catch (e) {} }
     if (st.canvas && st._listeners) { st.canvas.removeEventListener('mousemove', st._listeners.onMove); st.canvas.removeEventListener('click', st._listeners.onClick); st.canvas.removeEventListener('touchstart', st._listeners.onTouch); }
