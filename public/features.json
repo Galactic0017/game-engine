@@ -869,10 +869,34 @@
    "id": "tycoon-prestige-progress",
    "tested": "tycoon/clicker harness: _prestigeProgressFor(0)={pct 0, remaining 5000}; (2500)={pct 50, remaining 2500}; (5000)={pct 100, remaining 0, canPrestige true}; state and panel show pct + remaining",
    "title": "Prestige progress — percent toward 5,000 credits plus credits remaining, in state and the tycoon panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-army-value",
+   "tested": "BTD harness: _armyValueFor sums invested (100+275), falls back to base cost without the invested field, 0 for no towers; HUD and state expose armyValue",
+   "title": "Army value - total gold invested in the towers on the board, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-kills-per-wave",
+   "tested": "shooter harness: _killsPerWaveFor(0,0)=0, (10,4)=2.5, (7,3)=2.3; HUD, state and game-over screen expose killsPerWave",
+   "title": "Kills per wave - average kills per wave reached (one decimal), in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-avg-ore-value",
+   "tested": "miner harness: _avgOreValueFor empty cargo=0; 2 iron (5) + 1 gold (50) = 60/3 = 20; HUD and state expose avgOreValue",
+   "title": "Average ore value - mean base value per ore unit in cargo (before scanner multiplier), in HUD and state"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-earnings-rate",
+   "tested": "tycoon/clicker harness: _earningsRateFor([],0,0)=0; one rig-2 level 2 = 12/s; prestige 1 + 1 overseer = 16.5/s; state exposes earningsRate (panel already shows this Rate)",
+   "title": "Earnings rate - credits per second after prestige multiplier and overseer boost, in state"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 145,
+ "totalFeatures": 149,
  "updated": "2026-11-01",
- "version": "3.22.0"
+ "version": "3.23.0"
 }
