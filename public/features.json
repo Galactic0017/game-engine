@@ -1763,10 +1763,22 @@
       "category": "Hub",
       "title": "Root-absolute asset paths via <base href=\"/\">: CSS, scripts, images and lazy game loads resolve from the site root on /game/cosmos-btd too",
       "tested": "serve checks: base tag + absolute head refs in served index.html; live browser re-check clicks PLAY"
+    },
+    {
+      "id": "two-map-skins",
+      "category": "Cosmos BTD",
+      "title": "Two maps: Space battlefield + Jungle green map (grass, foliage, stone-slab path, same track/waves/orb); switch in the top bar, choice remembered",
+      "tested": "BTD harness: setMapSkin/getMapSkin switch + invalid rejected; live browser check switches maps and sees both paint"
+    },
+    {
+      "id": "store-card-visible-stage-fit",
+      "category": "Hub",
+      "title": "Store card shows title/description/tags/buttons (banner overlay no longer covers them); game top bar static so it never overlaps the board; ATOM shield bar clamped inside the canvas",
+      "tested": "live browser re-check clicks PLAY; editor checks: no storeCard featured, hl rule, static topbar, bar clamp"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 294,
+  "totalFeatures": 296,
   "updated": "2026-11-02",
-  "version": "3.49.5"
+  "version": "3.49.6"
 }

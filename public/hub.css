@@ -258,7 +258,7 @@ header.topbar .wallet { border-color: var(--cyan); }
 .storeGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 14px; }
 .storeGrid.owned-only .storeCard.soon { display: none; }
 .storeCard { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-height: 340px; }
-.storeCard.featured { border-color: var(--cyan); box-shadow: 0 0 18px rgba(0,246,255,.18); }
+.storeCard.hl { border-color: var(--cyan); box-shadow: 0 0 18px rgba(0,246,255,.18); }
 .storeCard .thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; border-radius: 10px; display: block; }
 .storeCard h3 { margin: 2px 0; font-size: 15px; }
 .storeCard p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -278,7 +278,7 @@ header.topbar .wallet { border-color: var(--cyan); }
 #gameView { display: none; }
 body.game-mode #hubTopbar, body.game-mode #hubWrap { display: none; }
 body.game-mode #gameView { display: block; }
-.gameTopbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: rgba(7,11,24,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.gameTopbar { position: static; top: 0; z-index: 50; display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: rgba(7,11,24,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .gameTopbar .logo { font-size: 18px; }
 .waveChip { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-weight: 700; letter-spacing: .5px; }
 .goldChip { color: var(--gold); font-weight: 700; }
@@ -336,3 +336,4 @@ body.game-mode #gameView { display: block; }
 .libMenu[hidden] { display: none; }
 .libMenu button { text-align: left; }
 .storeCard.soon { cursor: pointer; }
+#mapSeg button.on { background: var(--cyan); color: #062a33; border-color: var(--cyan); font-weight: 800; }
