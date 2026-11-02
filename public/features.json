@@ -965,10 +965,34 @@
    "id": "tycoon-seconds-to-next-rig",
    "tested": "tycoon/clicker harness: _secondsToNextRigFor(100,0,[])=0, (0,0,[])=null, (0,1,[])=100, (0,1,[rig-1 L1])=180; getState exposes nextRigCost + secondsToNextRig and the panel shows the next-rig line",
    "title": "Seconds to next rig - whole seconds until the cheapest rig buy/upgrade is affordable at the current earnings rate (null with no earnings), in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-hero-kills-per-wave",
+   "tested": "BTD harness: _heroKillsPerWaveFor(0,0)=0, (10,4)=2.5, (7,3)=2.3; HUD and state expose heroKillsPerWave",
+   "title": "Hero kills per wave - average hero kills per wave reached (one decimal), in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-grazes-per-wave",
+   "tested": "shooter harness: _grazesPerWaveFor(0,0)=0, (10,4)=2.5, (7,3)=2.3; HUD, state and game-over screen expose grazesPerWave",
+   "title": "Grazes per wave - average asteroid grazes per wave reached (one decimal), in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-rich-veins-per-belt",
+   "tested": "miner harness: _richVeinsPerBeltFor(0,0)=0, (10,5)=2, (7,3)=2.3, (5,0)=0; HUD and state expose richVeinsPerBelt",
+   "title": "Rich veins per belt - average rich veins per belt reached (one decimal), in HUD and state"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-milestone-progress",
+   "tested": "tycoon/clicker harness: _milestoneProgressFor(0)=0, (50)=50, (100)=0, (300)=50, (5000)=100, (6000)=100; getState exposes milestoneProgressPct and the panel shows the progress line",
+   "title": "Milestone progress - percent travelled from the last click milestone toward the next (100 once all reached), in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 161,
+ "totalFeatures": 165,
  "updated": "2026-11-02",
- "version": "3.26.0"
+ "version": "3.27.0"
 }
