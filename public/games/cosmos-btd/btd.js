@@ -642,6 +642,7 @@
     var t = st.time, i;
     if (st.mapSkin === 'jungle') {
       if (layer === 'under') {
+        var lw = ctx.createLinearGradient(0, 0, W, H); lw.addColorStop(0, 'rgba(255,244,200,.12)'); lw.addColorStop(0.6, 'rgba(255,244,200,0)'); ctx.fillStyle = lw; ctx.fillRect(0, 0, W, H);
         if (!st.reducedMotion) {
           ctx.fillStyle = 'rgba(10,30,10,.06)';
           for (i = 0; i < 2; i++) {
@@ -670,6 +671,16 @@
             ctx.beginPath(); ctx.arc(fx, fy, 2.2, 0, TAU); ctx.fill();
           }
         }
+        // corner foliage frame: leaves hanging over the top corners (depth)
+        var leafCl = function (lx, ly, r, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(lx, ly, r, 0, TAU); ctx.fill(); };
+        [[26, 18, 26, '#1e5a26'], [52, 10, 20, '#2f7a2e'], [78, 22, 16, '#3f9a3a'], [934, 16, 26, '#1e5a26'], [908, 8, 20, '#2f7a2e'], [884, 24, 15, '#57b04a']].forEach(function (lc) { leafCl(lc[0], lc[1], lc[2], lc[3]); });
+        ctx.strokeStyle = '#2f7a2e'; ctx.lineWidth = 4;
+        var vineSway = st.reducedMotion ? 0 : Math.sin(t * 1.2) * 3;
+        ctx.beginPath(); ctx.moveTo(60, 0); ctx.quadraticCurveTo(60 + vineSway, 40, 56 + vineSway, 74); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(900, 0); ctx.quadraticCurveTo(900 - vineSway, 36, 904 - vineSway, 66); ctx.stroke();
+        ctx.fillStyle = '#57b04a';
+        ctx.beginPath(); ctx.ellipse(56 + vineSway, 74, 7, 4, 0.4, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(904 - vineSway, 66, 7, 4, -0.4, 0, TAU); ctx.fill();
         ctx.strokeStyle = 'rgba(24,84,24,.85)'; ctx.lineWidth = 2;
         for (i = 0; i < 40; i++) {
           var gx = i * 24 + 8, gh = 8 + ((i * 37) % 5) * 3;
@@ -737,6 +748,7 @@
       b.fillStyle = '#5a93b5'; b.beginPath(); b.ellipse(cx, cy, rx + 5, ry + 5, 0, 0, TAU); b.fill();
       b.fillStyle = '#8fc7e2'; b.beginPath(); b.ellipse(cx, cy, rx, ry, 0, 0, TAU); b.fill();
       b.fillStyle = 'rgba(20,60,90,.30)'; b.beginPath(); b.ellipse(cx, cy + ry * 0.45, rx * 0.8, ry * 0.4, 0, 0, TAU); b.fill();
+      b.fillStyle = 'rgba(255,255,255,.28)'; b.beginPath(); b.ellipse(cx - rx * 0.3, cy - ry * 0.35, rx * 0.35, ry * 0.18, -0.5, 0, TAU); b.fill();
       b.fillStyle = 'rgba(255,255,255,.28)'; b.beginPath(); b.ellipse(cx - rx * 0.25, cy - ry * 0.3, rx * 0.45, ry * 0.4, 0, 0, TAU); b.fill();
       b.fillStyle = '#3f7a4d'; b.beginPath(); b.arc(cx + rx * 0.4, cy + ry * 0.25, 5, 0, TAU); b.fill();
       b.fillStyle = '#57b04a'; b.beginPath(); b.arc(cx - rx * 0.5, cy + ry * 0.3, 4, 0, TAU); b.fill();
@@ -781,6 +793,7 @@
         while (d < seg) {
           var cx = ax + Math.cos(ang) * d, cy = ay + Math.sin(ang) * d;
           b.save(); b.translate(cx, cy); b.rotate(ang);
+          b.fillStyle = 'rgba(20,40,20,.20)'; b.fillRect(-14, -6, 28, 20);
           b.fillStyle = '#8a7a5e'; b.fillRect(-14, -7, 28, 20);
           b.fillStyle = '#9a8a6e'; b.fillRect(-14, -10, 28, 20);
           var shades = ['#cfc3a4', '#c4b693', '#d8cdb2', '#bcad8c'];
