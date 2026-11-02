@@ -1943,10 +1943,28 @@
       "id": "buy-ready-details",
       "tested": "editor harness: seller payout in buy flow",
       "title": "Buy confirmation shows everything ready: CEO address, seller payout address, full price, fee, seller amount, exact memo"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "realism-light-wash",
+      "tested": "editor harness: light wash marker",
+      "title": "Warm directional light wash over the jungle map, under the action"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "realism-corner-frame",
+      "tested": "editor harness: corner foliage marker",
+      "title": "Corner foliage frame: leaves and swaying vines hang over the top corners of the board"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "realism-path-water",
+      "tested": "editor harness: shadow + reflection markers",
+      "title": "Path slabs cast a soft edge shadow; ponds carry a sky reflection streak"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 324,
+  "totalFeatures": 327,
   "updated": "2026-11-02",
-  "version": "3.49.10"
+  "version": "3.49.11"
 }
