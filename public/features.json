@@ -1139,10 +1139,34 @@
    "id": "tycoon-earnings-per-rig",
    "tested": "tycoon/clicker harness: _earningsPerRigFor([],0,0)=0, ([{outputRate:10,level:2}],0,0)=20, ([{outputRate:1,level:1},{outputRate:1,level:1},{outputRate:5,level:1}],0,0)=2.3; getState exposes earningsPerRig and the panel shows the Earnings per rig line",
    "title": "Earnings per rig \u2014 average earnings rate per owned rig, in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-hero-xp-per-tower",
+   "tested": "BTD harness: _heroXpPerTowerFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose heroXpPerTower",
+   "title": "Hero XP per tower \u2014 average hero XP earned per tower placed, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-score-per-shot",
+   "tested": "shooter harness: _scorePerShotFor(0,0)=0, (500,10)=50, (7,3)=2.3; HUD + state expose scorePerShot, game-over line",
+   "title": "Score per shot \u2014 average score per firing volley, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-banked-per-shift",
+   "tested": "miner harness: _bankedPerShiftFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose bankedPerShift",
+   "title": "Banked per shift \u2014 average banked credits per completed shift, in HUD and state"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-clicks-per-golden",
+   "tested": "tycoon/clicker harness: _clicksPerGoldenFor(0,0)=0, (200,2)=100, (7,3)=2.3; getState exposes clicksPerGolden and the panel shows the Clicks/golden line",
+   "title": "Clicks per golden \u2014 average clicks between golden shard events, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 190,
+ "totalFeatures": 194,
  "updated": "2026-11-02",
- "version": "3.32.0"
+ "version": "3.33.0"
 }
