@@ -1463,10 +1463,40 @@
       "title": "Tycoon earnings per prestige",
       "description": "Earnings rate (after prestige + overseer boosts) per prestige taken, in the game state and the panel.",
       "tested": "Harness: helper 0/15/zero-rigs cases; state exposes 15 with one level-2 rig and 2 prestiges; panel line render-checked."
+    },
+    {
+      "id": "btd-hero-xp-per-minute",
+      "title": "BTD hero XP per minute",
+      "description": "Hero XP earned per minute of run time (time since the run started), in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-time cases; HUD + state expose 60 at 120 XP / 120s."
+    },
+    {
+      "id": "shooter-grazes-per-boss",
+      "title": "Shooter grazes per boss",
+      "description": "Grazes per boss defeated, in the HUD, game state, and the game-over screen.",
+      "tested": "Harness: helper 0/2.5/zero-boss cases; HUD + state expose the helper value."
+    },
+    {
+      "id": "miner-credits-per-rich-vein",
+      "title": "Miner credits per rich vein",
+      "description": "Current unbanked credits held per rich-vein trigger, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-vein cases; HUD + state expose 60 at 120 credits / 2 veins."
+    },
+    {
+      "id": "clicker-milestones-per-golden",
+      "title": "Clicker milestones per golden",
+      "description": "Milestone hits per golden shard event, in the game state and the panel milestone line.",
+      "tested": "Harness: helper 0/1.5/zero-golden cases; state matches the helper; panel line render-checked."
+    },
+    {
+      "id": "tycoon-overseers-per-rig",
+      "title": "Tycoon overseers per rig",
+      "description": "Assigned overseers per owned rig, in the game state and the panel.",
+      "tested": "Harness: helper 0/2/zero-rigs cases; state exposes 2 with 4 overseers and 2 rigs; panel line render-checked."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 244,
+  "totalFeatures": 249,
   "updated": "2026-11-02",
-  "version": "3.42.0"
+  "version": "3.43.0"
 }
