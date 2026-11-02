@@ -232,3 +232,7 @@ works through them top-down, tests each batch, and pushes to GitHub
 - Bottom deck below the board; pseudo-3D depth + animated map life (deck-below-board, map-depth-3d, map-life-animated)
 - Inspector upgrade panel, enemy intel, hero unlock/upgrade/list, head + scroll fixes (upgrade-panel-side, enemy-intel, heroes-lifecycle, inspector-head-fix)
 - Local player identity with no wallet; CEO password A007; payout address at listing; buy flow shows everything ready (local-player-no-wallet, ceo-password, payout-address-listing, buy-ready-details)
+
+## v3.49.11 — Extra 3D realism: light wash, corner foliage, path shadow, pond reflection
+
+- Warm light wash, corner foliage frame, path edge shadows, pond sky reflections (realism-light-wash, realism-corner-frame, realism-path-water)

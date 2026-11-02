@@ -749,3 +749,6 @@ Live status: see Run log.
 
 ## Deck/map/inspector/heroes/no-wallet/CEO-password 3.49.10 (user photos: deck over map, inspector broken, no way to get heroes)
 - DONE 3.49.10: deck below board; realistic animated map; inspector upgrades + heroes + enemy intel; local play without wallet; CEO password; payout addresses. Auto-improve loop stays DISABLED.
+
+## Extra 3D/realism 3.49.11 (user: make it 3D and more realistic)
+- DONE 3.49.11: light wash, corner foliage frame, path shadows, pond reflections. True WebGL 3D / UE5 cannot run on this web stack — deepest 2.5D Canvas look instead. Auto-improve loop stays DISABLED.
