@@ -506,11 +506,19 @@
     if (!shotsFired || shotsFired <= 0) return 0;
     return Math.min(100, Math.round((kills || 0) / shotsFired * 1000) / 10);
   }
+  /* ---- Batch 24: kills per wave ---- * Average kills per
+   * wave reached, to one decimal. 0 before the first wave.
+   * Exposed in the HUD/state as killsPerWave, and on the
+   * game-over screen. */
+  function killsPerWaveFor(kills, wave) {
+    if (!wave || wave <= 0) return 0;
+    return Math.round((kills || 0) / wave * 10) / 10;
+  }
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
     var boss = st.bosses[0] || null;
-    return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, accuracy: accuracyFor(st.shotsFired, st.kills), combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, grazes: st.grazes, bestWave: st.bestWave || 0, shield: st.shield, rapidLeft: Math.max(0, Math.ceil(st.rapidUntil - st.time)), spreadLeft: Math.max(0, Math.ceil(st.spreadUntil - st.time)), boss: boss ? { hp: boss.hp, maxHp: boss.maxHp, wave: st.wave } : null, powerups: st.powerupCounts, touch: st.touch.seen };
+    return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, accuracy: accuracyFor(st.shotsFired, st.kills), killsPerWave: killsPerWaveFor(st.kills, st.wave), combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, grazes: st.grazes, bestWave: st.bestWave || 0, shield: st.shield, rapidLeft: Math.max(0, Math.ceil(st.rapidUntil - st.time)), spreadLeft: Math.max(0, Math.ceil(st.spreadUntil - st.time)), boss: boss ? { hp: boss.hp, maxHp: boss.maxHp, wave: st.wave } : null, powerups: st.powerupCounts, touch: st.touch.seen };
   }
 
   /* ---- Drawing ---- */
@@ -707,7 +715,7 @@
       ctx.fillStyle = '#ff5a5a'; ctx.font = 'bold 44px Arial'; ctx.textAlign = 'center';
       ctx.fillText('💥 GAME OVER', W / 2, H / 2 - 10);
       ctx.fillStyle = '#fff'; ctx.font = '18px Arial';
-      ctx.fillText('Score ' + st.score + '  •  Wave ' + st.wave + '  •  Best wave ' + (st.bestWave || st.wave) + '  •  Kills ' + st.kills + '  •  Shots ' + st.shotsFired + '  •  Accuracy ' + accuracyFor(st.shotsFired, st.kills) + '%', W / 2, H / 2 + 26);
+      ctx.fillText('Score ' + st.score + '  •  Wave ' + st.wave + '  •  Best wave ' + (st.bestWave || st.wave) + '  •  Kills ' + st.kills + '  •  Shots ' + st.shotsFired + '  •  Accuracy ' + accuracyFor(st.shotsFired, st.kills) + '%  •  Kills/wave ' + killsPerWaveFor(st.kills, st.wave), W / 2, H / 2 + 26);
       ctx.fillStyle = '#ffd166'; ctx.font = '15px Arial';
       ctx.fillText('Best combo ' + st.bestCombo + '  •  Power-ups ' + (st.powerupCounts.shield + st.powerupCounts.rapid + st.powerupCounts.spread + st.powerupCounts.life), W / 2, H / 2 + 48);
       ctx.fillStyle = '#9fb4d8'; ctx.font = '14px Arial';
@@ -860,7 +868,7 @@
       pause: function () { st.paused = true; emitHud(st); },
       resume: function () { st.paused = false; emitHud(st); },
       startWave: function () { if (!st.gameOver) startWave(st); },
-      getState: function () { return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, accuracy: accuracyFor(st.shotsFired, st.kills), combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, grazes: st.grazes, bestWave: st.bestWave || 0, shield: st.shield, spreadUntil: st.spreadUntil, rapidUntil: st.rapidUntil, bosses: st.bosses.length, bossHp: st.bosses[0] ? st.bosses[0].hp : null, powerupCounts: st.powerupCounts, touchSeen: st.touch.seen, fps: st.fps, particleCap: particleCapFor(st.fps, st.fpsTarget, 400), dynFactor: st._dynFactor || 1, particles: st.particles.length }; },
+      getState: function () { return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, accuracy: accuracyFor(st.shotsFired, st.kills), killsPerWave: killsPerWaveFor(st.kills, st.wave), combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, grazes: st.grazes, bestWave: st.bestWave || 0, shield: st.shield, spreadUntil: st.spreadUntil, rapidUntil: st.rapidUntil, bosses: st.bosses.length, bossHp: st.bosses[0] ? st.bosses[0].hp : null, powerupCounts: st.powerupCounts, touchSeen: st.touch.seen, fps: st.fps, particleCap: particleCapFor(st.fps, st.fpsTarget, 400), dynFactor: st._dynFactor || 1, particles: st.particles.length }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -891,5 +899,5 @@
 
   var manifest = { id: 'space-shooter', name: 'Space Shooter', version: '1.5.0', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves. Power-ups, boss waves, combos, touch controls. Batch 21: graze bonus for skimming asteroids. Batch 22: shot accuracy stat. Batch 23: best wave tracked.', entry: 'shooter.js', canvas: true };
 
-  global.SpaceShooter = { manifest: manifest, init: init, _createState: createState, _accuracyFor: accuracyFor, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
+  global.SpaceShooter = { manifest: manifest, init: init, _createState: createState, _accuracyFor: accuracyFor, _killsPerWaveFor: killsPerWaveFor, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
 })(typeof window !== 'undefined' ? window : globalThis);
