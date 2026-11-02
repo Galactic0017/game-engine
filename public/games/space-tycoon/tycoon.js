@@ -210,6 +210,17 @@
    * line, mirroring the rigs-per-overseer line
    * (the staffing view: overseers per rig, not
    * rigs per overseer). */
+  /* ---- Batch 45: overseers per prestige ---- * Assigned
+   * overseers per prestige taken, to one decimal.
+   * 0 with no prestige yet. Exposed in state as
+   * overseersPerPrestige; the panel shows it as a
+   * line, mirroring the overseers-per-rig line
+   * (the staffing view: overseers per prestige,
+   * not per owned rig). */
+  function overseersPerPrestigeFor(overseerCount, prestigeCount) {
+    if (!prestigeCount || prestigeCount <= 0) return 0;
+    return Math.round((overseerCount || 0) / prestigeCount * 10) / 10;
+  }
   function overseersPerRigFor(overseerCount, rigCount) {
     if (!rigCount || rigCount <= 0) return 0;
     return Math.round((overseerCount || 0) / rigCount * 10) / 10;
@@ -301,6 +312,7 @@
         + '<p class="muted">Credits per prestige: ' + creditsPerPrestigeFor(state.credits, state.prestigeCount) + ' credits held per prestige.</p>'
         + '<p class="muted">Earnings per prestige: ' + earningsPerPrestigeFor(state.rigs, state.prestigeCount, state.overseers.length) + ' credits/s per prestige.</p>'
         + '<p class="muted">Overseers per rig: ' + overseersPerRigFor(state.overseers.length, state.rigs.length) + ' overseers per owned rig.</p>'
+        + '<p class="muted">Overseers per prestige: ' + overseersPerPrestigeFor(state.overseers.length, state.prestigeCount) + ' overseers per prestige.</p>'
         + '<p class="muted">Overseers: ' + (state.overseers.length ? state.overseers.join(', ') : 'none') + '</p></div>';
       viewport.innerHTML = html;
       viewport.querySelectorAll('[data-buy]').forEach(function (btn) {
@@ -342,12 +354,12 @@
     if (opts.bus) opts.bus.emit('game:start', 'space-tycoon', []);
     return {
       state: state,
-      getState: function () { return { credits: Math.floor(state.credits), rigs: state.rigs, overseers: state.overseers, prestigeCount: state.prestigeCount, prestigeMultiplier: prestigeMultiplierFor(state.prestigeCount), prestigeProgress: prestigeProgressFor(state.credits), earningsRate: earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), secondsToPrestige: secondsToPrestigeFor(Math.floor(state.credits), earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length)), nextRigCost: nextRigCostFor(state.rigs), secondsToNextRig: secondsToNextRigFor(Math.floor(state.credits), earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), state.rigs), lifetimeEarned: Math.floor(state.lifetimeEarned), lifetimePerRig: lifetimePerRigFor(state.lifetimeEarned, state.rigs), avgRigLevel: avgRigLevelFor(state.rigs), earningsPerRig: earningsPerRigFor(state.rigs, state.prestigeCount, state.overseers.length), earningsPerOverseer: earningsPerOverseerFor(state.rigs, state.prestigeCount, state.overseers.length), lifetimePerOverseer: lifetimePerOverseerFor(state.lifetimeEarned, state.overseers.length), rigsPerOverseer: rigsPerOverseerFor(state.rigs.length, state.overseers.length), creditsPerOverseer: creditsPerOverseerFor(state.credits, state.overseers.length), creditsPerRig: creditsPerRigFor(state.credits, state.rigs.length), lifetimePerPrestige: lifetimePerPrestigeFor(state.lifetimeEarned, state.prestigeCount), creditsPerPrestige: creditsPerPrestigeFor(state.credits, state.prestigeCount), earningsPerPrestige: earningsPerPrestigeFor(state.rigs, state.prestigeCount, state.overseers.length), overseersPerRig: overseersPerRigFor(state.overseers.length, state.rigs.length), skin: state.skin, skinOwned: state.skinOwned.slice() }; },
+      getState: function () { return { credits: Math.floor(state.credits), rigs: state.rigs, overseers: state.overseers, prestigeCount: state.prestigeCount, prestigeMultiplier: prestigeMultiplierFor(state.prestigeCount), prestigeProgress: prestigeProgressFor(state.credits), earningsRate: earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), secondsToPrestige: secondsToPrestigeFor(Math.floor(state.credits), earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length)), nextRigCost: nextRigCostFor(state.rigs), secondsToNextRig: secondsToNextRigFor(Math.floor(state.credits), earningsRateFor(state.rigs, state.prestigeCount, state.overseers.length), state.rigs), lifetimeEarned: Math.floor(state.lifetimeEarned), lifetimePerRig: lifetimePerRigFor(state.lifetimeEarned, state.rigs), avgRigLevel: avgRigLevelFor(state.rigs), earningsPerRig: earningsPerRigFor(state.rigs, state.prestigeCount, state.overseers.length), earningsPerOverseer: earningsPerOverseerFor(state.rigs, state.prestigeCount, state.overseers.length), lifetimePerOverseer: lifetimePerOverseerFor(state.lifetimeEarned, state.overseers.length), rigsPerOverseer: rigsPerOverseerFor(state.rigs.length, state.overseers.length), creditsPerOverseer: creditsPerOverseerFor(state.credits, state.overseers.length), creditsPerRig: creditsPerRigFor(state.credits, state.rigs.length), lifetimePerPrestige: lifetimePerPrestigeFor(state.lifetimeEarned, state.prestigeCount), creditsPerPrestige: creditsPerPrestigeFor(state.credits, state.prestigeCount), earningsPerPrestige: earningsPerPrestigeFor(state.rigs, state.prestigeCount, state.overseers.length), overseersPerRig: overseersPerRigFor(state.overseers.length, state.rigs.length), overseersPerPrestige: overseersPerPrestigeFor(state.overseers.length, state.prestigeCount), skin: state.skin, skinOwned: state.skinOwned.slice() }; },
       prestige: doPrestige,
       buySkin: buySkin,
       collectEarnings: collectEarnings,
       destroy: function () { destroyed = true; if (timer) clearInterval(timer); if (opts.bus) opts.bus.emit('game:ended', 'space-tycoon', {}); }
     };
   }
-  global.SpaceTycoon = { manifest: { id: 'space-tycoon', name: 'Space Tycoon' }, init: init, calculateOfflineEarnings: calcOfflineEarnings, RIG_DEFS: RIG_DEFS, SKIN_DEFS: SKIN_DEFS, PRESTIGE_COST: PRESTIGE_COST, _prestigeMultiplierFor: prestigeMultiplierFor, _canPrestige: canPrestige, _prestigeProgressFor: prestigeProgressFor, _earningsRateFor: earningsRateFor, _secondsToPrestigeFor: secondsToPrestigeFor, _nextRigCostFor: nextRigCostFor, _secondsToNextRigFor: secondsToNextRigFor, _lifetimePerRigFor: lifetimePerRigFor, _avgRigLevelFor: avgRigLevelFor, _earningsPerRigFor: earningsPerRigFor, _earningsPerOverseerFor: earningsPerOverseerFor, _lifetimePerOverseerFor: lifetimePerOverseerFor, _rigsPerOverseerFor: rigsPerOverseerFor, _creditsPerOverseerFor: creditsPerOverseerFor, _creditsPerRigFor: creditsPerRigFor, _lifetimePerPrestigeFor: lifetimePerPrestigeFor, _creditsPerPrestigeFor: creditsPerPrestigeFor, _earningsPerPrestigeFor: earningsPerPrestigeFor, _overseersPerRigFor: overseersPerRigFor, _normalizeSave: normalizeSave };
+  global.SpaceTycoon = { manifest: { id: 'space-tycoon', name: 'Space Tycoon' }, init: init, calculateOfflineEarnings: calcOfflineEarnings, RIG_DEFS: RIG_DEFS, SKIN_DEFS: SKIN_DEFS, PRESTIGE_COST: PRESTIGE_COST, _prestigeMultiplierFor: prestigeMultiplierFor, _canPrestige: canPrestige, _prestigeProgressFor: prestigeProgressFor, _earningsRateFor: earningsRateFor, _secondsToPrestigeFor: secondsToPrestigeFor, _nextRigCostFor: nextRigCostFor, _secondsToNextRigFor: secondsToNextRigFor, _lifetimePerRigFor: lifetimePerRigFor, _avgRigLevelFor: avgRigLevelFor, _earningsPerRigFor: earningsPerRigFor, _earningsPerOverseerFor: earningsPerOverseerFor, _lifetimePerOverseerFor: lifetimePerOverseerFor, _rigsPerOverseerFor: rigsPerOverseerFor, _creditsPerOverseerFor: creditsPerOverseerFor, _creditsPerRigFor: creditsPerRigFor, _lifetimePerPrestigeFor: lifetimePerPrestigeFor, _creditsPerPrestigeFor: creditsPerPrestigeFor, _earningsPerPrestigeFor: earningsPerPrestigeFor, _overseersPerRigFor: overseersPerRigFor, _overseersPerPrestigeFor: overseersPerPrestigeFor, _normalizeSave: normalizeSave };
 })(typeof window !== 'undefined' ? window : globalThis);
