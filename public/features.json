@@ -1013,10 +1013,34 @@
    "id": "tycoon-lifetime-per-rig",
    "tested": "tycoon/clicker harness: _lifetimePerRigFor(0,[])=0, (1000,2 rigs)=500, (7,3 rigs)=2.3; getState exposes lifetimePerRig and the panel shows the Lifetime per rig line",
    "title": "Lifetime per rig - lifetime credits earned per owned rig, in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-skip-bonus-per-wave",
+   "tested": "BTD harness: _skipBonusPerWaveFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose skipBonusPerWave",
+   "title": "Skip bonus per wave - average wave-skip bonus gold earned per wave reached, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-shots-per-wave",
+   "tested": "shooter harness: _shotsPerWaveFor(0,0)=0, (40,4)=10, (7,3)=2.3; HUD + state expose shotsPerWave and the game-over screen shows Shots/wave",
+   "title": "Shots per wave - average firing volleys per wave reached, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-banked-per-belt",
+   "tested": "miner harness: _bankedPerBeltFor(0,0)=0, (250,5)=50, (7,3)=2.3; HUD + state expose bankedPerBelt",
+   "title": "Banked per belt - average banked credits per belt reached, in HUD and state"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-shards-per-click",
+   "tested": "tycoon/clicker harness: _shardsPerClickFor(0,0,0)=0, (10,20,10)=3, (7,0,3)=2.3; getState exposes shardsPerClick and the panel shows the Shards/click line",
+   "title": "Shards per click - shards held (unbanked + banked) per click, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 169,
+ "totalFeatures": 173,
  "updated": "2026-11-02",
- "version": "3.28.0"
+ "version": "3.29.0"
 }
