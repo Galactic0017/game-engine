@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GAME — game.atomstaking.app</title>
 <meta name="description" content="GAME by GalacticTools: protect the ATOM orb in Cosmos BTD — 50 waves, 8 towers, heroes and live PvP duels. Real Keplr wallet, no contracts, CEO-escrow hero marketplace.">
-<meta property="og:title" content="GAME \u2014 game.atomstaking.app">
+<meta property="og:title" content="GAME — game.atomstaking.app">
 <meta property="og:description" content="GAME by GalacticTools: protect the ATOM orb in Cosmos BTD — 50 waves, 8 towers, heroes and live PvP duels. Real Keplr wallet, no contracts, CEO-escrow hero marketplace.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://game.atomstaking.app/">
@@ -15,7 +15,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="GAME — Protect the ATOM orb. Cosmos BTD, 50 waves, heroes, PvP duels.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="GAME \u2014 game.atomstaking.app">
+<meta name="twitter:title" content="GAME — game.atomstaking.app">
 <meta name="twitter:description" content="GAME by GalacticTools: protect the ATOM orb in Cosmos BTD — 50 waves, 8 towers, heroes and live PvP duels. Real Keplr wallet, no contracts, CEO-escrow hero marketplace.">
 <meta name="twitter:image" content="https://game.atomstaking.app/assets/sprites/og-share.jpg">
 <link rel="stylesheet" href="hub.css">
@@ -32,6 +32,11 @@
 <div class="launcher">
   <aside class="rail rail-left">
     <div class="logo">🌌 GAME <span>game.atomstaking.app</span><small>by GalacticTools · Swap · AtomStaking · GAME</small></div>
+    <div class="railTabs" id="leftTabs" role="tablist" aria-label="Sidebar">
+      <button data-left="play" class="active" role="tab">🎮 Play</button>
+      <button data-left="system" role="tab">⚙ System</button>
+    </div>
+    <div class="railPane active" id="leftPane-play" role="tabpanel">
     <nav class="tabs" aria-label="Main">
       <button data-nav="games" class="active">🎮 Game Library</button>
       <button data-nav="marketplace">🛒 Hero Shop</button>
@@ -42,11 +47,14 @@
     <h3>Games</h3>
     <div id="gameList"></div>
     <button id="btnExploreStore" class="primary" style="width:100%">Explore Store</button>
+    </div>
+    <div class="railPane" id="leftPane-system" role="tabpanel">
     <h3>Settings</h3>
     <p><button id="btnSettings" class="ghost">⚙ Settings</button> <button id="btnShortcuts" class="ghost">⌨ Shortcuts (?)</button></p>
     <h3>Links</h3>
     <p class="small"><a href="https://swap.atomstaking.app" target="_blank" rel="noopener">Swap</a> · <a href="https://atomstaking.app" target="_blank" rel="noopener">AtomStaking</a></p>
     <p class="small muted">Real wallet sends only. No contracts. Buyer sends full price to the CEO address; CEO moves the item, then sends the seller their cut after the fee. Always check the address and memo in your wallet before signing. Test with a tiny amount first.</p>
+    </div>
   </aside>
 
   <div class="centerCol">
@@ -82,20 +90,31 @@
             </aside>
           </div>
         </div>
+        <div class="centerTabs" id="centerTabs" role="tablist" aria-label="Below game">
+          <button data-center="games" class="active" role="tab">🎮 Your Games</button>
+          <button data-center="guide" role="tab">📖 Guide</button>
+          <button data-center="details" role="tab">🔍 Details</button>
+        </div>
+        <div class="centerPane active" id="centerPane-games" role="tabpanel">
         <p><button id="btnShareCard" class="ghost">📤 Share run card (PNG)</button> <span class="small muted">Downloads a snapshot of the current game canvas with your run stats.</span></p>
         <h3 class="sectionTitle">Your games</h3>
         <div id="tagFilter" class="tagRow" aria-label="Filter games by tag"></div>
         <div id="gameCards" class="gameCards"></div>
 
+        </div>
+        <div class="centerPane" id="centerPane-details" role="tabpanel">
         <div class="card inspectCard" id="inspectCard" hidden style="margin-top:12px"></div>
         <div class="card" id="helpCard" hidden style="margin-top:12px">
           <h3>Shortcuts</h3>
           <p class="small"><b>1–8</b> pick tower · <b>Space</b> start wave · <b>P</b> pause · <b>R</b> restart · <b>Esc</b> cancel placement · <b>Click</b> place / select tower · <b>Arrow keys</b> move the keyboard cursor (Shift = big step) · <b>Enter</b> place / select at cursor · <b>U</b> upgrade selected · <b>X</b> sell selected · <b>~</b> debug console · <b>Touch</b> works on mobile. Colorblind palette &amp; reduced motion are in Settings.</p>
         </div>
+        </div>
+        <div class="centerPane" id="centerPane-guide" role="tabpanel">
         <div class="card" style="margin-top:12px">
           <h3>How to play — Cosmos BTD</h3>
           <p class="small">Click a tower, then click the board to place it (not on the path). Press <b>1–8</b> to pick towers, <b>Space</b> to start a wave, <b>P</b> to pause, <b>R</b> to restart. Place your equipped hero by clicking the board. 50 waves + endless mode — boss every 10. Speed 1x–3x, auto-start, and targeting (First / Last / Strong / Weak / Closest / Elite) are in the bar above. Protect the ATOM orb at the end of the lane.</p>
           <p class="small muted">Wave reports are hashed and checked server-side (session hash + XP caps). Cheated claims get flagged for CEO audit and earn nothing.</p>
+        </div>
         </div>
       </section>
 
