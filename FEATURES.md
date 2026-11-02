@@ -194,3 +194,6 @@ works through them top-down, tests each batch, and pushes to GitHub
 
 ## v3.49.4 — Deep-link fix, corrected
 - v3.49.3 broke /api/* live (config returned HTML): the fallback safety net fired for rewritten API requests. Removed. /game/* now rewrites statically to /index.html, before the catch-all; the API path is untouched.
+
+## v3.49.5 — Game would not open from /game/cosmos-btd: fixed
+- Relative hub.css / engine script paths resolved under /game/ and came back as HTML, so the page stayed unstyled and init never ran. Added <base href="/"> and made head asset refs root-absolute; every route now loads the same files.

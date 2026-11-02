@@ -730,3 +730,6 @@ Live status: see Run log.
 
 ## Deep-link fix corrected 3.49.4 (main chat, live API regression found during verification)
 - DONE 3.49.4: removed the /api/index safety net, restored the 3.49.2 catch-all, added a /game/:path* -> /index.html static rewrite. Verified live: /api/config JSON + /game/cosmos-btd HTML. Auto-improve loop stays DISABLED.
+
+## Absolute paths 3.49.5 (main chat, user report: game not opening)
+- DONE 3.49.5: <base href="/"> + absolute head refs. Live browser check found the hub PLAY button unclickable/covered and /game/cosmos-btd stuck unstyled at 0%; the path bug explains the direct-load stall. Re-verify by clicking PLAY in a real browser after deploy. Auto-improve loop stays DISABLED.
