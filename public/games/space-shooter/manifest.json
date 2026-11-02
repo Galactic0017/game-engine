@@ -1,14 +1,14 @@
 {
  "canvas": true,
- "description": "Arcade space shooter: dodge asteroids, blast drones, survive the waves. Batch 21: graze bonus for skimming asteroids. Batch 22: shot accuracy stat. Batch 23: best wave tracked. Batch 24: kills per wave average. Batch 25: bosses-defeated counter.",
- "image": "assets/sprites/monster-1.png",
+ "description": "Arcade space shooter: dodge asteroids, blast drones, survive the waves. Batch 21: graze bonus for skimming asteroids. Batch 22: shot accuracy stat. Batch 23: best wave tracked. Batch 24: kills per wave average. Batch 25: bosses-defeated counter. Batch 26: shots-per-kill average.",
  "entry": "shooter.js",
  "id": "space-shooter",
+ "image": "assets/sprites/monster-1.png",
  "name": "Space Shooter",
- "version": "1.7.0",
  "tags": [
   "Arcade",
   "Shooter",
   "Space"
- ]
+ ],
+ "version": "1.8.0"
 }
