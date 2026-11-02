@@ -917,10 +917,34 @@
    "id": "clicker-clicks-to-milestone",
    "tested": "tycoon/clicker harness: _clicksToNextMilestone(0)=100, (99)=1, (100)=400, (5000)=0; getState exposes clicksToNextMilestone",
    "title": "Clicks to next milestone - clicks remaining until the next click milestone (0 once all reached), in state"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-score-per-wave",
+   "tested": "BTD harness: _scorePerWaveFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD and state expose scorePerWave",
+   "title": "Score per wave - average score per wave reached (one decimal), in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-shots-per-kill",
+   "tested": "shooter harness: _shotsPerKillFor(10,4)=2.5, (7,3)=2.3, (0,0)=0, (10,0)=0; HUD, state and game-over screen expose shotsPerKill",
+   "title": "Shots per kill - average volleys fired per kill (one decimal), in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-belt-remaining",
+   "tested": "miner harness: _beltRemainingFor(0,8)=8, (8,8)=0, (10,8)=0, (0,0)=0; HUD and state expose beltRemaining",
+   "title": "Belt remaining - ore still to mine before the belt quota is met, in HUD and state"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-seconds-to-prestige",
+   "tested": "tycoon/clicker harness: _secondsToPrestigeFor(5000,10)=0, (0,0)=null, (4000,10)=100, (4900,10)=10; getState exposes secondsToPrestige and the panel shows the estimate",
+   "title": "Seconds to prestige - whole seconds until 5,000 credits at the current earnings rate (null with no earnings), in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 153,
- "updated": "2026-11-01",
- "version": "3.24.0"
+ "totalFeatures": 157,
+ "updated": "2026-11-02",
+ "version": "3.25.0"
 }
