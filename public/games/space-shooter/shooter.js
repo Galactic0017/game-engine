@@ -112,7 +112,7 @@
       bullets: [], bolts: [], asteroids: [], drones: [], bosses: [], powerups: [],
       particles: [], floaters: [], stars: [],
       spawnQueue: [], spawnTimer: 0, betweenWaves: false, waveTimer: 0,
-      score: 0, wave: 0, lives: 3, shotsFired: 0, kills: 0,
+      score: 0, wave: 0, lives: 3, shotsFired: 0, kills: 0, grazes: 0,
       gameOver: false, shake: 0, rapidUntil: 0, spreadUntil: 0, shield: false,
       fps: 0, fpsTarget: 60, _fpsN: 0, _fpsT: 0, _dynFactor: 1,
       combo: 0, comboMult: 1, bestCombo: 0,
@@ -190,7 +190,7 @@
       kind: 'asteroid', size: size, x: x, y: y,
       vx: (Math.random() - 0.5) * 50, vy: (42 + Math.random() * 30) * (1 + st.wave * 0.03),
       r: r, hp: hp, maxHp: hp, rot: Math.random() * TAU, rotSpd: (Math.random() - 0.5) * 1.6,
-      verts: verts, dead: false
+      verts: verts, dead: false, grazed: false
     };
   }
   function makeDrone(st, x, y) {
@@ -389,6 +389,12 @@
       if (!as.dead && !st.gameOver && dist(as.x, as.y, ship.x, ship.y) <= as.r + ship.r - 4) {
         killAsteroid(st, as, false);
         damageShip(st);
+      } else if (!as.dead && !st.gameOver && !as.grazed && dist(as.x, as.y, ship.x, ship.y) <= as.r + ship.r + 22) {
+        /* Batch 21: graze bonus — skimming an asteroid within 22px of
+         * contact (without touching it) pays +5 once per asteroid. */
+        as.grazed = true; st.grazes++;
+        st.score += 5;
+        floater(st, ship.x, ship.y - 30, '+5 GRAZE', '#7bdff2');
       }
     }
     st.asteroids = st.asteroids.filter(function (a) { return !a.dead; });
@@ -493,7 +499,7 @@
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
     var boss = st.bosses[0] || null;
-    return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, shield: st.shield, rapidLeft: Math.max(0, Math.ceil(st.rapidUntil - st.time)), spreadLeft: Math.max(0, Math.ceil(st.spreadUntil - st.time)), boss: boss ? { hp: boss.hp, maxHp: boss.maxHp, wave: st.wave } : null, powerups: st.powerupCounts, touch: st.touch.seen };
+    return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, grazes: st.grazes, shield: st.shield, rapidLeft: Math.max(0, Math.ceil(st.rapidUntil - st.time)), spreadLeft: Math.max(0, Math.ceil(st.spreadUntil - st.time)), boss: boss ? { hp: boss.hp, maxHp: boss.maxHp, wave: st.wave } : null, powerups: st.powerupCounts, touch: st.touch.seen };
   }
 
   /* ---- Drawing ---- */
@@ -765,7 +771,7 @@
     st.bullets = []; st.bolts = []; st.asteroids = []; st.drones = []; st.bosses = []; st.powerups = [];
     st.particles = []; st.floaters = [];
     st.spawnQueue = []; st.spawnTimer = 0; st.betweenWaves = false; st.waveTimer = 0;
-    st.score = 0; st.wave = 0; st.lives = 3; st.shotsFired = 0; st.kills = 0;
+    st.score = 0; st.wave = 0; st.lives = 3; st.shotsFired = 0; st.kills = 0; st.grazes = 0; st.combo = 0; st.comboMult = 1;
     st.gameOver = false; st.paused = false; st.rapidUntil = 0; st.spreadUntil = 0; st.shield = false;
     st.combo = 0; st.comboMult = 1; st.bestCombo = 0;
     st.powerupCounts = { shield: 0, rapid: 0, spread: 0, life: 0 };
@@ -843,7 +849,7 @@
       pause: function () { st.paused = true; emitHud(st); },
       resume: function () { st.paused = false; emitHud(st); },
       startWave: function () { if (!st.gameOver) startWave(st); },
-      getState: function () { return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, shield: st.shield, spreadUntil: st.spreadUntil, rapidUntil: st.rapidUntil, bosses: st.bosses.length, bossHp: st.bosses[0] ? st.bosses[0].hp : null, powerupCounts: st.powerupCounts, touchSeen: st.touch.seen, fps: st.fps, particleCap: particleCapFor(st.fps, st.fpsTarget, 400), dynFactor: st._dynFactor || 1, particles: st.particles.length }; },
+      getState: function () { return { score: st.score, wave: st.wave, lives: st.lives, gameOver: st.gameOver, shotsFired: st.shotsFired, kills: st.kills, combo: st.combo, comboMult: st.comboMult, bestCombo: st.bestCombo, grazes: st.grazes, shield: st.shield, spreadUntil: st.spreadUntil, rapidUntil: st.rapidUntil, bosses: st.bosses.length, bossHp: st.bosses[0] ? st.bosses[0].hp : null, powerupCounts: st.powerupCounts, touchSeen: st.touch.seen, fps: st.fps, particleCap: particleCapFor(st.fps, st.fpsTarget, 400), dynFactor: st._dynFactor || 1, particles: st.particles.length }; },
       getHud: function () { return getHud(st); },
       destroy: function () { destroy(st); }
     };
@@ -872,7 +878,7 @@
     if (st.opts.bus) st.opts.bus.emit('game:ended', 'space-shooter', { score: st.score, wave: st.wave, kills: st.kills });
   }
 
-  var manifest = { id: 'space-shooter', name: 'Space Shooter', version: '1.2.0', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves. Power-ups, boss waves, combos, touch controls.', entry: 'shooter.js', canvas: true };
+  var manifest = { id: 'space-shooter', name: 'Space Shooter', version: '1.3.0', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves. Power-ups, boss waves, combos, touch controls. Batch 21: graze bonus for skimming asteroids.', entry: 'shooter.js', canvas: true };
 
   global.SpaceShooter = { manifest: manifest, init: init, _createState: createState, _dynFactorFor: dynFactorFor, _particleCapFor: particleCapFor, _updateDynFactor: updateDynFactor, _spawnParticle: spawnParticle };
 })(typeof window !== 'undefined' ? window : globalThis);
