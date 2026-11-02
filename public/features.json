@@ -1037,10 +1037,34 @@
    "id": "clicker-shards-per-click",
    "tested": "tycoon/clicker harness: _shardsPerClickFor(0,0,0)=0, (10,20,10)=3, (7,0,3)=2.3; getState exposes shardsPerClick and the panel shows the Shards/click line",
    "title": "Shards per click - shards held (unbanked + banked) per click, in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-pops-per-tower",
+   "tested": "BTD harness: _popsPerTowerFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose popsPerTower",
+   "title": "Pops per tower - average pops per tower placed, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-bosses-per-wave",
+   "tested": "shooter harness: _bossesPerWaveFor(0,0)=0, (4,4)=1, (7,3)=2.3; HUD + state expose bossesPerWave and the game-over screen shows Bosses/wave",
+   "title": "Bosses per wave - average bosses defeated per wave reached, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-banked-per-ore",
+   "tested": "miner harness: _bankedPerOreFor(0,0)=0, (250,50)=5, (7,3)=2.3; HUD + state expose bankedPerOre",
+   "title": "Banked per ore - average banked credits per ore mined in total, in HUD and state"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-avg-rig-level",
+   "tested": "tycoon/clicker harness: _avgRigLevelFor([])=0, ([lvl1,lvl3])=2, ([1,2,2])=1.7; getState exposes avgRigLevel and the panel shows the Average rig level line",
+   "title": "Average rig level - mean level across owned rig types, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 173,
+ "totalFeatures": 177,
  "updated": "2026-11-02",
- "version": "3.29.0"
+ "version": "3.30.0"
 }
