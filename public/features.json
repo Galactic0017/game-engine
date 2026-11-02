@@ -707,9 +707,33 @@
    "id": "legacy-cleanup",
    "tested": "serve check: no legacy entry in /api/config, dead files deleted, no references to them in index/server/shell",
    "title": "Legacy cleanup — unreferenced Voidfall files and dead deploy configs removed, stale demo description fixed, legacy Defend ATOM entry removed from config"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-prestige",
+   "tested": "tycoon/clicker harness: multiplier 1/1.25/2.0 at 0/1/4 prestiges; prestige at 5000 credits resets rigs/credits to 200 and keeps the multiplier; offline earnings use the multiplier",
+   "title": "Tycoon prestige — reset rigs and credits at 5,000 credits for a permanent +25% earnings multiplier per prestige, stacking; lifetime earnings tracked"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-rig-skins",
+   "tested": "tycoon/clicker harness: 3 skins (Standard free, Gold 1000, Void 2500); buying Gold deducts 1000 and equips it; insufficient credits rejected; skin persists in the local save",
+   "title": "Rig skins — Standard, Gold and Void rig skins bought with credits; the equipped skin colors rig cards and persists per address"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-combo-golden",
+   "tested": "tycoon/clicker harness: clicks within 1.5s chain the streak, a 3s gap resets it to 1; combo multiplier 1.0/1.1/3.0 at streak 0/10/200; golden-active click gains +10; best combo tracked",
+   "title": "Combo streaks + golden shards — fast clicks build a streak bonus (+10% per 10, capped 3x); rare golden shard events pay +10 per click for 8s"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-bests-conversion",
+   "tested": "server test: Save Best posts game=atom-clicker and the Clicker leaderboard sorts by best combo, BTD bestScore untouched; /api/convert-shards converts 100-5000 (multiple of 100) at 100 shards = 10 credits, rejects 150 and 5100; harness: convert math 250 shards -> 200 + 20 credits, 50 remainder",
+   "title": "Clicker server bests + shard conversion — Save Best records best combo on the Clicker leaderboard; 100 banked shards convert to 10 in-game credits (capped, ledger-recorded)"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.15.2"
+ "version": "3.16.0"
 }
