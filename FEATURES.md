@@ -222,3 +222,7 @@ works through them top-down, tests each batch, and pushes to GitHub
 - DEV STUDIO SETUP button and Dev Tools menu entry removed (dev-setup-removed)
 - Phone + desktop polish: 560px layout (compact top bars, smaller deck tiles, full-width inspector, 16px inputs), marketplace tables scroll (responsive-phone)
 
+## v3.49.9 — Menu close + place selects tower
+
+- Library ... menu closes on outside click and Escape (menu-outside-close)
+- Placing a tower selects it so the Entity Inspector opens at once (place-selects-tower)

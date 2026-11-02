@@ -743,3 +743,6 @@ Live status: see Run log.
 
 ## Realistic look + full game 3.49.8 (main chat, user: make it look like this realistic, full game with all features)
 - DONE 3.49.8: realistic jungle painter, pedestals, range polish, pause menu, call-wave-early, undo, 4x, mute, foes/pops chips, next-wave preview, marketplace cards, skins removed, dev setup removed, phone/desktop polish. Auto-improve loop stays DISABLED.
+
+## Menu + inspector fix-ups 3.49.9 (live browser check found the open ... menu intercepting clicks, inspector not opening on place)
+- DONE 3.49.9: menu closes on outside click/Escape; placing selects the tower. Auto-improve loop stays DISABLED.
