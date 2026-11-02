@@ -1115,10 +1115,34 @@
    "id": "clicker-banked-per-click",
    "tested": "tycoon/clicker harness: _bankedPerClickFor(0,0)=0, (20,10)=2, (7,3)=2.3; getState exposes bankedPerClick and the panel shows the Banked/click line",
    "title": "Banked per click - banked shards per click, in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-hero-kills-per-tower",
+   "tested": "BTD harness: _heroKillsPerTowerFor(0,0)=0, (10,4)=2.5, (7,3)=2.3; HUD + state expose heroKillsPerTower",
+   "title": "Hero kills per tower \u2014 average hero kills per tower placed, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-grazes-per-kill",
+   "tested": "shooter harness: _grazesPerKillFor(0,0)=0, (20,10)=2, (7,3)=2.3; HUD + state expose grazesPerKill and the game-over screen shows Grazes/kill",
+   "title": "Grazes per kill \u2014 average grazes per kill, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-mined-per-shift",
+   "tested": "miner harness: _minedPerShiftFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose minedPerShift",
+   "title": "Mined per shift \u2014 average ore mined per completed shift, in HUD and state"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-earnings-per-rig",
+   "tested": "tycoon/clicker harness: _earningsPerRigFor([],0,0)=0, ([{outputRate:10,level:2}],0,0)=20, ([{outputRate:1,level:1},{outputRate:1,level:1},{outputRate:5,level:1}],0,0)=2.3; getState exposes earningsPerRig and the panel shows the Earnings per rig line",
+   "title": "Earnings per rig \u2014 average earnings rate per owned rig, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 186,
+ "totalFeatures": 190,
  "updated": "2026-11-02",
- "version": "3.31.0"
+ "version": "3.32.0"
 }
