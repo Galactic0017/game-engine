@@ -18,7 +18,10 @@
     setTimeout(function () { el.remove(); }, 6000);
   }
   ctx.toast = toast; ctx.esc = esc; ctx.shortAddr = shortAddr;
-  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true }; } }
+  /* Batch 16: reduced motion defaults to the OS preference when the
+   * user has never chosen (stored settings win over the OS default). */
+  function prefersReducedMotion() { try { return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
+  function loadSettings() { try { return Object.assign({ volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true, colorblind: false, reducedMotion: prefersReducedMotion() }, JSON.parse(localStorage.getItem('game-settings') || '{}')); } catch (e) { return { volume: 1, quality: 'high', postfx: true, dof: true, fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', uiScale: 1, glass: true, uiSounds: true, colorblind: false, reducedMotion: prefersReducedMotion() }; } }
   ctx.settings = loadSettings();
   function saveSettings() { try { localStorage.setItem('game-settings', JSON.stringify(ctx.settings)); } catch (e) {} }
   /* Reactive UI prefs: glass theme on/off + dynamic font scaling, applied
@@ -30,9 +33,13 @@
     /* Batch 9: expose graphics quality on <body> so the CSS-only
      * starfield freezes its animation on Low quality. */
     document.body.setAttribute('data-quality', ctx.settings.quality === 'low' ? 'low' : 'high');
+    /* Batch 16: expose accessibility prefs on <body> so CSS animations
+     * (starfield, glow) freeze when reduced motion is on. */
+    document.body.setAttribute('data-reduced-motion', ctx.settings.reducedMotion ? 'on' : 'off');
+    document.body.setAttribute('data-colorblind', ctx.settings.colorblind ? 'on' : 'off');
   }
   ctx.applyUiPrefs = applyUiPrefs;
-  function applySettings(handle) { if (!handle) { applyUiPrefs(); return; } if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); if (handle.setPostFx) handle.setPostFx(ctx.settings.postfx !== false); if (handle.setDof) handle.setDof(ctx.settings.dof !== false); if (handle.setFpsTarget) handle.setFpsTarget(ctx.settings.fpsTarget); if (handle.setParticleDensity) handle.setParticleDensity(ctx.settings.particleDensity); if (handle.setMotionBlur) handle.setMotionBlur(ctx.settings.motionBlur); if (handle.setDisplayScale) handle.setDisplayScale(ctx.settings.displayScale); applyUiPrefs(); }
+  function applySettings(handle) { if (!handle) { applyUiPrefs(); return; } if (handle.setVolume) handle.setVolume(ctx.settings.volume); if (handle.setQuality) handle.setQuality(ctx.settings.quality); if (handle.setPostFx) handle.setPostFx(ctx.settings.postfx !== false); if (handle.setDof) handle.setDof(ctx.settings.dof !== false); if (handle.setFpsTarget) handle.setFpsTarget(ctx.settings.fpsTarget); if (handle.setParticleDensity) handle.setParticleDensity(ctx.settings.particleDensity); if (handle.setMotionBlur) handle.setMotionBlur(ctx.settings.motionBlur); if (handle.setDisplayScale) handle.setDisplayScale(ctx.settings.displayScale); if (handle.setColorblind) handle.setColorblind(ctx.settings.colorblind === true); if (handle.setReducedMotion) handle.setReducedMotion(ctx.settings.reducedMotion === true); applyUiPrefs(); }
   ctx.applySettings = applySettings;
   /* Hover/click sound feedback: one lazy WebAudio tick, throttled, silent
    * when volume is 0 or UI sounds are off. Never throws, never autoplays. */
@@ -230,6 +237,8 @@
       + '<label>Particle density</label><select id="setParticles"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select>'
       + '<label>Display scaling (Retina/HiDPI)</label><select id="setDisplay"><option value="auto">Auto (device pixel ratio)</option><option value="1">1x</option><option value="1.5">1.5x</option><option value="2">2x</option></select>'
       + '<label>UI text scale</label><select id="setUiScale"><option value="0.9">Small (0.9x)</option><option value="1">Normal (1x)</option><option value="1.15">Large (1.15x)</option></select>'
+      + '<label class="checkRow"><input id="setColorblind" type="checkbox" ' + (ctx.settings.colorblind ? 'checked' : '') + '> Colorblind palette (distinct hues + 3-letter balloon labels)</label>'
+      + '<label class="checkRow"><input id="setReducedMotion" type="checkbox" ' + (ctx.settings.reducedMotion ? 'checked' : '') + '> Reduced motion (no screen shake, no particle bursts, no tilt-shift bands)</label>'
       + '<label class="checkRow"><input id="setMotionBlur" type="checkbox" ' + (ctx.settings.motionBlur ? 'checked' : '') + '> Motion blur (projectile streaks / beam glow)</label>'
       + '<label class="checkRow"><input id="setPostFx" type="checkbox" ' + (ctx.settings.postfx !== false ? 'checked' : '') + '> Post-processing (bloom / lighting / vignette)</label>'
       + '<label class="checkRow"><input id="setDof" type="checkbox" ' + (ctx.settings.dof !== false ? 'checked' : '') + '> Cinematic tilt-shift bands</label>'
@@ -245,7 +254,7 @@
     var d = q('#setDisplay'); if (d) { d.value = ctx.settings.displayScale || 'auto'; d.addEventListener('change', function () { ctx.settings.displayScale = d.value; saveSettings(); applySettings(handle()); }); }
     var u = q('#setUiScale'); if (u) { u.value = String(ctx.settings.uiScale || 1); u.addEventListener('change', function () { ctx.settings.uiScale = Number(u.value); saveSettings(); applyUiPrefs(); }); }
     var v = q('#setVol'); if (v) v.addEventListener('input', function () { ctx.settings.volume = Number(v.value); saveSettings(); applySettings(handle()); });
-    [['#setPostFx', 'postfx'], ['#setDof', 'dof'], ['#setMotionBlur', 'motionBlur'], ['#setGlass', 'glass'], ['#setUiSounds', 'uiSounds']].forEach(function (pair) {
+    [['#setPostFx', 'postfx'], ['#setDof', 'dof'], ['#setMotionBlur', 'motionBlur'], ['#setGlass', 'glass'], ['#setUiSounds', 'uiSounds'], ['#setColorblind', 'colorblind'], ['#setReducedMotion', 'reducedMotion']].forEach(function (pair) {
       var el = q(pair[0]); if (!el) return;
       el.addEventListener('change', function (ev) { ctx.settings[pair[1]] = ev.target.checked; saveSettings(); applySettings(handle()); });
     });
@@ -256,7 +265,7 @@
     var modal = document.getElementById('settingsModalBody');
     if (modal) { modal.innerHTML = settingsFormHtml(); wireSettingsControls(modal); }
     var el = document.getElementById('settingsBox');
-    if (el) el.innerHTML = '<button id="btnOpenSettings" class="primary">⚙ Open settings</button><p class="small muted">FPS target, motion blur, particle density, display scaling, glass theme, UI scale &amp; UI sounds.</p>';
+    if (el) el.innerHTML = '<button id="btnOpenSettings" class="primary">⚙ Open settings</button><p class="small muted">FPS target, motion blur, particle density, display scaling, glass theme, UI scale, UI sounds, colorblind palette &amp; reduced motion.</p>';
     var openBtn = document.getElementById('btnOpenSettings'); if (openBtn) openBtn.onclick = openSettings;
     var topBtn = document.getElementById('btnSettings'); if (topBtn) topBtn.onclick = openSettings;
     var closeBtn = document.getElementById('btnCloseSettings'); if (closeBtn) closeBtn.onclick = closeSettings;
