@@ -251,10 +251,14 @@ Tests: server 116/116 (111 prior + 5 Batch 16), BTD 184/184 (156 prior + 28 Batc
 Limits: colorblind sprite art itself is unchanged (images cannot be recolored — ring + label carry it); reduced-motion water shimmer still animates (background decor, not listed in the batch); touch-target sizing is CSS code-reviewed only (no real-device check); keyboard flow harness-verified in the VM (no real keyboard/browser check).
 Live status: see Run log.
 
-## Batch 17 — Tycoon & Clicker depth (was Batch 13)
-- [ ] Tycoon: prestige reset with permanent multiplier; rig skins.
-- [ ] Clicker: combo streaks, golden shard events, clicker bests on server.
-- [ ] Cross-game currency: shards convert to credits at a fixed rate.
+## Batch 17 — DONE 2026-11-01 — v3.16.0 (4 features, 122 total)
+Tycoon & Clicker depth (was Batch 13)
+- [x] Tycoon prestige: reset rigs/credits at 5,000 credits for a permanent +25% earnings multiplier per prestige (stacking); lifetime earnings tracked; offline/tick/collect earnings use the multiplier; persisted per address.
+- [x] Tycoon rig skins: Standard (free) / Gold (1,000) / Void (2,500) skins bought with credits; equipped skin colors rig cards; owned skins persist per address.
+- [x] Clicker combo + golden shards: clicks within 1.5s chain a streak (+10% per 10 streak, capped 3x); rare golden shard events pay +10 per click for 8s; best combo tracked; surge behaviour unchanged.
+- [x] Clicker server bests + shard conversion: Save Best emits a final game:ended (score = best combo) and the shell records it on the per-game Clicker leaderboard (filter added to Top Players); 100 banked shards convert to 10 in-game credits via POST /api/convert-shards (100–5000 per call, multiple of 100, ledger-recorded, capped like legacy progress); rate also in /api/config.
+Tests: server 132/132 (116 prior + 16 Batch 17), BTD 184/184, shooter pass, miner pass, tycoon/clicker harness pass (32 checks). Serve 200s via server test.
+Limits: prestige/skins/combo/golden/convert UI are DOM code, harness-verified via state/helpers + render strings only (no browser screenshot or real-device check); shard conversion trusts the client's banked total (capped + ledgered, same model as legacy progress — the server cannot verify a local-save balance); tycoon bests are whitelisted in /api/progress but no shell submission yet (tycoon stays local-save).
 
 ## Batch 18 — PvP duels II (was Batch 14)
 - [ ] Live duels: two players, same seed, real-time score race (polling).
@@ -312,3 +316,5 @@ Live status: see Run log.
 - 2026-11-01 19:19 EST: Batch 16 built locally (v3.15.0, Accessibility & mobile): server 116/116, BTD 184/184, shooter pass, miner pass. Push via browser task; verify /api/config shows 3.15.0 and served features.json shows 3.15.0/114 (which also confirms Batch 15 statics deployed).
 - 2026-11-01 19:31 EST (delivery check): Batch 16 VERIFIED LIVE in substance — /api/config 3.15.0 (real CEO address), served btd.js has all Batch 16 markers (colorblind/crosshair/reduced-motion), served shell.js has GameScriptLoader (Batch 15 lazy-load live), served index has Batch 15 comment. Served /features.json still lags at 3.14.0/110 (local 3.15.0/114) — Updates view only. Batch 16 worker lock was stale (written 19:00:01 EST, no edits since 19:19 EST); lock cleared for manual tags/cleanup apply.
 - 2026-11-01: Cleanup + tags built locally (v3.15.2) after the Batch 10 run finished. Tests: server 25/25, BTD harness, shooter pass, wallet harness, tags harness. Push via browser task (replace 12 files + delete 6 dead files); verify /api/config shows 3.15.2 with tags and no legacy entry.
+- 2026-11-01 19:53 EST (delivery check): v3.15.2 pushed to GitHub (HEAD d6484a8, 169 commits; 15 files replaced + 4 deleted; Procfile/railway.toml were never on GitHub main, only local — all 6 dead files absent from main). /api/config LIVE at 3.15.2 with tags on all 5 games, no defend-atom, real CEO address. Served static STILL LAGGING (features.json 3.15.0/114, shell/index no tagFilter, app.js still 200) — same one-deployment static lag; next cron push promotes the 3.15.2 static. Do not report 3.15.2 fully live until served shell/index show tagFilter.
+- 2026-11-01 20:00 EST: Batch 17 built locally (v3.16.0, Tycoon & Clicker depth): health/config 200 at run start (live 3.15.2). Tests: server 132/132, BTD 184/184, shooter pass, miner pass, tycoon/clicker harness pass. Push via browser task; verify /api/config shows 3.16.0 and served features.json shows 3.16.0/122 (which also confirms the 3.15.2 statics finally deployed).
