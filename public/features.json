@@ -1493,10 +1493,40 @@
       "title": "Tycoon overseers per rig",
       "description": "Assigned overseers per owned rig, in the game state and the panel.",
       "tested": "Harness: helper 0/2/zero-rigs cases; state exposes 2 with 4 overseers and 2 rigs; panel line render-checked."
+    },
+    {
+      "id": "btd-pops-per-hero-kill",
+      "title": "BTD pops per hero kill",
+      "description": "Pops per hero kill, in the HUD and game state.",
+      "tested": "Harness: helper 0/25/2.3/zero-kills cases; HUD + state expose 25 at 100 pops / 4 hero kills."
+    },
+    {
+      "id": "shooter-powerups-per-boss",
+      "title": "Shooter power-ups per boss",
+      "description": "Total power-ups collected per boss defeated, in the HUD, game state and the game-over screen.",
+      "tested": "Harness: helper 0/2.5/2.3/zero-boss cases; HUD + state 2.5 at 5 power-ups / 2 bosses; game-over line marker-checked."
+    },
+    {
+      "id": "miner-credits-per-ore",
+      "title": "Miner credits per ore",
+      "description": "Current unbanked credits held per ore mined in total, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-ore cases; HUD + state expose 60 at 120 credits / 2 ore."
+    },
+    {
+      "id": "clicker-milestones-per-shard",
+      "title": "Clicker milestones per shard",
+      "description": "Milestone hits per shard currently held (unbanked + banked), in the game state and the panel milestone line.",
+      "tested": "Harness: helper 0/0.5/1/zero-held cases; state matches the helper; panel line render-checked."
+    },
+    {
+      "id": "tycoon-overseers-per-prestige",
+      "title": "Tycoon overseers per prestige",
+      "description": "Assigned overseers per prestige taken, in the game state and the panel.",
+      "tested": "Harness: helper 0/2/2.3/zero-prestige cases; state exposes 2 with 4 overseers and 2 prestiges; panel line render-checked."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 249,
+  "totalFeatures": 254,
   "updated": "2026-11-02",
-  "version": "3.43.0"
+  "version": "3.44.0"
 }
