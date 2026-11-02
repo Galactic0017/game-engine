@@ -126,7 +126,7 @@
     if (leaderSeason || leaderGame) { try { var r = await api('/api/leaderboard?game=' + leaderGame + (leaderSeason ? '&season=' + leaderSeason : '')); rows = r.leaderboard || []; seasonInfo = r.season || null; } catch (e) { rows = []; } }
     else rows = (ctx.state && ctx.state.leaderboard) || [];
     var seasonKeyNow = new Date().toISOString().slice(0, 7);
-    el.innerHTML = '<p class="small"><button data-lb="" class="ghost">All</button> <button data-lb="cosmos-btd" class="ghost">BTD</button> <button data-lb="space-shooter" class="ghost">Shooter</button> <button data-lb="asteroid-miner" class="ghost">Miner</button></p>'
+    el.innerHTML = '<p class="small"><button data-lb="" class="ghost">All</button> <button data-lb="cosmos-btd" class="ghost">BTD</button> <button data-lb="space-shooter" class="ghost">Shooter</button> <button data-lb="asteroid-miner" class="ghost">Miner</button> <button data-lb="atom-clicker" class="ghost">Clicker</button></p>'
       + '<p class="small"><button data-season="" class="ghost">All-time</button> <button data-season="' + seasonKeyNow + '" class="ghost">This month (' + seasonKeyNow + ')</button>'
       + (seasonInfo && seasonInfo.previousKey ? '<br><span class="muted">Last month (' + esc(seasonInfo.previousKey) + ') top 3: ' + esc((seasonInfo.top3 || []).map(function (t) { return '#' + t.rank + ' ' + (t.name || shortAddr(t.address)); }).join(', ') || 'none') + '</span>' : '') + '</p>'
       + (rows.length ? rows.slice(0, 5).map(function (r, i) { return '<p class="small">' + (leaderSeason && i < 3 ? '🏆 ' : '') + (i + 1) + '. ' + esc(r.name || shortAddr(r.address)) + ' — ' + r.bestScore + ' pts · Lv ' + r.level + '</p>'; }).join('') : '<p class="muted small">No scores yet' + (leaderSeason ? ' this month' : '') + '.</p>');
@@ -625,8 +625,8 @@
     var cfgStatus = function (id) { var gs = (ctx.config && ctx.config.games) || []; for (var i = 0; i < gs.length; i++) if (gs[i].id === id) return gs[i].status; return 'playable'; };
     var lazyGame = function (src, globalName) { return async function () { var mod = await window.GameScriptLoader.load(src, globalName); if (!mod) throw new Error('Game module did not load: ' + src); return mod; }; };
     ctx.host.registerGame({ id: 'cosmos-btd', name: 'Cosmos BTD', tagline: '50 waves · 8 towers · heroes', image: 'assets/sprites/battlefield.jpg', description: 'Space tower defense: protect the ATOM orb across 50 waves — 8 towers, heroes, targeting, 1x-3x speed.', status: 'playable', tags: ['Tower Defense', 'Space', 'Heroes', '50 Waves'], load: lazyGame('games/cosmos-btd/btd.js', 'CosmosBTD') });
-    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', image: 'assets/sprites/tower-validator.png', description: 'Build mining rigs, hire overseers, earn while away. Local save.', status: 'playable', tags: ['Idle', 'Tycoon', 'Space'], load: lazyGame('games/space-tycoon/tycoon.js', 'SpaceTycoon') });
-    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, catch multiplier surges, bank shards. Local save.', status: 'playable', tags: ['Clicker', 'Idle', 'ATOM'], load: lazyGame('games/atom-clicker/clicker.js', 'AtomClicker') });
+    ctx.host.registerGame({ id: 'space-tycoon', name: 'Space Tycoon', tagline: 'Rigs + offline earnings', image: 'assets/sprites/tower-validator.png', description: 'Build mining rigs, hire overseers, earn while away. Prestige for a permanent multiplier, rig skins. Local save.', status: 'playable', tags: ['Idle', 'Tycoon', 'Space'], load: lazyGame('games/space-tycoon/tycoon.js', 'SpaceTycoon') });
+    ctx.host.registerGame({ id: 'atom-clicker', name: 'ATOM Core Clicker', tagline: 'Tap the core', image: 'assets/sprites/hero-astra.png', description: 'Tap the ATOM core, chain combo streaks, catch golden shards and surges, bank shards. Convert 100 shards to 10 credits. Local save.', status: 'playable', tags: ['Clicker', 'Idle', 'ATOM'], load: lazyGame('games/atom-clicker/clicker.js', 'AtomClicker') });
     if (cfgStatus('space-shooter') === 'playable') ctx.host.registerGame({ id: 'space-shooter', name: 'Space Shooter', tagline: 'Asteroids + drones', image: 'assets/sprites/monster-1.png', description: 'Arcade space shooter: dodge asteroids, blast drones, survive the waves.', status: 'playable', tags: ['Arcade', 'Shooter', 'Space'], load: lazyGame('games/space-shooter/shooter.js', 'SpaceShooter') });
     if (cfgStatus('asteroid-miner') === 'playable') ctx.host.registerGame({ id: 'asteroid-miner', name: 'Asteroid Miner', tagline: 'Mine ore, upgrade drills', image: 'assets/sprites/monster-1.png', description: 'Click/drag mining: 6 ore tiers, drill upgrades, belt progression. Local save + server bests.', status: 'playable', tags: ['Mining', 'Clicker', 'Space'], load: lazyGame('games/asteroid-miner/miner.js', 'AsteroidMiner') });
     renderGameList(); renderRecent(); renderWallet(); renderSettingsPanel();
@@ -663,6 +663,20 @@
       api('/api/progress', 'POST', { address: ctx.player.address, game: 'asteroid-miner', score: payload.score, waveReached: payload.wave }).then(function (r) {
         if (r.player) { ctx.player = r.player; toast('Miner shift saved: +' + r.xpGain + ' XP, +' + r.creditGain + ' credits.', 'ok'); refreshState(); }
       }).catch(function () { /* best-effort; the local save stands */ });
+    });
+    /* Batch 17: record a Clicker best combo on the server per-game
+     * leaderboard. Only the Save Best emit (final:true) counts; the
+     * destroy() emit has no final flag. Dedupe by address+score+clicks. */
+    var _clickerSubmitted = {};
+    bus.on('game:ended', function (gameId, payload) {
+      if (gameId !== 'atom-clicker' || !payload || !payload.final) return;
+      if (!ctx.player) return;
+      var key = ctx.player.address + ':' + payload.score + ':' + (payload.clicks || 0);
+      if (_clickerSubmitted[key]) return;
+      _clickerSubmitted[key] = true;
+      api('/api/progress', 'POST', { address: ctx.player.address, game: 'atom-clicker', score: payload.score, waveReached: 0 }).then(function (r) {
+        if (r.player) { ctx.player = r.player; toast('Clicker best saved: combo ' + payload.score + ' (+' + r.xpGain + ' XP).', 'ok'); refreshState(); }
+      }).catch(function () { /* best-effort; the local best stands */ });
     });
     bus.on('wallet:connected', function () { renderWallet(); });
     bus.on('wallet:disconnected', function () { ctx.player = null; renderWallet(); renderHeroes([]); });
