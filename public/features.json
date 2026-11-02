@@ -1349,10 +1349,40 @@
       "title": "You and Play panes",
       "description": "You pane holds Profile, My Heroes, Quests, Achievements; Play pane holds Top Players, Recently Played, Settings.",
       "tested": "Harness: You and Play panes hold their boxes; tab switching toggles the active pane only."
+    },
+    {
+      "id": "btd-gold-per-wave",
+      "title": "Gold per wave \u2014 current gold held per wave reached, in HUD/state",
+      "description": "Current unspent gold held per wave reached, to one decimal; 0 with no wave yet.",
+      "tested": "Harness: goldPerWaveFor helper (0/25/2.3/zero-wave) + HUD/state echo at 100 gold / 4 waves."
+    },
+    {
+      "id": "shooter-powerups-per-minute",
+      "title": "Power-ups per minute \u2014 power-ups collected per minute of run time, in HUD/state + game-over",
+      "description": "Total power-ups collected per minute of run time, to one decimal; 0 with no elapsed time yet.",
+      "tested": "Harness: powerupsPerMinuteFor helper (0/60/2.3/zero-time) + HUD/state echo at 120 power-ups / 120s; server test checks the game-over line."
+    },
+    {
+      "id": "miner-credits-per-belt",
+      "title": "Credits per belt \u2014 current unbanked credits held per belt, in HUD/state",
+      "description": "Current unbanked credits held per belt reached, to one decimal; 0 with no belt yet.",
+      "tested": "Harness: creditsPerBeltFor helper (0/25/2.3/zero-belt) + HUD/state echo at 100 credits / 4 belts."
+    },
+    {
+      "id": "clicker-shards-per-milestone",
+      "title": "Shards per milestone \u2014 held + banked shards per milestone hit, in state + panel",
+      "description": "Held plus banked shards per milestone hit, to one decimal; 0 with no milestone hit yet.",
+      "tested": "Harness: shardsPerMilestoneFor helper (0/50/2.3/zero-hits) + state echo + panel render line (50 at 60 held + 40 banked / 2 hits)."
+    },
+    {
+      "id": "tycoon-lifetime-per-prestige",
+      "title": "Lifetime per prestige \u2014 lifetime credits earned per prestige, in state + panel",
+      "description": "Lifetime credits earned per prestige taken, to one decimal; 0 with no prestige yet.",
+      "tested": "Harness: lifetimePerPrestigeFor helper (0/50/2.3/zero-prestige) + state echo + panel render line (50 at 100 lifetime / 2 prestiges)."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 225,
+  "totalFeatures": 230,
   "updated": "2026-11-02",
-  "version": "3.39.1"
+  "version": "3.40.0"
 }
