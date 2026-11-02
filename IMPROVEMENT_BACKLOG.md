@@ -234,11 +234,15 @@ Tests: server 111/111 (99 prior + 12 Batch 15: no eager game scripts, loader vm 
 Live status: see Run log.
 Limits: pre-render + lazy-load verified in Node harnesses + serve checks only (no browser screenshot or real-device check); visual equivalence of pre-rendered bodies code-reviewed (same draw calls, same coordinates); lazy-load first-click path in a real browser not exercised (no live browser run in this batch).
 
-## Batch 16 — Accessibility & mobile (was Batch 12)
-- [ ] Colorblind palette toggle for balloon layers.
-- [ ] Reduced-motion mode: disables shake, DoF bands, particle bursts.
-- [ ] Keyboard-only play: full tower placement via keyboard.
-- [ ] Larger touch targets on the action bar for small screens.
+## Batch 16 — DONE 2026-11-01 — v3.15.0 (4 features, 114 total)
+Accessibility & mobile
+- [x] Colorblind palette toggle for balloon layers: Okabe-Ito-inspired hues + 3-letter code label per type (ring + label on sprite balloons, recolored body + label on procedural ones); mod/custom enemies keep their color but still get a name label; pop particles follow the palette; palette switch clears the sprite cache.
+- [x] Reduced-motion mode: disables screen shake, particle bursts and tilt-shift DoF bands; danger glow goes static; defaults to the OS prefers-reduced-motion setting when never chosen; Settings toggle + body attribute freezes the CSS starfield/glow animations.
+- [x] Keyboard-only play: arrow keys move a visible crosshair cursor (24px, Shift = 96px, clamped to the board), Enter places/selects at the cursor (hero placement order preserved: unplaced hero claims an activation first, same as a click), U upgrades, X sells; mouse movement deactivates the cursor automatically; cursor + flags exposed in HUD.
+- [x] Larger touch targets: 44px+ action-bar buttons/selects, 52px tower tiles, single-column tower grid on small screens / coarse pointers; desktop mouse layout unchanged.
+Tests: server 116/116 (111 prior + 5 Batch 16), BTD 184/184 (156 prior + 28 Batch 16, incl. full keyboard place/select/upgrade/sell flow), shooter pass, miner pass. Serve 200s.
+Limits: colorblind sprite art itself is unchanged (images cannot be recolored — ring + label carry it); reduced-motion water shimmer still animates (background decor, not listed in the batch); touch-target sizing is CSS code-reviewed only (no real-device check); keyboard flow harness-verified in the VM (no real keyboard/browser check).
+Live status: see Run log.
 
 ## Batch 17 — Tycoon & Clicker depth (was Batch 13)
 - [ ] Tycoon: prestige reset with permanent multiplier; rig skins.
@@ -297,3 +301,5 @@ Limits: pre-render + lazy-load verified in Node harnesses + serve checks only (n
 - 2026-11-01 17:36 EST: STATIC FILE NOT YET LIVE — live-browser hard-reload with cache-buster of /engine/ceo-ui.js shows the PRE-Batch-13 file (tabs orders/ledger/users/flags/settings/announce/audit; no renderDisputes/drawFeeChart/ledExportAll/annSchedule/openDisputes), while GitHub main contains the new code and the API is 3.12.0. Same static-staleness pattern as Batch 11 (16:41/16:45 EST), which resolved on the next deployment. Batch 13 UI is NOT confirmed live. No re-push in this run; do not report Batch 13 as shipped. Next run must re-check served ceo-ui.js markers before reporting Batch 13 as shipped; the Batch 14 push may deploy the Batch 13 statics with it. Cause unknown; Vercel dashboard was not opened (loop rule).
 - 2026-11-01 17:44 EST: Batch 14 built locally (v3.13.0, Asteroid Miner): server 99/99, BTD 146/146, shooter pass, miner harness pass. Health/config 200 at run start (text-fetch crawls stale at 3.11.0; live API 3.12.0 verified previous run, Batch 13 statics stale — re-check after this push). Push via browser task; verify /api/config shows 3.13.0 and served ceo-ui.js shows Batch 13 markers + miner.js served.
 - 2026-11-01 18:05 EST: Batch 14 static re-check at run start: API/config live 3.13.0, but miner.js still 404 live and served features.json stale — Batch 14 statics NOT live (same one-deployment lag as Batches 11/13). Batch 15 built locally (v3.14.0, Performance): server 111/111, BTD 156/156, shooter pass, miner pass. Push via browser task; verify /api/config shows 3.14.0 and served miner.js + features.json show Batch 14/15 markers. NOTE: the staged tags/cleanup patch was NOT applied in this run either — it is separate from Batch 15 and must wait for a run without the loop lock.
+- 2026-11-01 19:00 EST: Batch 16 run start: health/config 200, live 3.14.0 (real CEO address, asteroid-miner playable). Batch 14 statics RESOLVED (miner.js live). Batch 15 statics STILL LAGGING: served features.json is 3.13.0/107 (no Batch 15 entries) — same one-deployment static lag as Batches 11/13; this run's push should deploy them. No re-push of Batch 15 files alone.
+- 2026-11-01 19:19 EST: Batch 16 built locally (v3.15.0, Accessibility & mobile): server 116/116, BTD 184/184, shooter pass, miner pass. Push via browser task; verify /api/config shows 3.15.0 and served features.json shows 3.15.0/114 (which also confirms Batch 15 statics deployed).
