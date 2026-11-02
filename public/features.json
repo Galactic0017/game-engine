@@ -989,10 +989,34 @@
    "id": "clicker-milestone-progress",
    "tested": "tycoon/clicker harness: _milestoneProgressFor(0)=0, (50)=50, (100)=0, (300)=50, (5000)=100, (6000)=100; getState exposes milestoneProgressPct and the panel shows the progress line",
    "title": "Milestone progress - percent travelled from the last click milestone toward the next (100 once all reached), in state and the panel"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "btd-towers-per-wave",
+   "tested": "BTD harness: _towersPerWaveFor(0,0)=0, (10,4)=2.5, (7,3)=2.3; HUD + state expose towersPerWave",
+   "title": "Towers per wave - average towers placed per wave reached, in HUD and state"
+  },
+  {
+   "category": "Space Shooter",
+   "id": "shooter-powerups-per-wave",
+   "tested": "shooter harness: _powerupsPerWaveFor(null,0)=0, (5 power-ups,4 waves)=1.3, (7 power-ups,3 waves)=2.3; HUD + state expose powerupsPerWave and the game-over screen shows Power-ups/wave",
+   "title": "Power-ups per wave - average power-ups collected per wave reached, in HUD, state and the game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-cargo-value-per-belt",
+   "tested": "miner harness: _cargoValuePerBeltFor({belt:0})=0, ({belt:5, iron:10, gold:2})=30, ({belt:3, iron:7})=11.7; HUD + state expose cargoValuePerBelt",
+   "title": "Cargo value per belt - total base cargo value per belt reached, in HUD and state"
+  },
+  {
+   "category": "Space Tycoon",
+   "id": "tycoon-lifetime-per-rig",
+   "tested": "tycoon/clicker harness: _lifetimePerRigFor(0,[])=0, (1000,2 rigs)=500, (7,3 rigs)=2.3; getState exposes lifetimePerRig and the panel shows the Lifetime per rig line",
+   "title": "Lifetime per rig - lifetime credits earned per owned rig, in state and the panel"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 165,
+ "totalFeatures": 169,
  "updated": "2026-11-02",
- "version": "3.27.0"
+ "version": "3.28.0"
 }
