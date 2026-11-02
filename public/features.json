@@ -1613,10 +1613,40 @@
       "title": "Tycoon overseers per level",
       "description": "Assigned overseers per total rig level, in the game state and the panel.",
       "tested": "Harness: helper 0/0.5/0.4/zero-level cases; state exposes 0.5 with 2 overseers and 4 total rig levels; panel line render-checked."
+    },
+    {
+      "id": "btd-gold-per-hero-kill",
+      "title": "BTD gold per hero kill",
+      "description": "Current gold held per hero kill, in the HUD and game state.",
+      "tested": "Harness: helper 0/25/2.3/zero-kill cases; HUD + state expose 25 at 100 gold / 4 hero kills."
+    },
+    {
+      "id": "shooter-powerups-per-shot",
+      "title": "Shooter power-ups per shot",
+      "description": "Total power-ups collected per firing volley, in the HUD, game state and the game-over screen.",
+      "tested": "Harness: helper 0/1.3/2.3/zero-shot cases; HUD + state 1.3 at 5 power-ups / 4 shots; game-over line marker-checked."
+    },
+    {
+      "id": "miner-cargo-value-per-rich-vein",
+      "title": "Miner cargo value per rich vein",
+      "description": "Scanner-adjusted cargo value held per rich-vein trigger, in the HUD and game state.",
+      "tested": "Harness: helper 0/60/2.3/zero-vein cases; HUD + state expose 60 at 120 cargo value / 2 rich veins."
+    },
+    {
+      "id": "clicker-unbanked-per-click",
+      "title": "Clicker unbanked per click",
+      "description": "Unbanked shards per total click, in the game state and the panel milestone line.",
+      "tested": "Harness: helper 0/0.5/2.3/zero-click cases; state exposes 0.5 with 6 unbanked shards and 12 clicks; panel line render-checked."
+    },
+    {
+      "id": "tycoon-rig-levels-per-prestige",
+      "title": "Tycoon rig levels per prestige",
+      "description": "Total rig levels per prestige taken, in the game state and the panel.",
+      "tested": "Harness: helper 0/2/2.3/zero-prestige cases; state exposes 2 with 4 total rig levels and 2 prestiges; panel line render-checked."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 269,
+  "totalFeatures": 274,
   "updated": "2026-11-02",
-  "version": "3.47.0"
+  "version": "3.48.0"
 }
