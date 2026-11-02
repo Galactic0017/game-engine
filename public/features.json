@@ -4,79 +4,79 @@
       "category": "Cosmos BTD",
       "id": "tesla-tower",
       "tested": "harness: placed and fired in live waves; chain code reviewed",
-      "title": "Tesla Coil tower \u2014 chain lightning hits 3 targets, sees camo"
+      "title": "Tesla Coil tower — chain lightning hits 3 targets, sees camo"
     },
     {
       "category": "Cosmos BTD",
       "id": "spike-factory",
       "tested": "harness: 10 live piles spawned in waves",
-      "title": "Spike Factory tower \u2014 drops contact spike piles (8s, 3 pops each)"
+      "title": "Spike Factory tower — drops contact spike piles (8s, 3 pops each)"
     },
     {
       "category": "Cosmos BTD",
       "id": "camo-enemies",
       "tested": "harness: Camo in wave-8 preview; targeting filter code-reviewed",
-      "title": "Camo balloons \u2014 only Sniper, Tesla and hero can target them"
+      "title": "Camo balloons — only Sniper, Tesla and hero can target them"
     },
     {
       "category": "Cosmos BTD",
       "id": "fortified-enemies",
       "tested": "composition from wave 14; damage rule code-reviewed",
-      "title": "Fortified balloons \u2014 half damage except cannon/mortar splash"
+      "title": "Fortified balloons — half damage except cannon/mortar splash"
     },
     {
       "category": "Cosmos BTD",
       "id": "regen-enemies",
       "tested": "composition from wave 10; regrow logic code-reviewed",
-      "title": "Regen balloons \u2014 regrow 1 layer every 2s up to max"
+      "title": "Regen balloons — regrow 1 layer every 2s up to max"
     },
     {
       "category": "Cosmos BTD",
       "id": "endless-mode",
       "tested": "flag + wave-51 guard code-reviewed; full 50-wave run not harness-tested",
-      "title": "Endless mode \u2014 waves continue past 50 with scaling"
+      "title": "Endless mode — waves continue past 50 with scaling"
     },
     {
       "category": "Cosmos BTD",
       "id": "pause",
       "tested": "harness: setPaused freezes updates",
-      "title": "Pause \u2014 P key + Pause/Resume button, overlay shown"
+      "title": "Pause — P key + Pause/Resume button, overlay shown"
     },
     {
       "category": "Cosmos BTD",
       "id": "hero-leveling",
       "tested": "code-reviewed; needs browser play with equipped hero",
-      "title": "Hero levels up inside a run \u2014 100 hero XP = +1 level"
+      "title": "Hero levels up inside a run — 100 hero XP = +1 level"
     },
     {
       "category": "Cosmos BTD",
       "id": "sprite-rendering",
       "tested": "alpha check + harness fallback (no Image in VM)",
-      "title": "Real image sprites \u2014 battlefield photo, monster/tower/hero art with procedural fallback"
+      "title": "Real image sprites — battlefield photo, monster/tower/hero art with procedural fallback"
     },
     {
       "category": "Cosmos BTD",
       "id": "damage-numbers",
       "tested": "code-reviewed; floater cap 24",
-      "title": "Damage numbers \u2014 floating text for hits of 3+ damage"
+      "title": "Damage numbers — floating text for hits of 3+ damage"
     },
     {
       "category": "Cosmos BTD",
       "id": "max-upgrade",
       "tested": "harness: upgrade to 5, maxed flag",
-      "title": "Tower level 5 MAX upgrade \u2014 +2 dmg, +15 range, gold ring"
+      "title": "Tower level 5 MAX upgrade — +2 dmg, +15 range, gold ring"
     },
     {
       "category": "Cosmos BTD",
       "id": "wave-interest",
       "tested": "code-reviewed; wave-clear bonus formula",
-      "title": "Wave-clear interest \u2014 +5% of gold (max +50) every wave"
+      "title": "Wave-clear interest — +5% of gold (max +50) every wave"
     },
     {
       "category": "Cosmos BTD",
       "id": "touch-support",
       "tested": "touchstart listener registered + removed on destroy in harness",
-      "title": "Touch support \u2014 tap to place/select on mobile"
+      "title": "Touch support — tap to place/select on mobile"
     },
     {
       "category": "Cosmos BTD",
@@ -88,49 +88,49 @@
       "category": "Cosmos BTD",
       "id": "boss-shield",
       "tested": "logic guard code-reviewed; wave 30 not reached in harness",
-      "title": "Boss shield \u2014 bosses from wave 30 are immune for 5s, shield ring shown"
+      "title": "Boss shield — bosses from wave 30 are immune for 5s, shield ring shown"
     },
     {
       "category": "Cosmos BTD",
       "id": "challenge-mode",
       "tested": "toggle callable without errors; start values apply pre-wave (code-reviewed)",
-      "title": "Challenge mode \u2014 start with 100 gold, 20 lives"
+      "title": "Challenge mode — start with 100 gold, 20 lives"
     },
     {
       "category": "Platform",
       "id": "daily-quests",
       "tested": "server test: progress + claim + double-claim rejected",
-      "title": "Daily quests \u2014 pop 150, clear wave 10, win a duel; claim credit rewards"
+      "title": "Daily quests — pop 150, clear wave 10, win a duel; claim credit rewards"
     },
     {
       "category": "Platform",
       "id": "achievements",
       "tested": "server test: first-wave + wave-10 unlock",
-      "title": "12 achievements \u2014 waves, pops, duels, trading, levels; credit rewards on unlock"
+      "title": "12 achievements — waves, pops, duels, trading, levels; credit rewards on unlock"
     },
     {
       "category": "Platform",
       "id": "announcements",
       "tested": "server test: announce endpoint stores + serves",
-      "title": "CEO announcements \u2014 banner at the top of the hub, post from CEO panel"
+      "title": "CEO announcements — banner at the top of the hub, post from CEO panel"
     },
     {
       "category": "Platform",
       "id": "player-stats",
       "tested": "server test: secure progress updates stats",
-      "title": "Player stats \u2014 best wave, total pops, total waves, per-game bests"
+      "title": "Player stats — best wave, total pops, total waves, per-game bests"
     },
     {
       "category": "Platform",
       "id": "per-game-leaderboard",
       "tested": "server test: ?game=cosmos-btd sorts by BTD best",
-      "title": "Leaderboard per game \u2014 All / BTD tabs in the sidebar"
+      "title": "Leaderboard per game — All / BTD tabs in the sidebar"
     },
     {
       "category": "Platform",
       "id": "health-endpoint",
       "tested": "server test: 200 + version",
-      "title": "Health endpoint \u2014 GET /api/health for the auto-check loop"
+      "title": "Health endpoint — GET /api/health for the auto-check loop"
     },
     {
       "category": "Platform",
@@ -142,13 +142,13 @@
       "category": "Games",
       "id": "space-shooter",
       "tested": "subagent harness: move, fire, pause, game over, restart, destroy all passed",
-      "title": "Space Shooter \u2014 4th playable game (asteroids + drones)"
+      "title": "Space Shooter — 4th playable game (asteroids + drones)"
     },
     {
       "category": "Hub UI",
       "id": "updates-tracker",
       "tested": "served 200, JSON valid",
-      "title": "What's New panel \u2014 every tracked feature listed with its test status"
+      "title": "What's New panel — every tracked feature listed with its test status"
     },
     {
       "category": "Hub UI",
@@ -166,55 +166,55 @@
       "category": "Hub UI",
       "id": "settings-panel",
       "tested": "syntax + serve check",
-      "title": "Settings panel \u2014 volume slider + graphics quality, saved in browser"
+      "title": "Settings panel — volume slider + graphics quality, saved in browser"
     },
     {
       "category": "Hub UI",
       "id": "profile-panel",
       "tested": "syntax + serve check",
-      "title": "Profile panel \u2014 level, credits, XP, best score/wave, pops, achievements count"
+      "title": "Profile panel — level, credits, XP, best score/wave, pops, achievements count"
     },
     {
       "category": "Hub UI",
       "id": "quest-ui",
       "tested": "syntax + serve check",
-      "title": "Daily quests UI \u2014 progress bars + Claim buttons in the sidebar"
+      "title": "Daily quests UI — progress bars + Claim buttons in the sidebar"
     },
     {
       "category": "Hub UI",
       "id": "achievements-ui",
       "tested": "syntax + serve check",
-      "title": "Achievements grid \u2014 unlocked/locked badges with descriptions"
+      "title": "Achievements grid — unlocked/locked badges with descriptions"
     },
     {
       "category": "Hub UI",
       "id": "action-bar-controls",
       "tested": "syntax + serve check",
-      "title": "Action bar \u2014 Pause, Endless, Challenge, Shortcuts buttons + FPS + next-wave preview"
+      "title": "Action bar — Pause, Endless, Challenge, Shortcuts buttons + FPS + next-wave preview"
     },
     {
       "category": "CEO Panel",
       "id": "ceo-announce-tab",
       "tested": "syntax + serve check",
-      "title": "CEO panel Announce tab \u2014 post banner announcements (ADR-36 signed)"
+      "title": "CEO panel Announce tab — post banner announcements (ADR-36 signed)"
     },
     {
       "category": "Operations",
       "id": "auto-improve-loop",
       "tested": "cron game-auto-improve created 2026-11-01, first run ~14:19 EST",
-      "title": "Auto-improve loop \u2014 every 10 minutes: health check, next backlog batch, test, push, auto-deploy"
+      "title": "Auto-improve loop — every 10 minutes: health check, next backlog batch, test, push, auto-deploy"
     },
     {
       "category": "Engine Visuals",
       "id": "bloom-glow-pass",
       "tested": "BTD harness 27/27 incl. postfx/dof toggle drive, no crash",
-      "title": "Bloom & glow pass \u2014 beams, lights and shockwave rings bleed through a half-res glow buffer composited with 'lighter'"
+      "title": "Bloom & glow pass — beams, lights and shockwave rings bleed through a half-res glow buffer composited with 'lighter'"
     },
     {
       "category": "Engine Visuals",
       "id": "dynamic-lighting",
       "tested": "BTD harness 27/27 incl. postfx/dof toggle drive, no crash",
-      "title": "Dynamic 2D lighting \u2014 darkness overlay with light holes punched at muzzle flashes, explosions, tesla arcs and the hero aura"
+      "title": "Dynamic 2D lighting — darkness overlay with light holes punched at muzzle flashes, explosions, tesla arcs and the hero aura"
     },
     {
       "category": "Engine Visuals",
@@ -226,61 +226,61 @@
       "category": "Engine Visuals",
       "id": "tilt-shift-dof",
       "tested": "BTD harness 27/27 incl. dof toggle drive, no crash; visual quality not browser-verified",
-      "title": "Tilt-shift depth bands \u2014 top/bottom of the frame drawn from a blurred downscaled copy, with fade blends"
+      "title": "Tilt-shift depth bands — top/bottom of the frame drawn from a blurred downscaled copy, with fade blends"
     },
     {
       "category": "Engine Visuals",
       "id": "water-shader",
       "tested": "BTD harness 27/27 incl. postfx drive, no crash; visual quality not browser-verified",
-      "title": "Procedural water shader \u2014 animated sine shimmer, moving sun gleam and scrolling foam ring on the pond"
+      "title": "Procedural water shader — animated sine shimmer, moving sun gleam and scrolling foam ring on the pond"
     },
     {
       "category": "Engine Visuals",
       "id": "particle-engine",
       "tested": "BTD harness 27/27: every particle carries a kind",
-      "title": "Particle engine \u2014 pooled spark/smoke/ring/splash kinds with gravity, drag and wind vectors"
+      "title": "Particle engine — pooled spark/smoke/ring/splash kinds with gravity, drag and wind vectors"
     },
     {
       "category": "Engine Visuals",
       "id": "contextual-shake",
       "tested": "BTD harness 27/27",
-      "title": "Contextual screen shake \u2014 cannon 4, mortar impact 6, leak 8, boss death 7 via addShake()"
+      "title": "Contextual screen shake — cannon 4, mortar impact 6, leak 8, boss death 7 via addShake()"
     },
     {
       "category": "Engine Core",
       "id": "ecs-architecture",
       "tested": "BTD harness 27/27: ECS entities + component tables asserted live",
-      "title": "ECS architecture \u2014 entities with component tables (position/health/path/combat/render/lifetime) and Movement/Combat/Projectile/Fx/Spike systems"
+      "title": "ECS architecture — entities with component tables (position/health/path/combat/render/lifetime) and Movement/Combat/Projectile/Fx/Spike systems"
     },
     {
       "category": "Engine UI",
       "id": "glass-theme",
       "tested": "code-reviewed; shell applies glass on/off + UI scale live via CSS vars (not harness-tested, no DOM harness for the shell)",
-      "title": "Glassmorphism theme engine \u2014 translucent glass panels, backdrop blur, glowing borders, UI text scaling, hover/click sound feedback"
+      "title": "Glassmorphism theme engine — translucent glass panels, backdrop blur, glowing borders, UI text scaling, hover/click sound feedback"
     },
     {
       "category": "Cosmos BTD",
       "id": "floating-combat-text",
       "tested": "harness: crit/coin floaters spawn on big hits and kills; vy + gravity update in FxSystem; outlined sized text in drawOverlays",
-      "title": "Floating combat text \u2014 crits, damage numbers and coin gains with gravity + fade"
+      "title": "Floating combat text — crits, damage numbers and coin gains with gravity + fade"
     },
     {
       "category": "Cosmos BTD",
       "id": "inspection-cards",
       "tested": "harness: getHud inspect payload for a selected tower (stats, upgrade step, effectiveness); DOM card render code-reviewed",
-      "title": "Inspection stat cards \u2014 hover/select a tower for animated stat bars, upgrade tree and tactical effectiveness chart"
+      "title": "Inspection stat cards — hover/select a tower for animated stat bars, upgrade tree and tactical effectiveness chart"
     },
     {
       "category": "Engine UI",
       "id": "settings-modal",
       "tested": "harness: setFpsTarget/setParticleDensity/setMotionBlur/setDisplayScale drive without errors; modal form code-reviewed",
-      "title": "Settings modal \u2014 FPS target 30/60/120, motion blur, particle density, master audio, Retina/HiDPI display scaling"
+      "title": "Settings modal — FPS target 30/60/120, motion blur, particle density, master audio, Retina/HiDPI display scaling"
     },
     {
       "category": "Engine Core",
       "id": "ecs-table-iteration",
       "tested": "harness: Movement/Combat iterate ECS tables; ECS balloon/tower counts match array counts after waves",
-      "title": "ECS tables are the iteration source \u2014 Movement/Combat iterate ECS component tables by kind; arrays stay render-order lists"
+      "title": "ECS tables are the iteration source — Movement/Combat iterate ECS component tables by kind; arrays stay render-order lists"
     },
     {
       "category": "Engine Core",
@@ -292,43 +292,43 @@
       "category": "Engine Core",
       "id": "asset-manager",
       "tested": "syntax + serve check; loadSprites replaced by queue with pre-decode + 1 retry (no browser test)",
-      "title": "Asset pipeline manager \u2014 central load queue, img.decode() pre-decode, one retry, loaded/failed counts"
+      "title": "Asset pipeline manager — central load queue, img.decode() pre-decode, one retry, loaded/failed counts"
     },
     {
       "category": "Engine Core",
       "id": "grid-stats",
       "tested": "BTD harness 27/27: 12800 grid queries across 4 cells asserted",
-      "title": "Spatial hash stats \u2014 grid cell/query counts in HUD for the future debug overlay"
+      "title": "Spatial hash stats — grid cell/query counts in HUD for the future debug overlay"
     },
     {
       "category": "Cosmos BTD",
       "id": "branching-upgrade-trees",
       "tested": "harness: branch choice locks path, speed/power bonuses apply, costs 100/170/240; inspect shows branch + evolution; shell card renders branch line (code-reviewed)",
-      "title": "Branching tower upgrade trees \u2014 one locked path per tower (Rapid Fire vs Heavy Impact, 3 points), Evolved at Lv4 / Ascended at Lv5 with larger sprite + ring"
+      "title": "Branching tower upgrade trees — one locked path per tower (Rapid Fire vs Heavy Impact, 3 points), Evolved at Lv4 / Ascended at Lv5 with larger sprite + ring"
     },
     {
       "category": "Cosmos BTD",
       "id": "hero-commander",
       "tested": "harness: patrol walks the spline, gear bonuses apply, ability tiers 1-3 by run level, hero kills grant +3 XP; gear applies in-run only, no server persistence",
-      "title": "Hero Commander \u2014 patrol mode walks the track, XP per hero kill, ability tiers unlock by level, weapon/charm equipment slots"
+      "title": "Hero Commander — patrol mode walks the track, XP per hero kill, ability tiers unlock by level, weapon/charm equipment slots"
     },
     {
       "category": "Cosmos BTD",
       "id": "adaptive-pathfinding",
       "tested": "harness: hazardAt slow factors asserted, balloons detour + slow inside hazard zones, reroutes counter >0 after waves; wave-10 route offset asserted via routeOffset()",
-      "title": "Adaptive pathfinding \u2014 mud/bramble hazard zones on the spline slow balloons and trigger lateral detours; every 10th wave takes a wide high-road offset (not A*, towers cannot block the path)"
+      "title": "Adaptive pathfinding — mud/bramble hazard zones on the spline slow balloons and trigger lateral detours; every 10th wave takes a wide high-road offset (not A*, towers cannot block the path)"
     },
     {
       "category": "Cosmos BTD",
       "id": "weather-hazards",
       "tested": "harness: setWeather storm strikes + blizzard slows (weather factor 0.7); auto-trigger code-reviewed (wave %5 storm / %10 blizzard in startWave); HUD weather + countdown present",
-      "title": "Weather hazards \u2014 thunderstorm lightning strikes near towers, blizzard slows all balloons map-wide, auto-triggered every 5th/10th wave"
+      "title": "Weather hazards — thunderstorm lightning strikes near towers, blizzard slows all balloons map-wide, auto-triggered every 5th/10th wave"
     },
     {
       "category": "Cosmos BTD",
       "id": "multi-lane-path",
       "tested": "harness: lane-1 balloons sampled live across waves; branch length + fork start asserted",
-      "title": "Multi-lane fork path \u2014 every 3rd balloon takes a branch lane that forks at 45% and rejoins at 85%; placement blocking respects both lanes"
+      "title": "Multi-lane fork path — every 3rd balloon takes a branch lane that forks at 45% and rejoins at 85%; placement blocking respects both lanes"
     },
     {
       "category": "Cosmos BTD",
@@ -340,439 +340,439 @@
       "category": "Cosmos BTD",
       "id": "radial-cooldown",
       "tested": "harness: heroCd > 0 in HUD after ability fires; ring draw code-reviewed (canvas arc)",
-      "title": "Hero ability radial cooldown \u2014 circular sweep ring around the hero drains over the 12s recharge"
+      "title": "Hero ability radial cooldown — circular sweep ring around the hero drains over the 12s recharge"
     },
     {
       "category": "Cosmos BTD",
       "id": "boss-phase-shield",
       "tested": "harness: phase2 + shield + 2 minions asserted on wave-10 boss; damage blocked while shielded",
-      "title": "Boss phase shields \u2014 at 50% health the boss shields for 3s and spawns 2 Pink minions; segmented 5-bar health display"
+      "title": "Boss phase shields — at 50% health the boss shields for 3s and spawns 2 Pink minions; segmented 5-bar health display"
     },
     {
       "category": "Cosmos BTD",
       "id": "endless-log-scaling",
       "tested": "harness: wave-60 red layers 5, wave-60 boss layers 80",
-      "title": "Logarithmic endless scaling \u2014 waves past 50 gain log-scaled layers (cap +6) and speed, bosses gain +2 layers/wave"
+      "title": "Logarithmic endless scaling — waves past 50 gain log-scaled layers (cap +6) and speed, bosses gain +2 layers/wave"
     },
     {
       "category": "Cosmos BTD",
       "id": "synergy-beacon",
       "tested": "harness: beacon placed, buffFactor 0.8 on nearby dart, 1.0 on far sniper, ECS-registered",
-      "title": "Synergy Beacon tower (200g) \u2014 no attack; towers in range fire faster (0.80x / 0.72x / 0.65x by beacon level)"
+      "title": "Synergy Beacon tower (200g) — no attack; towers in range fire faster (0.80x / 0.72x / 0.65x by beacon level)"
     },
     {
       "category": "Cosmos BTD",
       "id": "status-effects",
       "tested": "harness: burn ticks, stun freezes dist, dart blocked on lead, power dart shreds, bosses immune",
-      "title": "Status effect engine \u2014 burn (mortar), poison (tesla), stun (sniper crits), armor shred (power-branch hits); burn/poison tick, stun freezes, shred bypasses lead/fortified; colored status dots"
+      "title": "Status effect engine — burn (mortar), poison (tesla), stun (sniper crits), armor shred (power-branch hits); burn/poison tick, stun freezes, shred bypasses lead/fortified; colored status dots"
     },
     {
       "category": "Cosmos BTD",
       "id": "fct-arcs-crits",
       "tested": "harness: floaters carry vx and drift in x; crit roll code-reviewed in damageBalloon",
-      "title": "Floating combat text physics arcs + true crit rolls \u2014 floaters drift sideways with gravity; 10% crit chance adds +1 damage and CRIT label"
+      "title": "Floating combat text physics arcs + true crit rolls — floaters drift sideways with gravity; 10% crit chance adds +1 damage and CRIT label"
     },
     {
       "category": "UI/UX",
       "id": "branch-patrol-controls",
       "tested": "harness: API methods exist (upgradeBranch/setHeroPatrol); button wiring code-reviewed in shell.js; inspect card already showed branch options",
-      "title": "Action-bar branch + patrol controls \u2014 branch upgrade buttons (cost/locked states) and hero patrol toggle in the BTD bar"
+      "title": "Action-bar branch + patrol controls — branch upgrade buttons (cost/locked states) and hero patrol toggle in the BTD bar"
     },
     {
       "category": "Engine Tools",
       "id": "map-editor",
       "tested": "harness: export/apply/reset round-trip, invalid map rejected, balloons walk custom track; editor DOM wiring code-reviewed in shell.js",
-      "title": "Level / map editor \u2014 Dev Tools tab: edit Catmull-Rom control points + tree/rock/pond terrain, export as JSON, apply live, reset to default track"
+      "title": "Level / map editor — Dev Tools tab: edit Catmull-Rom control points + tree/rock/pond terrain, export as JSON, apply live, reset to default track"
     },
     {
       "category": "Engine Tools",
       "id": "debug-console",
       "tested": "harness (vm): recordFrame stats, exec help/fps/stats/entities/mem/version/clear, unknown command; overlay DOM + ~ key code-reviewed, heap n/a honestly when performance.memory is absent",
-      "title": "Debug console + performance monitor \u2014 `~` overlay with 60-frame FPS graph, frame time, entity/particle/grid counts, JS heap, command line"
+      "title": "Debug console + performance monitor — `~` overlay with 60-frame FPS graph, frame time, entity/particle/grid counts, JS heap, command line"
     },
     {
       "category": "Engine Tools",
       "id": "mod-loader",
       "tested": "harness: ModLoader parse/validate rejects bad JSON, bad tower, bad wave index; apply registers tower+enemy+wave and custom wave 3 spawns the custom enemy; shell UI wiring code-reviewed",
-      "title": "Modding & config loader \u2014 JSON mods add towers, enemies and wave compositions to the live BTD game (validated, no code execution, browser-local only)"
+      "title": "Modding & config loader — JSON mods add towers, enemies and wave compositions to the live BTD game (validated, no code execution, browser-local only)"
     },
     {
       "category": "Cosmos BTD",
       "id": "mortar-splash-preview",
       "tested": "harness: splashRadiusFor mortar=82, cannon=58, dart=0; dashed splash ring in placement ghost code-reviewed (no DOM harness for canvas)",
-      "title": "Mortar target preview \u2014 dashed splash-radius ring at the cursor while placing mortar/cannon"
+      "title": "Mortar target preview — dashed splash-radius ring at the cursor while placing mortar/cannon"
     },
     {
       "category": "Cosmos BTD",
       "id": "sell-refund-preview",
       "tested": "harness: inspect sellRefund 70 of dart cost 100; Sell button label in shell.js code-reviewed (no DOM harness)",
-      "title": "Tower sell preview \u2014 Sell button shows the exact refund (+70g for a base tower) when a tower is selected"
+      "title": "Tower sell preview — Sell button shows the exact refund (+70g for a base tower) when a tower is selected"
     },
     {
       "category": "Cosmos BTD",
       "id": "hero-cooldown-bar",
       "tested": "harness: heroCdMax 12/9/7 by ability tier, HUD heroCd/heroCdMax present; action-bar bar + seconds label in shell.js code-reviewed",
-      "title": "Hero ability cooldown bar \u2014 action-bar bar + seconds-left label for the hero ability recharge"
+      "title": "Hero ability cooldown bar — action-bar bar + seconds-left label for the hero ability recharge"
     },
     {
       "category": "Cosmos BTD",
       "id": "wave-skip-bonus",
       "tested": "harness: manual start between waves after wave 1 pays +25g once; auto-start and wave 1 pay nothing; reset clears counters",
-      "title": "Wave skip bonus \u2014 +25 gold for manually starting the next wave early (auto-start never pays)"
+      "title": "Wave skip bonus — +25 gold for manually starting the next wave early (auto-start never pays)"
     },
     {
       "category": "Cosmos BTD",
       "id": "balloon-speed-lines",
       "tested": "harness: isFastBalloon true for Pink (112) and Zebra (96), false for Red (62) and bosses; streak drawing code-reviewed (canvas only)",
-      "title": "Balloon speed lines \u2014 fast balloons (Pink/Zebra) draw motion streaks trailing behind them"
+      "title": "Balloon speed lines — fast balloons (Pink/Zebra) draw motion streaks trailing behind them"
     },
     {
       "category": "Cosmos BTD",
       "id": "muzzle-flash-recoil",
       "tested": "harness: fire sets recoil=1 + flash>0, recoil decays to 0 and offsets 0-5px; flash/recoil draw code code-reviewed (canvas only, sprite + procedural)",
-      "title": "Muzzle flash + recoil \u2014 towers kick back along the firing angle and flash at the muzzle on every shot"
+      "title": "Muzzle flash + recoil — towers kick back along the firing angle and flash at the muzzle on every shot"
     },
     {
       "category": "Cosmos BTD",
       "id": "leak-warning",
       "tested": "harness: leakProgress 0 at spawn, >=0.8 near exit; leakWarning true only at >=80% and false when won/lost; HUD leakWarning/leakProgress echoed",
-      "title": "Leak warning \u2014 screen edge pulses red with a banner when a balloon is 80%+ along the path"
+      "title": "Leak warning — screen edge pulses red with a banner when a balloon is 80%+ along the path"
     },
     {
       "category": "Cosmos BTD",
       "id": "end-screens-run-stats",
       "tested": "harness: runSummary null mid-run, victory/defeat summary freezes timeSec/time, waves/pops/score/gold/heroKills; reset clears run clock; end-screen draw code code-reviewed",
-      "title": "Victory/defeat end screens \u2014 run stats (waves, pops, score, gold, time, hero kills) on the win/lose screen"
+      "title": "Victory/defeat end screens — run stats (waves, pops, score, gold, time, hero kills) on the win/lose screen"
     },
     {
       "category": "Hub UI",
       "id": "hub-starfield",
       "tested": "CSS-only animated starfield in the header; animation frozen on Low quality (body[data-quality=low] set by shell) and prefers-reduced-motion; DOM/CSS code-reviewed, no browser screenshot check",
-      "title": "Animated starfield \u2014 CSS-only drifting stars behind the hub header, static on Low quality"
+      "title": "Animated starfield — CSS-only drifting stars behind the hub header, static on Low quality"
     },
     {
       "category": "Hub UI",
       "id": "equipped-hero-glow",
       "tested": "shell renderHeroes adds .equipped class + glow CSS for the equipped hero only; DOM/CSS code-reviewed, no browser screenshot check",
-      "title": "Hero portrait glow \u2014 the equipped hero's portrait glows gold in the sidebar"
+      "title": "Hero portrait glow — the equipped hero's portrait glows gold in the sidebar"
     },
     {
       "category": "Hub UI",
       "id": "levelup-launcher-layout",
       "tested": "serve check: layout renders with launcher grid + rails; responsive breakpoints code-reviewed, no browser screenshot check",
-      "title": "LEVEL UP 3-column launcher layout \u2014 left nav rail, center stage with search, right profile/players rail; collapses to one column on small screens"
+      "title": "LEVEL UP 3-column launcher layout — left nav rail, center stage with search, right profile/players rail; collapses to one column on small screens"
     },
     {
       "category": "Hub UI",
       "id": "featured-game-hero",
       "tested": "serve check: featured banner markup + battlefield image 200; no price claims in markup",
-      "title": "Featured game hero banner \u2014 Cosmos BTD battlefield art, tags, description, Play + About buttons; no fake price or discount"
+      "title": "Featured game hero banner — Cosmos BTD battlefield art, tags, description, Play + About buttons; no fake price or discount"
     },
     {
       "category": "Hub UI",
       "id": "game-cards-info-window",
       "tested": "serve check: picker modal markup present; card/info wiring code-reviewed, no browser click check",
-      "title": "Game cards + info window \u2014 every game gets a card (image, description, status) and an info modal; Play loads the game, Esc/backdrop/Close dismiss"
+      "title": "Game cards + info window — every game gets a card (image, description, status) and an info modal; Play loads the game, Esc/backdrop/Close dismiss"
     },
     {
       "category": "Hub UI",
       "id": "recently-played",
       "tested": "code-reviewed: localStorage round-trip in shell; empty state shown with no history",
-      "title": "Recently Played rail \u2014 last 5 games played, stored in this browser only, with the date played; honest empty state when none"
+      "title": "Recently Played rail — last 5 games played, stored in this browser only, with the date played; honest empty state when none"
     },
     {
       "category": "Hub UI",
       "id": "game-search",
       "tested": "code-reviewed: filter function hides non-matching cards; no server call",
-      "title": "Find Games search \u2014 filters the game cards live by name/description as you type"
+      "title": "Find Games search — filters the game cards live by name/description as you type"
     },
     {
       "category": "Hub UI",
       "id": "wallet-provider-choice",
       "tested": "wallet harness: both installed picks Leap without touching Keplr; Leap-only defaults to Leap; sticky signing reuses Leap after Keplr appears",
-      "title": "Wallet provider choice \u2014 separate Keplr and Leap buttons, disabled with a tooltip when an extension is missing; chosen provider is captured and reused for every signature"
+      "title": "Wallet provider choice — separate Keplr and Leap buttons, disabled with a tooltip when an extension is missing; chosen provider is captured and reused for every signature"
     },
     {
       "category": "Hub UI",
       "id": "no-demo-real-players",
       "tested": "grep: no demo surfaces in index/shell/wallet/server; server test still 25/25",
-      "title": "No demo mode \u2014 demo address button, demo hero flow and demo-only wording removed; hero claims use /api/heroes/claim and MODE defaults to live"
+      "title": "No demo mode — demo address button, demo hero flow and demo-only wording removed; hero claims use /api/heroes/claim and MODE defaults to live"
     },
     {
       "category": "CEO Panel",
       "id": "ceo-side-tabs",
       "tested": "code-reviewed: ceoLayout markup + CSS; tab logic untouched",
-      "title": "CEO panel side tabs \u2014 Orders/Ledger/Users/Flags/Settings/Announce/Audit as a vertical side rail, collapsing to horizontal tabs on narrow screens"
+      "title": "CEO panel side tabs — Orders/Ledger/Users/Flags/Settings/Announce/Audit as a vertical side rail, collapsing to horizontal tabs on narrow screens"
     },
     {
       "category": "Cosmos BTD",
       "id": "space-atom-look",
       "tested": "harness: background renders in vm stub; orb/leak coordinates code-reviewed, no browser screenshot check",
-      "title": "Space ATOM look \u2014 energy lane ending at a drawn ATOM orb, violet/navy space gradient, starfield, crystal spires, nebula pool; leak effects at the orb"
+      "title": "Space ATOM look — energy lane ending at a drawn ATOM orb, violet/navy space gradient, starfield, crystal spires, nebula pool; leak effects at the orb"
     },
     {
       "category": "Hub UI",
       "id": "keplr-only-wallet",
       "tested": "wallet harness: Keplr-only providers list, other wallet extensions ignored, connect with another provider name rejected, stored Leap sessions not restored",
-      "title": "Keplr-only wallet \u2014 the other wallet option was removed; connect, signing and sends use Keplr only"
+      "title": "Keplr-only wallet — the other wallet option was removed; connect, signing and sends use Keplr only"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-powerups",
       "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
-      "title": "Shooter power-ups \u2014 shield (absorbs one hit), rapid fire (6s), spread shot (8s) and extra life drop from drones (22%) and bosses; distinct on-canvas icons"
+      "title": "Shooter power-ups — shield (absorbs one hit), rapid fire (6s), spread shot (8s) and extra life drop from drones (22%) and bosses; distinct on-canvas icons"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-boss",
       "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
-      "title": "Shooter boss drone every 5 waves \u2014 20+2/wave HP, 3-bolt fan, health bar, 500 pts, drops 2 power-ups; wave cannot clear while the boss lives"
+      "title": "Shooter boss drone every 5 waves — 20+2/wave HP, 3-bolt fan, health bar, 500 pts, drops 2 power-ups; wave cannot clear while the boss lives"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-combo",
       "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
-      "title": "Shooter combo multiplier \u2014 bullet kills build combo, +0.5x per 5 kills up to x3, shown in HUD/top bar; a lost life resets it, a shield block preserves it"
+      "title": "Shooter combo multiplier — bullet kills build combo, +0.5x per 5 kills up to x3, shown in HUD/top bar; a lost life resets it, a shield block preserves it"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-touch",
       "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
-      "title": "Shooter touch controls \u2014 virtual joystick on the left half + FIRE button on the right half, drawn on canvas, multi-touch tracked by identifier; removed with the module"
+      "title": "Shooter touch controls — virtual joystick on the left half + FIRE button on the right half, drawn on canvas, multi-touch tracked by identifier; removed with the module"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-leaderboard",
       "tested": "shooter harness: power-up kinds, boss spawn/kill, combo multiplier, touch joystick/fire, shield block (see Batch 10); server test: shooter bests + per-game leaderboard",
-      "title": "Shooter leaderboard \u2014 game-over scores post to /api/progress with game=space-shooter (per-game bests, BTD bests untouched) and the Top Players rail has a Shooter filter; duplicate game-over emits deduped"
+      "title": "Shooter leaderboard — game-over scores post to /api/progress with game=space-shooter (per-game bests, BTD bests untouched) and the Top Players rail has a Shooter filter; duplicate game-over emits deduped"
     },
     {
       "category": "Platform & social",
       "id": "friend-challenges",
       "tested": "server test: invite create, rival accept/decline, non-rival 403, double-respond 400, result after accept, GET /api/duels list; shell invite/respond/submit UI code-reviewed only (no browser/DOM harness)",
-      "title": "Friend challenges \u2014 send a duel invite by address, the rival accepts or declines, then the challenger submits the result asynchronously; invite status and results live in the Challenges rail"
+      "title": "Friend challenges — send a duel invite by address, the rival accepts or declines, then the challenger submits the result asynchronously; invite status and results live in the Challenges rail"
     },
     {
       "category": "Platform & social",
       "id": "seasonal-ladder",
       "tested": "server test: monthly bests recorded on progress and duel results, season leaderboard returns seasonBest, previous month empty; shell season toggle + top-3 badges code-reviewed only (no browser/DOM harness)",
-      "title": "Seasonal ladder \u2014 monthly leaderboard (This month toggle in Top Players) from stored monthly bests, with last month top 3 shown and a trophy badge on this month top 3; all-time board unchanged"
+      "title": "Seasonal ladder — monthly leaderboard (This month toggle in Top Players) from stored monthly bests, with last month top 3 shown and a trophy badge on this month top 3; all-time board unchanged"
     },
     {
       "category": "Platform & social",
       "id": "share-card",
       "tested": "serve check: Share run card button in served homepage; canvas snapshot + stats banner + PNG download code-reviewed only (no browser canvas check; a tainted canvas fails with a toast only)",
-      "title": "Share card \u2014 download a PNG snapshot of the live game canvas with the game name, score, wave, pops, player name and date drawn on a stats banner"
+      "title": "Share card — download a PNG snapshot of the live game canvas with the game name, score, wave, pops, player name and date drawn on a stats banner"
     },
     {
       "category": "Platform & social",
       "id": "referral-code",
       "tested": "server test: code derived from the address, invite counted once, self-referral ignored, no credits paid to either side; shell code display + ?ref= capture code-reviewed only (no browser/DOM harness)",
-      "title": "Referral code in profile \u2014 every player has a GAME- code, a friend opening ?ref=CODE is counted once in the profile; tracked only, no payouts"
+      "title": "Referral code in profile — every player has a GAME- code, a friend opening ?ref=CODE is counted once in the profile; tracked only, no payouts"
     },
     {
       "category": "Marketplace",
       "id": "marketplace-price-history",
       "tested": "server test: history endpoint empty before any closed sale, still empty for a pending order; sparkline SVG helper + listing rendering code-reviewed only (no browser/DOM harness); history records only on CEO approve/execute, not on pending orders",
-      "title": "Price history sparkline per hero \u2014 last 10 closed sales per hero type, with last price, average and count, drawn as an SVG sparkline under each listing price"
+      "title": "Price history sparkline per hero — last 10 closed sales per hero type, with last price, average and count, drawn as an SVG sparkline under each listing price"
     },
     {
       "category": "Marketplace",
       "id": "marketplace-offers",
       "tested": "server test: below-list offer, at-list offer 400, self-offer 400, duplicate pending 400, non-seller respond 403, accept reprices + reserves listing, other-buyer buy 400, offer-buyer buy at offer price with 5% fee; offer UI code-reviewed only (no browser/DOM harness)",
-      "title": "Offer system \u2014 buyer offers below list price; seller accepts (listing reprices to the offer and reserves it for that buyer under the normal CEO-escrow buy) or declines; other pending offers are superseded; accepted offers expire with the order timer and restore the original price"
+      "title": "Offer system — buyer offers below list price; seller accepts (listing reprices to the offer and reserves it for that buyer under the normal CEO-escrow buy) or declines; other pending offers are superseded; accepted offers expire with the order timer and restore the original price"
     },
     {
       "category": "Marketplace",
       "id": "marketplace-rentals",
       "tested": "server test: rental create/request guards, wrong amount 400, owner-rent 400, listed-hero rental 400, reused TXID rejected, fee split 2.85 on 3 ATOM; CEO execute + auto-return sweep code-reviewed only (CEO-signed endpoints, no test keys in the harness); rented heroes show in the marketplace, in-game equip of a rented hero is not yet wired",
-      "title": "Hero rentals \u2014 owner lists a hero for a total price over 1-30 days; renter sends the full price to the CEO address (memo = rental ID); CEO execute starts the loan with the same fee split and the hero returns automatically at the end; rented heroes cannot be listed for sale"
+      "title": "Hero rentals — owner lists a hero for a total price over 1-30 days; renter sends the full price to the CEO address (memo = rental ID); CEO execute starts the loan with the same fee split and the hero returns automatically at the end; rented heroes cannot be listed for sale"
     },
     {
       "category": "Marketplace",
       "id": "marketplace-bulk-list",
       "tested": "server test: bulk list creates 2 listings, batch with an already-listed hero creates 0 (atomic), 11-item batch rejected; bulk form code-reviewed only (no browser/DOM harness)",
-      "title": "Bulk list \u2014 list up to 10 owned heroes in one batch from the marketplace; the whole batch is validated first, so one bad hero rejects the batch with nothing listed"
+      "title": "Bulk list — list up to 10 owned heroes in one batch from the marketplace; the whole batch is validated first, so one bad hero rejects the batch with nothing listed"
     },
     {
       "category": "CEO panel",
       "id": "ceo-dispute-queue",
       "tested": "server test (ADMIN_KEY-signed local harness): unsigned dispute 401, dispute on missing order 404, open dispute listed in /api/admin/disputes with count, resolve clears dispute + flag, double-dispute 400; CEO panel Disputes tab + Flag dispute button code-reviewed only (no browser/DOM harness)",
-      "title": "Dispute queue \u2014 flag any order as disputed (reason kept on the order + a matching anti-cheat flag) and review all open disputes in one dedicated CEO tab; a dispute is a review marker only and does not stop the order timer or change the escrow model"
+      "title": "Dispute queue — flag any order as disputed (reason kept on the order + a matching anti-cheat flag) and review all open disputes in one dedicated CEO tab; a dispute is a review marker only and does not stop the order timer or change the escrow model"
     },
     {
       "category": "CEO panel",
       "id": "ceo-fee-analytics",
       "tested": "server test (ADMIN_KEY-signed local harness): unsigned analytics 401, today's bucket shows volume/fees/orders from a CEO-executed closed order; canvas chart + day table code-reviewed only (no browser canvas check)",
-      "title": "Fee analytics chart \u2014 fees and volume by day (7/14/30-day windows, canvas bar chart, no dependencies) from closed sales and started rentals only; pending orders count for nothing until closed"
+      "title": "Fee analytics chart — fees and volume by day (7/14/30-day windows, canvas bar chart, no dependencies) from closed sales and started rentals only; pending orders count for nothing until closed"
     },
     {
       "category": "CEO panel",
       "id": "ceo-scheduled-announcements",
       "tested": "server test (ADMIN_KEY-signed local harness): unsigned schedule 401, past time 400, future schedule publishes to public /api/announcements after its time via the request sweep, cancel prevents publishing; CEO panel schedule form + list code-reviewed only (no browser/DOM harness)",
-      "title": "Scheduled announcements \u2014 pick a publish date/time in the CEO panel; the server publishes it when due (sweep on every request, plus a 60s timer on the standalone server) and it can be cancelled before then"
+      "title": "Scheduled announcements — pick a publish date/time in the CEO panel; the server publishes it when due (sweep on every request, plus a 60s timer on the standalone server) and it can be cancelled before then"
     },
     {
       "category": "CEO panel",
       "id": "ceo-full-ledger-export",
       "tested": "server test (ADMIN_KEY-signed local harness): /api/admin/ledger?limit=5000 returns all entries across kinds including order_closed; full-export CSV builder (union of all entry fields) code-reviewed only (no browser/DOM harness)",
-      "title": "Export full ledger to CSV \u2014 the CEO panel now exports the whole ledger (all kinds, up to 5000 entries, every field) in one file, alongside the existing per-kind filtered export"
+      "title": "Export full ledger to CSV — the CEO panel now exports the whole ledger (all kinds, up to 5000 entries, every field) in one file, alongside the existing per-kind filtered export"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-click-drag",
       "tested": "miner harness: click kills a 1-HP rock and yields its ore; hold-to-mine damages a 30-HP rock over held frames; mining stops on mouseup",
-      "title": "Click/drag mining \u2014 click strikes with the drill, holding the beam on a rock keeps mining it; ore goes to cargo"
+      "title": "Click/drag mining — click strikes with the drill, holding the beam on a rock keeps mining it; ore goes to cargo"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-ore-tiers",
       "tested": "miner harness: 6-tier ORES table checked; iron/nickel/gold mined in harness; belt mix shifts via pickOre weights (code-reviewed for belts 2+)",
-      "title": "Six ore tiers \u2014 Iron, Nickel, Cobalt, Gold, Platinum, ATOM Crystal, rarer and more valuable in deeper belts"
+      "title": "Six ore tiers — Iron, Nickel, Cobalt, Gold, Platinum, ATOM Crystal, rarer and more valuable in deeper belts"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-upgrades",
       "tested": "miner harness: Drill Power upgrade via key 1 raises level and damage; Auto-Drill mines a rock unaided in ~2s; Scanner raises one Iron from 5cr to 6cr; bank converts cargo to credits and empties it",
-      "title": "Drill upgrades \u2014 Drill Power, Auto-Drill and Scanner bought with banked credits; Bank (B) converts cargo ore to credits"
+      "title": "Drill upgrades — Drill Power, Auto-Drill and Scanner bought with banked credits; Bank (B) converts cargo ore to credits"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-belts-save-bests",
       "tested": "miner harness: mining to quota advances belt 1->2 with new quota and bestBelt; localStorage save written with bestBelt/powerLevel; End Shift emits exactly one final game:ended; server test: /api/progress game=asteroid-miner + leaderboard sorts by miner best, BTD bestScore untouched",
-      "title": "Belt progression + local save + server bests \u2014 belt quota advances belts with a credit bonus; progress persists per address; End Shift records the run on the Miner leaderboard"
+      "title": "Belt progression + local save + server bests — belt quota advances belts with a credit bonus; progress persists per address; End Shift records the run on the Miner leaderboard"
     },
     {
       "category": "Cosmos BTD",
       "id": "sprite-prerendering",
       "tested": "BTD harness: prerendered balloon/tower bodies drawn via offscreen cache (cache stats asserted, entries>0 after waves); direct-draw fallback when no canvas API; boss/beacon stay live-drawn",
-      "title": "Offscreen sprite pre-rendering \u2014 tower/balloon static bodies drawn once per size/color key to offscreen canvases, one drawImage per frame plus dynamic overlays"
+      "title": "Offscreen sprite pre-rendering — tower/balloon static bodies drawn once per size/color key to offscreen canvases, one drawImage per frame plus dynamic overlays"
     },
     {
       "category": "Engine Core",
       "id": "dynamic-particle-cap",
       "tested": "harness: dynFactorFor mapping 60fps->1, 45fps->0.6, 20fps->0.35 asserted in BTD/shooter/miner; spawnParticle caps at 400/400/300 x factor; step-up hysteresis asserted via updateDynFactor",
-      "title": "Dynamic particle cap \u2014 cap adapts to measured FPS (1x / 0.6x / 0.35x) with step-up hysteresis, in BTD, Shooter and Miner"
+      "title": "Dynamic particle cap — cap adapts to measured FPS (1x / 0.6x / 0.35x) with step-up hysteresis, in BTD, Shooter and Miner"
     },
     {
       "category": "Hub UI",
       "id": "lazy-game-modules",
       "tested": "server test: index.html has no eager game <script> tags; GameScriptLoader vm test: already-present global resolves without injecting, second load reuses cached promise, failed load clears cache for retry; shell registers games with lazy loaders gated on config playable status",
-      "title": "Lazy-load game modules \u2014 game scripts inject on first selection via GameScriptLoader (cached, retry-on-failure); hub no longer downloads all five game bundles up front"
+      "title": "Lazy-load game modules — game scripts inject on first selection via GameScriptLoader (cached, retry-on-failure); hub no longer downloads all five game bundles up front"
     },
     {
       "category": "Cosmos BTD",
       "id": "colorblind-palette",
       "tested": "harness: displayBalloonType maps all 10 types to distinct hues/labels, off mode returns stock colors; canvas ring/label code-reviewed only (no screenshot check)",
-      "title": "Colorblind palette \u2014 distinct hues + 3-letter balloon labels per type, toggle in Settings; sprite balloons get a colored ring + label"
+      "title": "Colorblind palette — distinct hues + 3-letter balloon labels per type, toggle in Settings; sprite balloons get a colored ring + label"
     },
     {
       "category": "Cosmos BTD",
       "id": "reduced-motion-mode",
       "tested": "harness: shake stays 0 and no particles spawn with reduced motion on; DoF gate + static glow code-reviewed; CSS starfield freeze code-reviewed",
-      "title": "Reduced motion \u2014 disables screen shake, particle bursts and tilt-shift bands, static danger glow; defaults to the OS prefers-reduced-motion setting, toggle in Settings"
+      "title": "Reduced motion — disables screen shake, particle bursts and tilt-shift bands, static danger glow; defaults to the OS prefers-reduced-motion setting, toggle in Settings"
     },
     {
       "category": "Cosmos BTD",
       "id": "keyboard-only-play",
       "tested": "harness: arrows move/clamp the cursor, Enter places a tower at the cursor without a mouse, U/X upgrade/sell the selected tower",
-      "title": "Keyboard-only play \u2014 arrow keys move a visible cursor (Shift = 96px step), Enter places/selects at the cursor, U upgrades, X sells; mouse movement takes over automatically"
+      "title": "Keyboard-only play — arrow keys move a visible cursor (Shift = 96px step), Enter places/selects at the cursor, U upgrades, X sells; mouse movement takes over automatically"
     },
     {
       "category": "Hub UI",
       "id": "large-touch-targets",
       "tested": "CSS media query code-reviewed only (no real-device touch check)",
-      "title": "Larger touch targets \u2014 44px+ action-bar buttons/selects and 52px tower tiles on small screens and coarse pointers; desktop layout unchanged"
+      "title": "Larger touch targets — 44px+ action-bar buttons/selects and 52px tower tiles on small screens and coarse pointers; desktop layout unchanged"
     },
     {
       "category": "Hub UI",
       "id": "game-tags",
       "tested": "serve check: /api/config games carry tags, manifests carry tags, served shell renders tag chips (code-reviewed, no browser screenshot)",
-      "title": "Game tags on every game \u2014 tag chips on game cards, the info window and search, stored in manifests and the server config"
+      "title": "Game tags on every game — tag chips on game cards, the info window and search, stored in manifests and the server config"
     },
     {
       "category": "Hub UI",
       "id": "tag-filter",
       "tested": "serve check: tag filter row in served HTML, tag chips filter cards by data-tags (code-reviewed, no browser screenshot)",
-      "title": "Tag filter \u2014 tap a tag to filter the game list; Find Games search also matches tags"
+      "title": "Tag filter — tap a tag to filter the game list; Find Games search also matches tags"
     },
     {
       "category": "Engine",
       "id": "engine-open-failsafe",
       "tested": "harness: module that fails to load throws before the engine marks it open, viewport cleared, no game:start emitted",
-      "title": "Engine open fail-safe \u2014 a game that fails to load throws before opening, the viewport is cleared and the launcher stays usable"
+      "title": "Engine open fail-safe — a game that fails to load throws before opening, the viewport is cleared and the launcher stays usable"
     },
     {
       "category": "Engine",
       "id": "legacy-cleanup",
       "tested": "serve check: no legacy entry in /api/config, dead files deleted, no references to them in index/server/shell",
-      "title": "Legacy cleanup \u2014 unreferenced Voidfall files and dead deploy configs removed, stale demo description fixed, legacy Defend ATOM entry removed from config"
+      "title": "Legacy cleanup — unreferenced Voidfall files and dead deploy configs removed, stale demo description fixed, legacy Defend ATOM entry removed from config"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-prestige",
       "tested": "tycoon/clicker harness: multiplier 1/1.25/2.0 at 0/1/4 prestiges; prestige at 5000 credits resets rigs/credits to 200 and keeps the multiplier; offline earnings use the multiplier",
-      "title": "Tycoon prestige \u2014 reset rigs and credits at 5,000 credits for a permanent +25% earnings multiplier per prestige, stacking; lifetime earnings tracked"
+      "title": "Tycoon prestige — reset rigs and credits at 5,000 credits for a permanent +25% earnings multiplier per prestige, stacking; lifetime earnings tracked"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-rig-skins",
       "tested": "tycoon/clicker harness: 3 skins (Standard free, Gold 1000, Void 2500); buying Gold deducts 1000 and equips it; insufficient credits rejected; skin persists in the local save",
-      "title": "Rig skins \u2014 Standard, Gold and Void rig skins bought with credits; the equipped skin colors rig cards and persists per address"
+      "title": "Rig skins — Standard, Gold and Void rig skins bought with credits; the equipped skin colors rig cards and persists per address"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-combo-golden",
       "tested": "tycoon/clicker harness: clicks within 1.5s chain the streak, a 3s gap resets it to 1; combo multiplier 1.0/1.1/3.0 at streak 0/10/200; golden-active click gains +10; best combo tracked",
-      "title": "Combo streaks + golden shards \u2014 fast clicks build a streak bonus (+10% per 10, capped 3x); rare golden shard events pay +10 per click for 8s"
+      "title": "Combo streaks + golden shards — fast clicks build a streak bonus (+10% per 10, capped 3x); rare golden shard events pay +10 per click for 8s"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-bests-conversion",
       "tested": "server test: Save Best posts game=atom-clicker and the Clicker leaderboard sorts by best combo, BTD bestScore untouched; /api/convert-shards converts 100-5000 (multiple of 100) at 100 shards = 10 credits, rejects 150 and 5100; harness: convert math 250 shards -> 200 + 20 credits, 50 remainder",
-      "title": "Clicker server bests + shard conversion \u2014 Save Best records best combo on the Clicker leaderboard; 100 banked shards convert to 10 in-game credits (capped, ledger-recorded)"
+      "title": "Clicker server bests + shard conversion — Save Best records best combo on the Clicker leaderboard; 100 banked shards convert to 10 in-game credits (capped, ledger-recorded)"
     },
     {
       "category": "PvP Duels",
       "id": "live-duel-race",
       "tested": "server test: accept then start sets live + 600s expiry, both players post live scores (monotonic max), GET live polls scores/leader/secondsLeft, finish decides by higher score, non-participant 403, start before accept 400; shell live panel + 5s polling code-reviewed only (no browser/DOM harness)",
-      "title": "Live duel races \u2014 after accept, either player starts a 10-minute score race on one shared seed; both post live scores, the panel polls every 5s for scores, leader and countdown, and Finish decides the race"
+      "title": "Live duel races — after accept, either player starts a 10-minute score race on one shared seed; both post live scores, the panel polls every 5s for scores, leader and countdown, and Finish decides the race"
     },
     {
       "category": "PvP Duels",
       "id": "duel-entry-fee",
       "tested": "server test: 100-credit duel deducts 100 from each at start (pot 200), winner gets 180 (90%, 10% rake ledgered), draw refunds both, insufficient credits blocks start, invalid fee 150 rejected, legacy result on a fee duel rejected, no fee deducted before start; credits only, no ATOM",
-      "title": "Duel entry fee in credits \u2014 0/50/100/250 credits, held from both balances at race start; winner takes most (90% of the pot, 10% rake), a draw refunds both fees"
+      "title": "Duel entry fee in credits — 0/50/100/250 credits, held from both balances at race start; winner takes most (90% of the pot, 10% rake), a draw refunds both fees"
     },
     {
       "category": "PvP Duels",
       "id": "duel-history-rematch",
       "tested": "server test: history lists decided duels newest-first with won/lost/draw outcome + scores + fee + payout for the viewer, rematch creates a fresh pending duel with the same rival and fee and a new seed, rematch of a pending duel rejected, non-participant 403; shell history + rematch UI code-reviewed only",
-      "title": "Duel history + rematch \u2014 finished duels list with outcome, scores, fee and payout; one click sends a rematch invite to the same rival with the same entry fee and a fresh seed"
+      "title": "Duel history + rematch — finished duels list with outcome, scores, fee and payout; one click sends a rematch invite to the same rival with the same entry fee and a fresh seed"
     },
     {
       "category": "Cosmos BTD",
       "id": "duel-shared-seed",
       "tested": "BTD harness: setDuelSeed(12345) reseeds the decor generator (identical rnd sequence), getDuelSeed/HUD/state expose the seed, init with duelSeed applies it before the background paints; wave compositions are deterministic so both racers face the same waves (spawn jitter still uses Math.random)",
-      "title": "Shared duel seed in BTD \u2014 setDuelSeed/getDuelSeed reseed the background and starfield decor so both duel racers share one seed; exposed in HUD and state"
+      "title": "Shared duel seed in BTD — setDuelSeed/getDuelSeed reseed the background and starfield decor so both duel racers share one seed; exposed in HUD and state"
     },
     {
       "category": "Hub UI",
       "id": "hub-loading-screen",
       "tested": "server test: index.html serves #hubLoader with #hubLoaderFill/#hubLoaderTip, shell.js has updateHubLoader/hideHubLoader + LOADING_TIPS, hub.css has .hubLoader; hide-on-ready + 20s safety timeout code-reviewed, no browser check",
-      "title": "Hub loading screen \u2014 progress bar + rotating tips while the hub and first game load; never traps the user on a failed load"
+      "title": "Hub loading screen — progress bar + rotating tips while the hub and first game load; never traps the user on a failed load"
     },
     {
       "category": "Hub UI",
       "id": "ambient-space-hum",
       "tested": "server test: shell.js has startAmbientHum/stopAmbientHum/applyAmbientHum + setAmbientHum setting, reusing the uiTick AudioContext; gesture-gated start, volume/uiSounds gating and no-autoplay code-reviewed, no real-audio browser check",
-      "title": "Ambient space hum \u2014 quiet detuned Web Audio drone (no assets), starts only after the first click/keypress, toggle in Settings"
+      "title": "Ambient space hum — quiet detuned Web Audio drone (no assets), starts only after the first click/keypress, toggle in Settings"
     },
     {
       "category": "Hub UI",
       "id": "hub-footer-version",
       "tested": "server test: /api/config + /api/health carry buildDate YYYY-MM-DD, index footer has #hubFooterVersion/#hubFooterDate + AtomStaking and Swap links, shell.js renderHubFooter fills version/date from config; static fallback in HTML code-reviewed",
-      "title": "Hub footer \u2014 version, build date, and links to AtomStaking + Swap"
+      "title": "Hub footer — version, build date, and links to AtomStaking + Swap"
     },
     {
       "category": "Cosmos BTD",
@@ -802,73 +802,73 @@
       "category": "Cosmos BTD",
       "id": "sell-refund-invested",
       "tested": "BTD harness: maxed dart tower with 4 upgrades + branch point shows sellRefund 784 (70% of 1120 invested, was 70 for base cost only); sellSelected pays the same refund; towers without an invested field fall back to base cost",
-      "title": "Sell refund counts full investment \u2014 70% of base cost + upgrades + branch points, not just the base cost"
+      "title": "Sell refund counts full investment — 70% of base cost + upgrades + branch points, not just the base cost"
     },
     {
       "category": "Cosmos BTD",
       "id": "boss-wave-warning",
       "tested": "BTD harness: isBossWave true for waves 10/20/50, false for 9/11; nextWaveBoss in HUD true when the next wave is a boss wave",
-      "title": "Boss-wave warning \u2014 HUD flags the next wave as a boss wave (every 10th wave) before it starts"
+      "title": "Boss-wave warning — HUD flags the next wave as a boss wave (every 10th wave) before it starts"
     },
     {
       "category": "Games",
       "id": "shooter-graze-bonus",
       "tested": "shooter harness: asteroid skimmed within 22px of contact (no hit) pays +5 once, grazes counter 1, no life lost, no second payment on later frames; restart resets grazes",
-      "title": "Shooter graze bonus \u2014 skimming an asteroid without touching it pays +5 score, once per asteroid"
+      "title": "Shooter graze bonus — skimming an asteroid without touching it pays +5 score, once per asteroid"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-rich-vein",
       "tested": "miner harness: the mine that takes totalMined to a multiple of 10 yields +2 ore of the same type and richVeins +1; other mines yield +1; R restart resets richVeins",
-      "title": "Rich vein \u2014 every 10th mined rock yields a bonus ore of the same type"
+      "title": "Rich vein — every 10th mined rock yields a bonus ore of the same type"
     },
     {
       "category": "Cosmos BTD",
       "id": "hero-xp-progress",
       "tested": "BTD harness: heroXpProgress(0)={level 1, 0 into, 100 to next}, (150)={level 2, 50 into, 50 to next}, (250)={level 3}; heroXpProgress in HUD and getState",
-      "title": "Hero XP progress \u2014 HUD/state show the in-run hero level implied by hero XP plus XP into it and XP to the next level (100 XP per level)"
+      "title": "Hero XP progress — HUD/state show the in-run hero level implied by hero XP plus XP into it and XP to the next level (100 XP per level)"
     },
     {
       "category": "Games",
       "id": "shooter-accuracy",
       "tested": "shooter harness: accuracyFor(0,0)=0, (10,3)=30, (4,5) capped at 100; accuracy in HUD, getState and the game-over screen",
-      "title": "Shooter accuracy \u2014 kills per firing volley as a percent (capped 100), shown in the HUD, state and game-over screen"
+      "title": "Shooter accuracy — kills per firing volley as a percent (capped 100), shown in the HUD, state and game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-cargo-breakdown",
       "tested": "miner harness: empty cargo -> breakdown [] and richestOre null; iron x10 + gold x1 -> breakdown richest-first (iron 50, gold 50 tie keeps ore order) and richestOre iron; scanner level does not change ordering",
-      "title": "Miner cargo breakdown \u2014 per-ore counts and base values richest-first, plus the richest ore in cargo, in HUD and state"
+      "title": "Miner cargo breakdown — per-ore counts and base values richest-first, plus the richest ore in cargo, in HUD and state"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-milestones",
       "tested": "tycoon/clicker harness: milestonesReached(99)=[], (100)=[100], (5000)=all 5; crossing 100 clicks toasts once and persists milestones=[100]; legacy save with 600 clicks seeds [100,500] silently with no toast",
-      "title": "Click milestones \u2014 100/500/1000/2500/5000 total clicks toast once each, persist with the local save, next milestone shown in the game"
+      "title": "Click milestones — 100/500/1000/2500/5000 total clicks toast once each, persist with the local save, next milestone shown in the game"
     },
     {
       "category": "Cosmos BTD",
       "id": "btd-balloons-remaining",
       "tested": "BTD harness: _balloonsRemaining on a fresh state is 0; 2 live + 1 dead balloon + 3 queued = 5; HUD and getState echo the same count",
-      "title": "Balloons remaining \u2014 live balloons plus queued spawns in HUD and state, so the wave-clear count is visible"
+      "title": "Balloons remaining — live balloons plus queued spawns in HUD and state, so the wave-clear count is visible"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-best-wave",
       "tested": "shooter harness: fresh state bestWave 0; two startWave calls reach wave 2 with bestWave 2; R restart resets to wave 1 / bestWave 1; HUD and state expose it",
-      "title": "Best wave \u2014 highest wave reached in the run, in HUD, state and the game-over screen; resets on restart"
+      "title": "Best wave — highest wave reached in the run, in HUD, state and the game-over screen; resets on restart"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-belt-progress",
       "tested": "miner harness: _beltProgressPct(0,8)=0, (4,8)=50, (10,8)=100 capped, (3,0)=0; HUD and state expose beltProgressPct",
-      "title": "Belt progress percent \u2014 mined/quota as a percent (capped 100) in HUD and state"
+      "title": "Belt progress percent — mined/quota as a percent (capped 100) in HUD and state"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-prestige-progress",
       "tested": "tycoon/clicker harness: _prestigeProgressFor(0)={pct 0, remaining 5000}; (2500)={pct 50, remaining 2500}; (5000)={pct 100, remaining 0, canPrestige true}; state and panel show pct + remaining",
-      "title": "Prestige progress \u2014 percent toward 5,000 credits plus credits remaining, in state and the tycoon panel"
+      "title": "Prestige progress — percent toward 5,000 credits plus credits remaining, in state and the tycoon panel"
     },
     {
       "category": "Cosmos BTD",
@@ -1066,31 +1066,31 @@
       "category": "Engine",
       "id": "game-side-panel",
       "tested": "serve check: #gameScreen + #gameSideTabs in served HTML, tower grid renders in the side panel (code-reviewed, no browser screenshot)",
-      "title": "In-screen game side panel \u2014 Towers / Upgrades / Hero / Play tabs beside the board; tower shop grid with sprite tiles and prices lives inside the game screen"
+      "title": "In-screen game side panel — Towers / Upgrades / Hero / Play tabs beside the board; tower shop grid with sprite tiles and prices lives inside the game screen"
     },
     {
       "category": "Engine",
       "id": "game-screen-hud",
       "tested": "serve check: #gameHud strip in served HTML with lives/gold/wave/score/pops (code-reviewed, no browser screenshot)",
-      "title": "Game screen HUD strip \u2014 lives, gold, round, score, pops and next-wave danger/boss chips above the board, inside the screen"
+      "title": "Game screen HUD strip — lives, gold, round, score, pops and next-wave danger/boss chips above the board, inside the screen"
     },
     {
       "category": "Hub UI",
       "id": "open-game-new-tab",
       "tested": "serve check: served shell opens ?game=<id> in a new tab; new tab loads that game inside the engine (code-reviewed, no browser click check)",
-      "title": "Open a game in a new tab \u2014 clicking a game opens a new tab that loads that game inside the engine with its own sidebar and tabs"
+      "title": "Open a game in a new tab — clicking a game opens a new tab that loads that game inside the engine with its own sidebar and tabs"
     },
     {
       "category": "Hub UI",
       "id": "friends-rail",
       "tested": "serve check: #friendsBox in served HTML; rivals come only from real duel history (code-reviewed, no fake friends)",
-      "title": "Friends rail \u2014 players you have actually dueled, from real duel history; honest empty state, no fake friends or presence"
+      "title": "Friends rail — players you have actually dueled, from real duel history; honest empty state, no fake friends or presence"
     },
     {
       "category": "Hub UI",
       "id": "share-image-pro",
       "tested": "serve check: og-share.jpg 1200x630 returns 200; og/twitter tags point to it with the new description",
-      "title": "Professional share image \u2014 1200\u00d7630 OG image with GAME branding, Protect the ATOM orb, and a positive, honest description for shared links"
+      "title": "Professional share image — 1200×630 OG image with GAME branding, Protect the ATOM orb, and a positive, honest description for shared links"
     },
     {
       "category": "Cosmos BTD",
@@ -1120,217 +1120,217 @@
       "category": "Cosmos BTD",
       "id": "btd-hero-kills-per-tower",
       "tested": "BTD harness: _heroKillsPerTowerFor(0,0)=0, (10,4)=2.5, (7,3)=2.3; HUD + state expose heroKillsPerTower",
-      "title": "Hero kills per tower \u2014 average hero kills per tower placed, in HUD and state"
+      "title": "Hero kills per tower — average hero kills per tower placed, in HUD and state"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-grazes-per-kill",
       "tested": "shooter harness: _grazesPerKillFor(0,0)=0, (20,10)=2, (7,3)=2.3; HUD + state expose grazesPerKill and the game-over screen shows Grazes/kill",
-      "title": "Grazes per kill \u2014 average grazes per kill, in HUD, state and the game-over screen"
+      "title": "Grazes per kill — average grazes per kill, in HUD, state and the game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-mined-per-shift",
       "tested": "miner harness: _minedPerShiftFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose minedPerShift",
-      "title": "Mined per shift \u2014 average ore mined per completed shift, in HUD and state"
+      "title": "Mined per shift — average ore mined per completed shift, in HUD and state"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-earnings-per-rig",
       "tested": "tycoon/clicker harness: _earningsPerRigFor([],0,0)=0, ([{outputRate:10,level:2}],0,0)=20, ([{outputRate:1,level:1},{outputRate:1,level:1},{outputRate:5,level:1}],0,0)=2.3; getState exposes earningsPerRig and the panel shows the Earnings per rig line",
-      "title": "Earnings per rig \u2014 average earnings rate per owned rig, in state and the panel"
+      "title": "Earnings per rig — average earnings rate per owned rig, in state and the panel"
     },
     {
       "category": "Cosmos BTD",
       "id": "btd-hero-xp-per-tower",
       "tested": "BTD harness: _heroXpPerTowerFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose heroXpPerTower",
-      "title": "Hero XP per tower \u2014 average hero XP earned per tower placed, in HUD and state"
+      "title": "Hero XP per tower — average hero XP earned per tower placed, in HUD and state"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-score-per-shot",
       "tested": "shooter harness: _scorePerShotFor(0,0)=0, (500,10)=50, (7,3)=2.3; HUD + state expose scorePerShot, game-over line",
-      "title": "Score per shot \u2014 average score per firing volley, in HUD, state and the game-over screen"
+      "title": "Score per shot — average score per firing volley, in HUD, state and the game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-banked-per-shift",
       "tested": "miner harness: _bankedPerShiftFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose bankedPerShift",
-      "title": "Banked per shift \u2014 average banked credits per completed shift, in HUD and state"
+      "title": "Banked per shift — average banked credits per completed shift, in HUD and state"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-clicks-per-golden",
       "tested": "tycoon/clicker harness: _clicksPerGoldenFor(0,0)=0, (200,2)=100, (7,3)=2.3; getState exposes clicksPerGolden and the panel shows the Clicks/golden line",
-      "title": "Clicks per golden \u2014 average clicks between golden shard events, in state and the panel"
+      "title": "Clicks per golden — average clicks between golden shard events, in state and the panel"
     },
     {
       "category": "Cosmos BTD",
       "id": "btd-skip-bonus-per-tower",
       "tested": "BTD harness: _skipBonusPerTowerFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose skipBonusPerTower",
-      "title": "Skip bonus per tower \u2014 average wave-skip bonus gold earned per tower placed, in HUD and state"
+      "title": "Skip bonus per tower — average wave-skip bonus gold earned per tower placed, in HUD and state"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-grazes-per-shot",
       "tested": "shooter harness: _grazesPerShotFor(0,0)=0, (20,10)=2, (7,3)=2.3; HUD + state expose grazesPerShot, game-over line",
-      "title": "Grazes per shot \u2014 average grazes per firing volley, in HUD, state and the game-over screen"
+      "title": "Grazes per shot — average grazes per firing volley, in HUD, state and the game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-rich-veins-per-shift",
       "tested": "miner harness: _richVeinsPerShiftFor(0,0)=0, (20,4)=5, (7,3)=2.3; HUD + state expose richVeinsPerShift",
-      "title": "Rich veins per shift \u2014 average rich veins triggered per completed shift, in HUD and state"
+      "title": "Rich veins per shift — average rich veins triggered per completed shift, in HUD and state"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-earnings-per-overseer",
       "tested": "tycoon/clicker harness: _earningsPerOverseerFor([],0,0)=0, (1 rig 10x2, 1 overseer)=22, (rigs 1+1+5, 2 overseers)=4.2; getState exposes earningsPerOverseer and the panel shows the Earnings per overseer line",
-      "title": "Earnings per overseer \u2014 earnings rate per assigned overseer, in state and the panel"
+      "title": "Earnings per overseer — earnings rate per assigned overseer, in state and the panel"
     },
     {
       "category": "Cosmos BTD",
       "id": "btd-hero-kill-share",
       "tested": "BTD harness: _heroKillShareFor(0,0)=0, (25,100)=25, (1,3)=33.3, (150,100)=100 capped; HUD + state expose heroKillShare",
-      "title": "Hero kill share \u2014 hero kills as a percent of all pops, capped at 100, in HUD and state"
+      "title": "Hero kill share — hero kills as a percent of all pops, capped at 100, in HUD and state"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-powerups-per-kill",
       "tested": "shooter harness: _powerupsPerKillFor(4 pickups,4 kills)=1, (7 pickups,3 kills)=2.3, zero kills=0; HUD + state expose powerupsPerKill, game-over line",
-      "title": "Power-ups per kill \u2014 average power-ups collected per kill, in HUD, state and the game-over screen"
+      "title": "Power-ups per kill — average power-ups collected per kill, in HUD, state and the game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-banked-per-rich-vein",
       "tested": "miner harness: _bankedPerRichVeinFor(0,0)=0, (100,4)=25, (7,3)=2.3; HUD + state expose bankedPerRichVein",
-      "title": "Banked per rich vein \u2014 average banked credits per rich-vein trigger, in HUD and state"
+      "title": "Banked per rich vein — average banked credits per rich-vein trigger, in HUD and state"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-shards-per-golden",
       "tested": "tycoon/clicker harness: _shardsPerGoldenFor(10,20,2)=15, (7,0,3)=2.3, (5,5,0)=0; getState exposes shardsPerGolden and the panel shows the Shards/golden line",
-      "title": "Shards per golden \u2014 held shards per golden shard event, in state and the panel"
+      "title": "Shards per golden — held shards per golden shard event, in state and the panel"
     },
     {
       "category": "Cosmos BTD",
       "id": "btd-score-per-hero-kill",
       "tested": "BTD harness: _scorePerHeroKillFor(100,4)=25, (7,3)=2.3, (10,0)=0; HUD + state expose scorePerHeroKill",
-      "title": "Score per hero kill \u2014 average score per hero kill, in HUD and state"
+      "title": "Score per hero kill — average score per hero kill, in HUD and state"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-boss-share",
       "tested": "shooter harness: _bossShareFor(25,100)=25, (1,3)=33.3, caps at 100; HUD + state expose bossShare and the game-over screen shows the Boss share line",
-      "title": "Boss share \u2014 bosses defeated as a percent of kills, in HUD, state and the game-over screen"
+      "title": "Boss share — bosses defeated as a percent of kills, in HUD, state and the game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-mined-per-rich-vein",
       "tested": "miner harness: _minedPerRichVeinFor(100,4)=25, (7,3)=2.3, (10,0)=0; HUD + state expose minedPerRichVein",
-      "title": "Mined per rich vein \u2014 average ore mined per rich-vein trigger, in HUD and state"
+      "title": "Mined per rich vein — average ore mined per rich-vein trigger, in HUD and state"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-banked-per-golden",
       "tested": "tycoon/clicker harness: _bankedPerGoldenFor(20,2)=10, (7,3)=2.3, (5,0)=0; getState exposes bankedPerGolden and the panel shows the Banked/golden line",
-      "title": "Banked per golden \u2014 banked shards per golden shard event, in state and the panel"
+      "title": "Banked per golden — banked shards per golden shard event, in state and the panel"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-lifetime-per-overseer",
       "tested": "tycoon/clicker harness: _lifetimePerOverseerFor(100,4)=25, (7,3)=2.3, (10,0)=0; getState exposes lifetimePerOverseer and the panel shows the Lifetime per overseer line",
-      "title": "Lifetime per overseer \u2014 lifetime credits earned per assigned overseer, in state and the panel"
+      "title": "Lifetime per overseer — lifetime credits earned per assigned overseer, in state and the panel"
     },
     {
       "category": "Cosmos BTD",
       "id": "btd-reroutes-per-wave",
       "tested": "BTD harness: _reroutesPerWaveFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; HUD + state expose reroutesPerWave",
-      "title": "Reroutes per wave \u2014 average path reroutes per wave, in HUD and state"
+      "title": "Reroutes per wave — average path reroutes per wave, in HUD and state"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-kills-per-minute",
       "tested": "shooter harness: _killsPerMinuteFor(0,0)=0, (120,120)=60, (7,180)=2.3, (10,0)=0; HUD + state + game-over line expose killsPerMinute",
-      "title": "Kills per minute \u2014 kills per minute of run time, in HUD, state and the game-over screen"
+      "title": "Kills per minute — kills per minute of run time, in HUD, state and the game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-mined-per-minute",
       "tested": "miner harness: _minedPerMinuteFor(0,0)=0, (120,120)=60, (7,180)=2.3, (10,0)=0; HUD + state expose minedPerMinute",
-      "title": "Mined per minute \u2014 ore mined per minute of shift time, in HUD and state"
+      "title": "Mined per minute — ore mined per minute of shift time, in HUD and state"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-golden-share",
       "tested": "tycoon/clicker harness: _goldenShareFor(0,0)=0, (25,100)=25, (1,3)=33.3, (150,100)=100; getState exposes goldenShare and the panel shows the Golden share line",
-      "title": "Golden share \u2014 golden shard events as a percent of clicks, in state and the panel"
+      "title": "Golden share — golden shard events as a percent of clicks, in state and the panel"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-rigs-per-overseer",
       "tested": "tycoon/clicker harness: _rigsPerOverseerFor(0,0)=0, (8,2)=4, (7,3)=2.3, (4,0)=0; getState exposes rigsPerOverseer and the panel shows the Rigs per overseer line",
-      "title": "Rigs per overseer \u2014 owned rigs per assigned overseer, in state and the panel"
+      "title": "Rigs per overseer — owned rigs per assigned overseer, in state and the panel"
     },
     {
       "category": "Cosmos BTD",
       "id": "btd-hazard-slows-per-wave",
       "tested": "BTD harness: _hazardSlowsPerWaveFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; HUD + state expose hazardSlowsPerWave",
-      "title": "Hazard slows per wave \u2014 average hazard-zone slows per wave, in HUD and state"
+      "title": "Hazard slows per wave — average hazard-zone slows per wave, in HUD and state"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-score-per-minute",
       "tested": "shooter harness: _scorePerMinuteFor(0,0)=0, (120,120)=60, (7,180)=2.3, (10,0)=0; HUD + state + game-over line expose scorePerMinute",
-      "title": "Score per minute \u2014 score per minute of run time, in HUD, state and the game-over screen"
+      "title": "Score per minute — score per minute of run time, in HUD, state and the game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-banked-per-minute",
       "tested": "miner harness: _bankedPerMinuteFor(0,0)=0, (120,120)=60, (7,180)=2.3, (10,0)=0; HUD + state expose bankedPerMinute",
-      "title": "Banked per minute \u2014 banked credits per minute of shift time, in HUD and state"
+      "title": "Banked per minute — banked credits per minute of shift time, in HUD and state"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-clicks-per-milestone",
       "tested": "tycoon/clicker harness: _clicksPerMilestoneFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; getState exposes clicksPerMilestone and the panel shows the Clicks/milestone line",
-      "title": "Clicks per milestone \u2014 average clicks per milestone hit, in state and the panel"
+      "title": "Clicks per milestone — average clicks per milestone hit, in state and the panel"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-credits-per-overseer",
       "tested": "tycoon/clicker harness: _creditsPerOverseerFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; getState exposes creditsPerOverseer and the panel shows the Credits per overseer line",
-      "title": "Credits per overseer \u2014 current credits held per assigned overseer, in state and the panel"
+      "title": "Credits per overseer — current credits held per assigned overseer, in state and the panel"
     },
     {
       "category": "Cosmos BTD",
       "id": "btd-gold-per-tower",
       "tested": "BTD harness: _goldPerTowerFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; HUD + state expose goldPerTower",
-      "title": "Gold per tower \u2014 current gold held per placed tower, in HUD and state"
+      "title": "Gold per tower — current gold held per placed tower, in HUD and state"
     },
     {
       "category": "Space Shooter",
       "id": "shooter-grazes-per-minute",
       "tested": "shooter harness: _grazesPerMinuteFor(0,0)=0, (120,120)=60, (7,180)=2.3, (10,0)=0; HUD + state + game-over line expose grazesPerMinute",
-      "title": "Grazes per minute \u2014 grazes per minute of run time, in HUD, state and the game-over screen"
+      "title": "Grazes per minute — grazes per minute of run time, in HUD, state and the game-over screen"
     },
     {
       "category": "Asteroid Miner",
       "id": "miner-rich-veins-per-minute",
       "tested": "miner harness: _richVeinsPerMinuteFor(0,0)=0, (120,120)=60, (7,180)=2.3, (10,0)=0; HUD + state expose richVeinsPerMinute",
-      "title": "Rich veins per minute \u2014 rich-vein triggers per minute of shift time, in HUD and state"
+      "title": "Rich veins per minute — rich-vein triggers per minute of shift time, in HUD and state"
     },
     {
       "category": "ATOM Core Clicker",
       "id": "clicker-golden-per-milestone",
       "tested": "tycoon/clicker harness: _goldenPerMilestoneFor(0,0)=0, (10,2)=5, (7,3)=2.3, (10,0)=0; getState exposes goldenPerMilestone and the panel shows the Golden/milestone line",
-      "title": "Golden per milestone \u2014 golden shard events per milestone hit, in state and the panel"
+      "title": "Golden per milestone — golden shard events per milestone hit, in state and the panel"
     },
     {
       "category": "Space Tycoon",
       "id": "tycoon-credits-per-rig",
       "tested": "tycoon/clicker harness: _creditsPerRigFor(0,0)=0, (100,4)=25, (7,3)=2.3, (10,0)=0; getState exposes creditsPerRig and the panel shows the Credits per rig line",
-      "title": "Credits per rig \u2014 current credits held per owned rig, in state and the panel"
+      "title": "Credits per rig — current credits held per owned rig, in state and the panel"
     },
     {
       "description": "Right sidebar organized into Social / You / Play tabs; wallet stays pinned above.",
@@ -1354,65 +1354,89 @@
       "description": "Current unspent gold held per wave reached, to one decimal; 0 with no wave yet.",
       "id": "btd-gold-per-wave",
       "tested": "Harness: goldPerWaveFor helper (0/25/2.3/zero-wave) + HUD/state echo at 100 gold / 4 waves.",
-      "title": "Gold per wave \u2014 current gold held per wave reached, in HUD/state"
+      "title": "Gold per wave — current gold held per wave reached, in HUD/state"
     },
     {
       "description": "Total power-ups collected per minute of run time, to one decimal; 0 with no elapsed time yet.",
       "id": "shooter-powerups-per-minute",
       "tested": "Harness: powerupsPerMinuteFor helper (0/60/2.3/zero-time) + HUD/state echo at 120 power-ups / 120s; server test checks the game-over line.",
-      "title": "Power-ups per minute \u2014 power-ups collected per minute of run time, in HUD/state + game-over"
+      "title": "Power-ups per minute — power-ups collected per minute of run time, in HUD/state + game-over"
     },
     {
       "description": "Current unbanked credits held per belt reached, to one decimal; 0 with no belt yet.",
       "id": "miner-credits-per-belt",
       "tested": "Harness: creditsPerBeltFor helper (0/25/2.3/zero-belt) + HUD/state echo at 100 credits / 4 belts.",
-      "title": "Credits per belt \u2014 current unbanked credits held per belt, in HUD/state"
+      "title": "Credits per belt — current unbanked credits held per belt, in HUD/state"
     },
     {
       "description": "Held plus banked shards per milestone hit, to one decimal; 0 with no milestone hit yet.",
       "id": "clicker-shards-per-milestone",
       "tested": "Harness: shardsPerMilestoneFor helper (0/50/2.3/zero-hits) + state echo + panel render line (50 at 60 held + 40 banked / 2 hits).",
-      "title": "Shards per milestone \u2014 held + banked shards per milestone hit, in state + panel"
+      "title": "Shards per milestone — held + banked shards per milestone hit, in state + panel"
     },
     {
       "description": "Lifetime credits earned per prestige taken, to one decimal; 0 with no prestige yet.",
       "id": "tycoon-lifetime-per-prestige",
       "tested": "Harness: lifetimePerPrestigeFor helper (0/50/2.3/zero-prestige) + state echo + panel render line (50 at 100 lifetime / 2 prestiges).",
-      "title": "Lifetime per prestige \u2014 lifetime credits earned per prestige, in state + panel"
+      "title": "Lifetime per prestige — lifetime credits earned per prestige, in state + panel"
     },
     {
       "description": "Pops per minute of run time, to one decimal; 0 with no elapsed run time yet.",
       "id": "btd-pops-per-minute",
       "tested": "Harness: popsPerMinuteFor helper (0/60/2.3/zero-time) + HUD/state echo at 120 pops / 120s.",
-      "title": "Pops per minute \u2014 pops per minute of run time, in HUD/state"
+      "title": "Pops per minute — pops per minute of run time, in HUD/state"
     },
     {
       "description": "Score per boss defeated, to one decimal; 0 with no boss defeated yet.",
       "id": "shooter-score-per-boss",
       "tested": "Harness: scorePerBossFor helper (0/60/2.3/zero-bosses) + HUD/state echo at 120 score / 2 bosses; server test checks the game-over line.",
-      "title": "Score per boss \u2014 score per boss defeated, in HUD/state + game-over screen"
+      "title": "Score per boss — score per boss defeated, in HUD/state + game-over screen"
     },
     {
       "description": "Current unbanked credits held per completed shift, to one decimal; 0 with no shift completed yet.",
       "id": "miner-credits-per-shift",
       "tested": "Harness: creditsPerShiftFor helper (0/25/2.3/zero-shifts) + HUD/state echo at 100 credits / 4 shifts.",
-      "title": "Credits per shift \u2014 current unbanked credits held per completed shift, in HUD/state"
+      "title": "Credits per shift — current unbanked credits held per completed shift, in HUD/state"
     },
     {
       "description": "Banked shards per milestone hit, to one decimal; 0 with no milestone hit yet.",
       "id": "clicker-banked-per-milestone",
       "tested": "Harness: bankedPerMilestoneFor helper (0/20/2.3/zero-hits) + state echo + panel render line (20 at 40 banked / 2 hits).",
-      "title": "Banked per milestone \u2014 banked shards per milestone hit, in state + panel"
+      "title": "Banked per milestone — banked shards per milestone hit, in state + panel"
     },
     {
       "description": "Current credits held (floored) per prestige taken, to one decimal; 0 with no prestige yet.",
       "id": "tycoon-credits-per-prestige",
       "tested": "Harness: creditsPerPrestigeFor helper (0/50/2.3/zero-prestige) + state echo + panel render line (50 at 100 credits / 2 prestiges).",
-      "title": "Credits per prestige \u2014 current credits held per prestige, in state + panel"
+      "title": "Credits per prestige — current credits held per prestige, in state + panel"
+    },
+    {
+      "id": "no-unicode-escapes",
+      "title": "No unicode escape text anywhere",
+      "description": "Every literal unicode escape removed from user-visible text; real characters used in HTML, JSON and game strings.",
+      "tested": "Harness: zero escape sequences in served HTML, CSS, JS and JSON; link titles show the real dash character."
+    },
+    {
+      "id": "redesign-look",
+      "title": "Aurora dusk look",
+      "description": "New aurora-dusk palette, button gradients, tab styling and panel accents across the whole shell.",
+      "tested": "Harness: new palette values and theme rules in served CSS; existing class names unchanged."
+    },
+    {
+      "id": "left-side-tabs",
+      "title": "Left sidebar tabs",
+      "description": "Left sidebar organized into Play and System tab panes; right-rail tab switching scoped so panes never cross-hide.",
+      "tested": "Harness: left tab bar and panes in served HTML; scoped switching in served shell code."
+    },
+    {
+      "id": "center-tabs",
+      "title": "Center tabs",
+      "description": "Everything below the game screen organized into Your Games, Guide and Details tabs; inspecting a tower opens Details.",
+      "tested": "Harness: center tab bar and panes in served HTML; switching and auto-open in served shell code."
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 235,
+  "totalFeatures": 239,
   "updated": "2026-11-02",
-  "version": "3.41.0"
+  "version": "3.41.1"
 }
