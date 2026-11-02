@@ -628,12 +628,70 @@
   /* Jungle map skin: bright grass, foliage borders, stone-slab path.
    * Same track geometry as the space skin; only the painting differs,
    * so waves, towers and the ATOM orb play identically. */
+
+  /* Shared jungle prop positions: the painter and the animated layer
+   * read the same layout, so sway/shimmer sit on the painted props. */
+  var JUNGLE_TREES = [[76, 306], [392, 108], [640, 528], [884, 84], [306, 548], [700, 540], [472, 566], [908, 540], [52, 214], [560, 72]];
+  var JUNGLE_PONDS = [[790, 55, 55, 30], [100, 530, 45, 26], [770, 550, 35, 24]];
+  var JUNGLE_CLIFFS_TOP = [80, 200, 320, 440, 560, 680, 800, 920];
+  var JUNGLE_CLIFFS_LEFT = [60, 250, 340, 430, 520];
+  /* Animated map life: drifting cloud shadows, pond shimmer, canopy
+   * light, fireflies, foreground grass fringe (jungle); star twinkle
+   * (space). Static when reduced motion is on, except the fringe. */
+  function drawMapLife(ctx, st, layer) {
+    var t = st.time, i;
+    if (st.mapSkin === 'jungle') {
+      if (layer === 'under') {
+        if (!st.reducedMotion) {
+          ctx.fillStyle = 'rgba(10,30,10,.06)';
+          for (i = 0; i < 2; i++) {
+            var cx = ((t * (6 + i * 3) + i * 420) % (W + 360)) - 180;
+            ctx.beginPath(); ctx.ellipse(cx, 130 + i * 220, 190, 60, 0, 0, TAU); ctx.fill();
+          }
+        }
+        for (i = 0; i < JUNGLE_PONDS.length; i++) {
+          var pd = JUNGLE_PONDS[i];
+          var al = st.reducedMotion ? 0.25 : 0.2 + 0.14 * Math.sin(t * 2 + i * 2.1);
+          ctx.strokeStyle = 'rgba(255,255,255,' + al.toFixed(3) + ')'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.ellipse(pd[0], pd[1], pd[2] * 0.55, pd[3] * 0.5, 0, 0, TAU); ctx.stroke();
+        }
+        for (i = 0; i < JUNGLE_TREES.length; i++) {
+          var tr = JUNGLE_TREES[i];
+          var sw = st.reducedMotion ? 0 : Math.sin(t * 1.4 + tr[0] * 0.05) * 3;
+          ctx.fillStyle = 'rgba(190,240,150,.20)';
+          ctx.beginPath(); ctx.arc(tr[0] - 8 + sw, tr[1] - 34, 12, 0, TAU); ctx.fill();
+        }
+      } else {
+        if (!st.reducedMotion) {
+          for (i = 0; i < 10; i++) {
+            var fx = (i * 173 + 60) % W + Math.sin(t * 0.7 + i * 1.9) * 26;
+            var fy = (i * 211 + 80) % H + Math.cos(t * 0.5 + i * 2.3) * 20;
+            ctx.fillStyle = 'rgba(255,240,150,' + (0.35 + 0.35 * Math.sin(t * 2.4 + i)).toFixed(3) + ')';
+            ctx.beginPath(); ctx.arc(fx, fy, 2.2, 0, TAU); ctx.fill();
+          }
+        }
+        ctx.strokeStyle = 'rgba(24,84,24,.85)'; ctx.lineWidth = 2;
+        for (i = 0; i < 40; i++) {
+          var gx = i * 24 + 8, gh = 8 + ((i * 37) % 5) * 3;
+          var lean = st.reducedMotion ? 0 : Math.sin(t * 1.8 + i) * 2;
+          ctx.beginPath(); ctx.moveTo(gx, H + 2); ctx.lineTo(gx + lean, H - gh); ctx.stroke();
+        }
+      }
+    } else if (layer === 'under' && !st.reducedMotion) {
+      for (i = 0; i < 14; i++) {
+        var sx = (i * 167 + 40) % W, sy = (i * 269 + 30) % H;
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + 0.45 * Math.abs(Math.sin(t * 0.9 + i * 1.3))).toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(sx, sy, 1.6, 0, TAU); ctx.fill();
+      }
+    }
+  }
+
   /* Jungle map skin, realistic pass: meadow patches, cliff borders,
    * pond shores with reeds and lily pads, pebble-edged stone path,
    * layered foliage. Same track geometry as the space skin. */
   function paintJungleBackground(b) {
     var g = b.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#82c957'); g.addColorStop(0.5, '#5ea843'); g.addColorStop(1, '#4b9334');
+    g.addColorStop(0, '#6fae4a'); g.addColorStop(0.5, '#4f9338'); g.addColorStop(1, '#3f7f2c');
     b.fillStyle = g; b.fillRect(0, 0, W, H);
     var i, x, y;
     // soft meadow patches: large translucent blobs of varied green
@@ -645,8 +703,14 @@
       mg.addColorStop(1, 'rgba(0,0,0,0)');
       b.fillStyle = mg; b.fillRect(mx - mr, my - mr, mr * 2, mr * 2);
     }
+    for (i = 0; i < 9; i++) {
+      var dx = rnd() * W, dy = rnd() * H, dr = 50 + rnd() * 70;
+      var dg = b.createRadialGradient(dx, dy, 4, dx, dy, dr);
+      dg.addColorStop(0, 'rgba(255,250,200,.10)'); dg.addColorStop(1, 'rgba(0,0,0,0)');
+      b.fillStyle = dg; b.fillRect(dx - dr, dy - dr, dr * 2, dr * 2);
+    }
     for (x = 0; x < W; x += 80) { if (Math.floor(x / 80) % 2 === 0) { b.fillStyle = 'rgba(255,255,255,.05)'; b.fillRect(x, 0, 80, H); } }
-    for (i = 0; i < 1100; i++) { b.fillStyle = ['rgba(255,255,255,.12)', 'rgba(20,80,20,.20)', 'rgba(255,240,150,.22)'][i % 3]; b.fillRect(rnd() * W, rnd() * H, 2, 2); }
+    for (i = 0; i < 650; i++) { b.fillStyle = ['rgba(255,255,255,.12)', 'rgba(20,80,20,.20)', 'rgba(255,240,150,.22)'][i % 3]; b.fillRect(rnd() * W, rnd() * H, 2, 2); }
     for (i = 0; i < 380; i++) {
       x = rnd() * W; y = rnd() * H;
       b.strokeStyle = 'rgba(28,96,28,.55)'; b.lineWidth = 1.5; b.beginPath();
@@ -658,17 +722,21 @@
     var rock = function (rx, ry, r) {
       b.fillStyle = 'rgba(0,0,0,.28)'; b.beginPath(); b.ellipse(rx + 5, ry + 7, r, r * 0.4, 0, 0, TAU); b.fill();
       b.fillStyle = '#8a8578'; b.beginPath(); b.arc(rx, ry, r, 0, TAU); b.fill();
+      b.fillStyle = '#6f6a5e'; b.beginPath(); b.ellipse(rx, ry + r * 0.45, r * 0.9, r * 0.38, 0, 0, TAU); b.fill();
       b.fillStyle = '#a39d8e'; b.beginPath(); b.arc(rx - r * 0.3, ry - r * 0.3, r * 0.55, 0, TAU); b.fill();
       b.strokeStyle = 'rgba(50,48,42,.55)'; b.lineWidth = 2; b.beginPath(); b.moveTo(rx - r * 0.5, ry + r * 0.2); b.lineTo(rx + r * 0.1, ry - r * 0.1); b.lineTo(rx + r * 0.55, ry + r * 0.35); b.stroke();
+      b.strokeStyle = 'rgba(40,38,32,.6)'; b.lineWidth = 1.5; b.beginPath(); b.moveTo(rx - r * 0.2, ry - r * 0.5); b.lineTo(rx - r * 0.05, ry - r * 0.1); b.lineTo(rx - r * 0.3, ry + r * 0.3); b.stroke();
+      b.fillStyle = '#5a8a4a'; b.beginPath(); b.arc(rx + r * 0.45, ry + r * 0.45, r * 0.16, 0, TAU); b.fill();
       b.fillStyle = '#6f6a5e'; b.beginPath(); b.arc(rx + r * 0.35, ry + r * 0.3, r * 0.3, 0, TAU); b.fill();
     };
-    [80, 200, 320, 440, 560, 680, 800, 920].forEach(function (rx) { rock(rx, 14, 20 + rnd() * 10); });
-    [60, 250, 340, 430, 520].forEach(function (ry) { rock(14, ry, 18 + rnd() * 8); });
+    JUNGLE_CLIFFS_TOP.forEach(function (rx) { rock(rx, 14, 20 + rnd() * 10); });
+    JUNGLE_CLIFFS_LEFT.forEach(function (ry) { rock(14, ry, 18 + rnd() * 8); });
     var pond = function (cx, cy, rx, ry) {
       if (typeof distToPath === 'function' && distToPath(cx, cy) < 70) return;
       b.fillStyle = '#d8c69a'; b.beginPath(); b.ellipse(cx, cy, rx + 9, ry + 8, 0, 0, TAU); b.fill();
       b.fillStyle = '#5a93b5'; b.beginPath(); b.ellipse(cx, cy, rx + 5, ry + 5, 0, 0, TAU); b.fill();
       b.fillStyle = '#8fc7e2'; b.beginPath(); b.ellipse(cx, cy, rx, ry, 0, 0, TAU); b.fill();
+      b.fillStyle = 'rgba(20,60,90,.30)'; b.beginPath(); b.ellipse(cx, cy + ry * 0.45, rx * 0.8, ry * 0.4, 0, 0, TAU); b.fill();
       b.fillStyle = 'rgba(255,255,255,.28)'; b.beginPath(); b.ellipse(cx - rx * 0.25, cy - ry * 0.3, rx * 0.45, ry * 0.4, 0, 0, TAU); b.fill();
       b.fillStyle = '#3f7a4d'; b.beginPath(); b.arc(cx + rx * 0.4, cy + ry * 0.25, 5, 0, TAU); b.fill();
       b.fillStyle = '#57b04a'; b.beginPath(); b.arc(cx - rx * 0.5, cy + ry * 0.3, 4, 0, TAU); b.fill();
@@ -677,14 +745,29 @@
         b.beginPath(); b.moveTo(cx + rp[0], cy + rp[1]); b.lineTo(cx + rp[0] - 3, cy + rp[1] - 12); b.moveTo(cx + rp[0], cy + rp[1]); b.lineTo(cx + rp[0] + 3, cy + rp[1] - 10); b.stroke();
       });
     };
-    pond(790, 55, 55, 30); pond(100, 530, 45, 26); pond(770, 550, 35, 24);
+    JUNGLE_PONDS.forEach(function (pd) { pond(pd[0], pd[1], pd[2], pd[3]); });
     var bush = function (bx, by, r) {
       b.fillStyle = 'rgba(20,70,20,.35)'; b.beginPath(); b.arc(bx + 5, by + 6, r, 0, TAU); b.fill();
-      b.fillStyle = '#2f7a2e'; b.beginPath(); b.arc(bx, by, r * 0.8, 0, TAU); b.fill();
-      b.fillStyle = '#5cb84d'; b.beginPath(); b.arc(bx - r * 0.25, by - r * 0.25, r * 0.45, 0, TAU); b.fill();
+      var offs = [[0, 0, 0.8, '#2f7a2e'], [-0.45, 0.15, 0.55, '#3f9a3a'], [0.45, 0.2, 0.5, '#2f7a2e'], [-0.2, -0.35, 0.55, '#5cb84d'], [0.3, -0.3, 0.45, '#57b04a'], [0, 0.35, 0.5, '#276b26']];
+      offs.forEach(function (o) { b.fillStyle = o[3]; b.beginPath(); b.arc(bx + o[0] * r, by + o[1] * r, r * o[2], 0, TAU); b.fill(); });
       b.fillStyle = '#8fd07a'; b.beginPath(); b.arc(bx - r * 0.35, by - r * 0.4, r * 0.2, 0, TAU); b.fill();
+      b.fillStyle = '#a8e08a'; b.beginPath(); b.arc(bx + r * 0.15, by - r * 0.5, r * 0.12, 0, TAU); b.fill();
+      b.fillStyle = '#ffd166'; b.beginPath(); b.arc(bx + r * 0.4, by - r * 0.1, 2, 0, TAU); b.fill();
     };
     [[40, 40], [180, 24], [340, 36], [520, 26], [700, 38], [860, 30], [930, 90], [24, 200], [30, 420], [40, 560], [920, 180], [935, 540], [240, 575], [480, 580], [660, 575], [800, 570]].forEach(function (p) { bush(p[0], p[1], 26 + rnd() * 14); });
+    var frond = function (fx, fy, s) {
+      for (var fi = 0; fi < 6; fi++) {
+        var fa = -Math.PI / 2 + (fi - 2.5) * 0.42;
+        b.strokeStyle = fi % 2 ? '#2f7a2e' : '#3f9a3a'; b.lineWidth = 7;
+        b.beginPath(); b.moveTo(fx, fy);
+        b.quadraticCurveTo(fx + Math.cos(fa) * 22 * s, fy + Math.sin(fa) * 22 * s, fx + Math.cos(fa) * 40 * s, fy + Math.sin(fa) * 40 * s); b.stroke();
+        b.strokeStyle = '#57b04a'; b.lineWidth = 3;
+        b.beginPath(); b.moveTo(fx, fy);
+        b.quadraticCurveTo(fx + Math.cos(fa) * 22 * s, fy + Math.sin(fa) * 22 * s, fx + Math.cos(fa) * 40 * s, fy + Math.sin(fa) * 40 * s); b.stroke();
+      }
+      b.fillStyle = '#1e5a26'; b.beginPath(); b.arc(fx, fy, 6, 0, TAU); b.fill();
+    };
+    [[110, 300], [300, 90], [470, 200], [620, 300], [930, 320], [180, 560], [520, 480], [60, 380]].forEach(function (p) { frond(p[0], p[1], 0.9 + rnd() * 0.4); });
     // stone-slab path: dirt bed + slabs + pebble edges along the track
     var slabAlong = function (pts) {
       b.lineCap = 'round'; b.lineJoin = 'round';
@@ -698,7 +781,10 @@
         while (d < seg) {
           var cx = ax + Math.cos(ang) * d, cy = ay + Math.sin(ang) * d;
           b.save(); b.translate(cx, cy); b.rotate(ang);
-          b.fillStyle = '#ddd6c4'; b.fillRect(-14, -10, 28, 20);
+          b.fillStyle = '#8a7a5e'; b.fillRect(-14, -7, 28, 20);
+          b.fillStyle = '#9a8a6e'; b.fillRect(-14, -10, 28, 20);
+          var shades = ['#cfc3a4', '#c4b693', '#d8cdb2', '#bcad8c'];
+          for (var ci = 0; ci < 4; ci++) { b.fillStyle = shades[(Math.floor((acc + d) / 24) + ci) % 4]; b.fillRect(-13 + (ci % 2) * 13.5, -9 + Math.floor(ci / 2) * 9.5, 12.5, 8.5); }
           b.strokeStyle = '#a89a80'; b.lineWidth = 2; b.strokeRect(-14, -10, 28, 20);
           b.strokeStyle = 'rgba(120,105,80,.5)'; b.lineWidth = 1; b.beginPath(); b.moveTo(-14, 0); b.lineTo(14, 0); b.stroke();
           b.restore();
@@ -718,13 +804,14 @@
     slabAlong(pathPts); slabAlong(branchPts);
     b.fillStyle = '#2c5a1e'; b.font = 'bold 13px Arial'; b.textAlign = 'center'; b.fillText('START', 64, 84);
     // leafy trees + rocks (kept clear of the path by fixed placement)
-    [[76, 306], [392, 108], [640, 528], [884, 84], [306, 548], [700, 540], [472, 566], [908, 540], [52, 214], [560, 72]].forEach(function (pos) {
+    JUNGLE_TREES.forEach(function (pos) {
       var tx2 = pos[0], ty2 = pos[1];
       b.fillStyle = 'rgba(0,0,0,.25)'; b.beginPath(); b.ellipse(tx2 + 6, ty2 + 8, 26, 8, 0, 0, TAU); b.fill();
-      b.fillStyle = '#7a5230'; b.fillRect(tx2 - 4, ty2 - 6, 8, 16);
-      b.fillStyle = '#2f7a2e'; b.beginPath(); b.arc(tx2, ty2 - 22, 24, 0, TAU); b.fill();
-      b.fillStyle = '#57b04a'; b.beginPath(); b.arc(tx2 - 8, ty2 - 30, 14, 0, TAU); b.fill();
-      b.fillStyle = '#8fd07a'; b.beginPath(); b.arc(tx2 - 10, ty2 - 34, 7, 0, TAU); b.fill();
+      b.fillStyle = '#7a5230'; b.fillRect(tx2 - 4, ty2 - 10, 8, 20);
+      b.fillStyle = '#1e5a26'; b.beginPath(); b.arc(tx2, ty2 - 18, 25, 0, TAU); b.fill();
+      b.fillStyle = '#2f7a2e'; b.beginPath(); b.arc(tx2, ty2 - 26, 22, 0, TAU); b.fill();
+      b.fillStyle = '#57b04a'; b.beginPath(); b.arc(tx2 - 7, ty2 - 34, 15, 0, TAU); b.fill();
+      b.fillStyle = '#8fd07a'; b.beginPath(); b.arc(tx2 - 10, ty2 - 40, 7, 0, TAU); b.fill();
       b.fillStyle = '#3f7a4d'; b.beginPath(); b.arc(tx2 + 12, ty2 - 14, 10, 0, TAU); b.fill();
     });
     [[250, 540], [640, 84], [830, 540], [430, 520], [180, 556]].forEach(function (pos) {
@@ -803,7 +890,7 @@
       balloons: [], towers: [], projectiles: [], beams: [], floaters: [], spikes: [],
       particles: [], spawnCount: 0, spawnQueue: [], spawnTimer: 0, betweenWaves: true,
       speed: 1, autoStart: false, targeting: 'first', placing: null,
-      selected: null, hoverTower: null, lastPlaced: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
+      selected: null, hoverTower: null, lastPlaced: null, selectedBalloon: null, hero: null, heroPlaced: false, heroCd: 0, heroXp: 0,
       skipBonuses: 0, skipBonusTotal: 0,
       fpsTarget: 60, particleDensity: 'high', motionBlur: false, displayScale: 'auto', _lastFrameT: 0, _dynFactor: 1,
       sessionId: null, sessionNonce: null, pendingReports: [],
@@ -909,6 +996,11 @@
   }
   /* Inspection payload for the shell's stat card: current stats, the
    * next upgrade step, sell refund, and tactical effectiveness. */
+  function enemyInspect(st) {
+    var b = st.selectedBalloon; if (!b) return null;
+    if (st.balloons.indexOf(b) < 0) { st.selectedBalloon = null; return null; }
+    return { name: (b.type && b.type.name) || (b.boss ? 'Boss Blimp' : 'Balloon'), color: (b.type && b.type.color) || '#ff5a5a', layers: b.layers, maxLayers: b.maxLayers || b.layers, speed: Math.round(b.speed || 0), reward: b.reward || 0, boss: !!b.boss, armored: !!b.armored, progress: Math.round(100 * balloonProgress(b)) };
+  }
   function towerInspect(st, t) {
     if (!t) return null;
     var def = TOWER_DEFS[t.kind]; if (!def) return null;
@@ -1632,7 +1724,7 @@
   var _hudAcc = 0;
   function emitHudThrottled(st, dt) { _hudAcc += dt; if (_hudAcc > 0.25) { _hudAcc = 0; emitHud(st); } }
   function getHud(st) {
-    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, undoAvailable: !!st.lastPlaced && !st.waveActive && !!st.betweenWaves, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), ecsMode: 'tables', mapSkin: st.mapSkin || 'space', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
+    return { gold: st.gold, lives: st.lives, wave: st.wave, score: st.score, pops: st.pops, waveActive: st.waveActive, betweenWaves: st.betweenWaves, won: st.won, lost: st.lost, heroXp: st.heroXp, towers: st.towers.length, speed: st.speed, autoStart: st.autoStart, targeting: st.targeting, placing: st.placing, paused: st.paused, endless: st.endless, challenge: st.challenge, duelSeed: st.duelSeed != null ? st.duelSeed : duelSeed(), fps: st.fps, nextWave: wavePreview(st.wave + 1), nextWaveDanger: waveDangerRating(st.wave + 1), nextWaveBoss: isBossWave(st.wave + 1), heroXpProgress: heroXpProgress(st.heroXp), balloonsRemaining: balloonsRemaining(st), armyValue: armyValueFor(st.towers), popsPerWave: popsPerWaveFor(st.pops, st.wave), scorePerWave: scorePerWaveFor(st.score, st.wave), heroXpPerWave: heroXpPerWaveFor(st.heroXp, st.wave), heroKillsPerWave: heroKillsPerWaveFor((st.hero && st.hero.kills) || 0, st.wave), towersPerWave: towersPerWaveFor(st.towers.length, st.wave), skipBonusPerWave: skipBonusPerWaveFor(st.skipBonusTotal || 0, st.wave), popsPerTower: popsPerTowerFor(st.pops, st.towers.length), scorePerTower: scorePerTowerFor(st.score, st.towers.length), heroKillsPerTower: heroKillsPerTowerFor((st.hero && st.hero.kills) || 0, st.towers.length), heroXpPerTower: heroXpPerTowerFor(st.heroXp, st.towers.length), skipBonusPerTower: skipBonusPerTowerFor(st.skipBonusTotal || 0, st.towers.length), heroKillShare: heroKillShareFor((st.hero && st.hero.kills) || 0, st.pops), scorePerHeroKill: scorePerHeroKillFor(st.score, (st.hero && st.hero.kills) || 0), reroutesPerWave: reroutesPerWaveFor(st.reroutes || 0, st.wave), hazardSlowsPerWave: hazardSlowsPerWaveFor(st.hazardSlows || 0, st.wave), goldPerTower: goldPerTowerFor(st.gold, st.towers.length), goldPerWave: goldPerWaveFor(st.gold, st.wave), popsPerMinute: popsPerMinuteFor(st.pops, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), scorePerMinute: scorePerMinuteFor(st.score, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), heroXpPerMinute: heroXpPerMinuteFor(st.heroXp, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), popsPerHeroKill: popsPerHeroKillFor(st.pops, (st.hero && st.hero.kills) || 0), goldPerMinute: goldPerMinuteFor(st.gold, st.runStartedAt != null ? Math.max(0, st.time - st.runStartedAt) : 0), armyValuePerWave: armyValuePerWaveFor(armyValueFor(st.towers), st.wave), armyValuePerTower: armyValuePerTowerFor(armyValueFor(st.towers), st.towers.length), goldPerHeroKill: goldPerHeroKillFor(st.gold, (st.hero && st.hero.kills) || 0), heroXpPerHeroKill: heroXpPerHeroKillFor(st.heroXp, (st.hero && st.hero.kills) || 0), selectedSplash: st.selected ? splashRadiusFor(st.selected.kind) + (st.selected.splashBonus || 0) : 0, spikes: st.spikes.length, heroLevel: (st.hero && st.hero.level) || 0, heroTier: heroAbilityTier(st.hero), heroKills: (st.hero && st.hero.kills) || 0, heroPatrol: !!(st.hero && st.hero.patrol), heroCd: Math.ceil(st.heroCd), heroCdMax: heroCooldownMax(heroAbilityTier(st.hero)), heroGear: (st.hero && st.hero.equipment) || null, skipBonuses: st.skipBonuses || 0, skipBonusTotal: st.skipBonusTotal || 0, placingSplash: st.placing ? splashRadiusFor(st.placing) : 0, undoAvailable: !!st.lastPlaced && !st.waveActive && !!st.betweenWaves, weather: (st.weather && st.weather.kind) || 'clear', weatherLeft: st.weather ? Math.max(0, st.weather.until - st.time) : 0, reroutes: st.reroutes || 0, hazardSlows: st.hazardSlows || 0, particles: st.particles.length, particleCap: particleCapFor(st.fps, st.fpsTarget, st.particleDensity === 'low' ? 150 : 400), dynFactor: st._dynFactor || 1, spriteCacheEntries: spriteCacheStats().entries, lights: st.lights.length, gridCells: st.grid.size, gridQueries: st.gridQueries, ecsEntities: Object.keys(st.ecs.entities).length, assetsLoaded: AssetManager.loaded, assetsTotal: AssetManager.total, inspect: towerInspect(st, st.selected || st.hoverTower), enemyInspect: enemyInspect(st), ecsMode: 'tables', mapSkin: st.mapSkin || 'space', colorblind: !!st.colorblind, reducedMotion: !!st.reducedMotion, kbCursor: st.kbCursor ? { x: Math.round(st.kbCursor.x), y: Math.round(st.kbCursor.y), active: !!st.kbCursor.active } : null, fpsTarget: st.fpsTarget, particleDensity: st.particleDensity, motionBlur: st.motionBlur, displayScale: st.displayScale, leakWarning: leakWarningActive(st), leakProgress: Math.round(leakProgress(st) * 100) / 100, runSummary: runSummary(st), runTimeSec: st.runStartedAt != null ? Math.floor(Math.max(0, st.time - st.runStartedAt)) : 0 };
   }
   // Anti-cheat wave report: hash over sessionId:wave:pops:heroXp:nonce.
   // Computed async so it never blocks the game loop; the shell submits
@@ -1834,6 +1926,7 @@
     ctx.drawImage(st.bg, 0, 0);
     drawWater(ctx, st);
     drawTerrain(ctx, st);
+    drawMapLife(ctx, st, 'under');
     // placement ghost + range ring
     if (st.placing && st.mouse.x >= 0) {
       var def = TOWER_DEFS[st.placing];
@@ -1873,6 +1966,7 @@
       if (selSplash > 0) { if (ctx.setLineDash) ctx.setLineDash([8, 6]); ctx.strokeStyle = 'rgba(0,246,255,.85)'; ctx.beginPath(); ctx.arc(sel.x, sel.y, selSplash, 0, TAU); ctx.stroke(); if (ctx.setLineDash) ctx.setLineDash([]); } }
     for (var i = 0; i < st.balloons.length; i++) drawBalloon(ctx, st.balloons[i], st.time, st.alpha, st.colorblind);
     for (i = 0; i < st.towers.length; i++) drawTower(ctx, st.towers[i], st.time, st.mapSkin);
+    drawMapLife(ctx, st, 'over');
     for (i = 0; i < st.spikes.length; i++) { var spk = st.spikes[i]; ctx.fillStyle = '#c9ced6'; ctx.beginPath(); ctx.moveTo(spk.x, spk.y - 6); ctx.lineTo(spk.x - 6, spk.y + 5); ctx.lineTo(spk.x + 6, spk.y + 5); ctx.closePath(); ctx.fill(); }
     if (st.heroPlaced && st.hero) {
       var h = st.hero;
@@ -2179,7 +2273,13 @@
       var found = null;
       for (var i = 0; i < st.towers.length; i++) if (dist(pos.x, pos.y, st.towers[i].x, st.towers[i].y) < 22) found = st.towers[i];
       st.selected = found;
-      if (found && opts.onTowerSelect) opts.onTowerSelect(found);
+      if (found) { st.selectedBalloon = null; if (opts.onTowerSelect) opts.onTowerSelect(found); }
+      else {
+        var fb = null;
+        for (var j = 0; j < st.balloons.length; j++) { if (dist(pos.x, pos.y, st.balloons[j].x, st.balloons[j].y) < 22) { fb = st.balloons[j]; break; } }
+        st.selectedBalloon = fb;
+        if (fb && opts.onEnemySelect) opts.onEnemySelect(fb);
+      }
       emitHud(st);
     };
     var onClick = function (ev) {
@@ -2188,7 +2288,7 @@
     };
     var onKey = function (ev) {
       if (ev.key === ' ') { if (ev.preventDefault) ev.preventDefault(); if (!st.waveActive && !st.won && !st.lost) startWave(st, { manual: true }); }
-      else if (ev.key === 'Escape') { st.placing = null; st.selected = null; if (st.kbCursor) st.kbCursor.active = false; emitHud(st); }
+      else if (ev.key === 'Escape') { st.placing = null; st.selected = null; st.selectedBalloon = null; if (st.kbCursor) st.kbCursor.active = false; emitHud(st); }
       else if (ev.key === 'r' || ev.key === 'R') { reset(st); }
       else if (ev.key === 'p' || ev.key === 'P') { st.paused = !st.paused; emitHud(st); }
       else if (ev.key === 'u' || ev.key === 'U') { upgradeSelected(st); }
@@ -2328,7 +2428,7 @@
     var keep = { gold: 650, lives: 100, wave: 0, score: 0, pops: 0, heroXp: 0 };
     st.gold = st.challenge ? 100 : keep.gold; st.lives = st.challenge ? 20 : keep.lives; st.wave = keep.wave; st.score = keep.score; st.pops = keep.pops; st.heroXp = keep.heroXp;
     st.balloons = []; st.towers = []; st.projectiles = []; st.beams = []; st.floaters = []; st.particles = []; st.spikes = []; st.lights = []; st.ecs = createECS(); st.acc = 0; st.alpha = 1; st.paused = false;
-    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null; st.lastPlaced = null; st.runStartedAt = null; st.runDuration = null; if (st.kbCursor) { st.kbCursor.x = 480; st.kbCursor.y = 300; st.kbCursor.active = false; }
+    st.spawnQueue = []; st.waveActive = false; st.betweenWaves = true; st.won = false; st.lost = false; st.heroPlaced = false; st.selected = null; st.hoverTower = null; st.placing = null; st.lastPlaced = null; st.selectedBalloon = null; st.runStartedAt = null; st.runDuration = null; if (st.kbCursor) { st.kbCursor.x = 480; st.kbCursor.y = 300; st.kbCursor.active = false; }
     st.weather = { kind: 'clear', until: 0, strikeT: 0 }; st.reroutes = 0; st.hazardSlows = 0; st.spawnCount = 0; st.skipBonuses = 0; st.skipBonusTotal = 0;
     if (st.hero) { st.hero.patrol = false; st.hero.patrolDist = 0; st.hero.patrolDir = 1; st.hero.kills = 0; }
     emitHud(st);
