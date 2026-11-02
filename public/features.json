@@ -755,9 +755,27 @@
    "id": "duel-shared-seed",
    "tested": "BTD harness: setDuelSeed(12345) reseeds the decor generator (identical rnd sequence), getDuelSeed/HUD/state expose the seed, init with duelSeed applies it before the background paints; wave compositions are deterministic so both racers face the same waves (spawn jitter still uses Math.random)",
    "title": "Shared duel seed in BTD — setDuelSeed/getDuelSeed reseed the background and starfield decor so both duel racers share one seed; exposed in HUD and state"
+  },
+  {
+   "category": "Hub UI",
+   "id": "hub-loading-screen",
+   "tested": "server test: index.html serves #hubLoader with #hubLoaderFill/#hubLoaderTip, shell.js has updateHubLoader/hideHubLoader + LOADING_TIPS, hub.css has .hubLoader; hide-on-ready + 20s safety timeout code-reviewed, no browser check",
+   "title": "Hub loading screen \u2014 progress bar + rotating tips while the hub and first game load; never traps the user on a failed load"
+  },
+  {
+   "category": "Hub UI",
+   "id": "ambient-space-hum",
+   "tested": "server test: shell.js has startAmbientHum/stopAmbientHum/applyAmbientHum + setAmbientHum setting, reusing the uiTick AudioContext; gesture-gated start, volume/uiSounds gating and no-autoplay code-reviewed, no real-audio browser check",
+   "title": "Ambient space hum \u2014 quiet detuned Web Audio drone (no assets), starts only after the first click/keypress, toggle in Settings"
+  },
+  {
+   "category": "Hub UI",
+   "id": "hub-footer-version",
+   "tested": "server test: /api/config + /api/health carry buildDate YYYY-MM-DD, index footer has #hubFooterVersion/#hubFooterDate + AtomStaking and Swap links, shell.js renderHubFooter fills version/date from config; static fallback in HTML code-reviewed",
+   "title": "Hub footer \u2014 version, build date, and links to AtomStaking + Swap"
   }
  ],
  "platform": "GAME",
  "updated": "2026-11-01",
- "version": "3.17.0"
+ "version": "3.18.0"
 }
