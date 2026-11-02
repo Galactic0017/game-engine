@@ -47,6 +47,17 @@
     if (!clicks || clicks <= 0) return 0;
     return Math.round(((shards || 0) + (banked || 0)) / clicks * 10) / 10;
   }
+  /* Batch 32: banked per click — banked shards only
+   * per total click, to one decimal. 0 with no clicks.
+   * Banked shards are the conversion-ready pile (the
+   * unbanked shards in shardsPerClick are not counted),
+   * so this reads lower than shardsPerClick until the
+   * player banks. Pure; exposed in state as
+   * bankedPerClick and in the panel's milestone line. */
+  function bankedPerClickFor(banked, clicks) {
+    if (!clicks || clicks <= 0) return 0;
+    return Math.round((banked || 0) / clicks * 10) / 10;
+  }
   function milestoneProgressFor(clicks) {
     var c = Math.max(0, clicks || 0);
     var next = nextMilestone(c);
@@ -130,7 +141,7 @@
         + '<button id="clkCore" style="font-size:44px;padding:26px 34px;border-radius:50%;">⚛</button>'
         + '<p><button id="clkBank">Bank shards</button> <button id="clkConvert" ' + (conv.chunks <= 0 ? 'disabled' : '') + '>Convert ' + conv.shards + ' shards → +' + conv.credits + ' credits</button> <button id="clkSave">Save best combo</button></p>'
         + '<p class="muted">100 banked shards = 10 credits. Session proof: <code id="clkProof">' + proof.slice(0, 24) + '…</code></p>'
-        + '<p class="muted">Milestones hit: ' + state.milestones.length + '/' + MILESTONES.length + (nextMilestone(state.clicks) ? ' — next at ' + nextMilestone(state.clicks) + ' clicks.' : ' — all reached!') + ' Milestone progress: ' + milestoneProgressFor(state.clicks) + '% to the next milestone.' + ' Shards/click: ' + shardsPerClickFor(state.shards, state.banked, state.clicks) + ' held per click.' + '</p></div>';
+        + '<p class="muted">Milestones hit: ' + state.milestones.length + '/' + MILESTONES.length + (nextMilestone(state.clicks) ? ' — next at ' + nextMilestone(state.clicks) + ' clicks.' : ' — all reached!') + ' Milestone progress: ' + milestoneProgressFor(state.clicks) + '% to the next milestone.' + ' Shards/click: ' + shardsPerClickFor(state.shards, state.banked, state.clicks) + ' held per click.' + ' Banked/click: ' + bankedPerClickFor(state.banked, state.clicks) + ' banked per click.' + '</p></div>';
       var core = viewport.querySelector('#clkCore');
       if (core) core.addEventListener('click', function () { clickCore(); });
       var bankBtn = viewport.querySelector('#clkBank');
@@ -148,9 +159,9 @@
       click: clickCore,
       endSession: endSession,
       convertBanked: convertBanked,
-      getState: function () { return { shards: state.shards, banked: state.banked, clicks: state.clicks, proof: proof, combo: state.combo, bestCombo: state.bestCombo, goldenActive: Date.now() < state.goldenUntil, goldenEvents: state.goldenEvents, surgeUntil: state.surgeUntil, milestones: state.milestones.slice(), nextMilestone: nextMilestone(state.clicks), clicksToNextMilestone: clicksToNextMilestone(state.clicks), milestoneProgressPct: milestoneProgressFor(state.clicks), shardsPerClick: shardsPerClickFor(state.shards, state.banked, state.clicks) }; },
+      getState: function () { return { shards: state.shards, banked: state.banked, clicks: state.clicks, proof: proof, combo: state.combo, bestCombo: state.bestCombo, goldenActive: Date.now() < state.goldenUntil, goldenEvents: state.goldenEvents, surgeUntil: state.surgeUntil, milestones: state.milestones.slice(), nextMilestone: nextMilestone(state.clicks), clicksToNextMilestone: clicksToNextMilestone(state.clicks), milestoneProgressPct: milestoneProgressFor(state.clicks), shardsPerClick: shardsPerClickFor(state.shards, state.banked, state.clicks), bankedPerClick: bankedPerClickFor(state.banked, state.clicks) }; },
       destroy: function () { destroyed = true; if (surgeTimer) clearInterval(surgeTimer); if (opts.bus) opts.bus.emit('game:ended', 'atom-clicker', {}); }
     };
   }
-  global.AtomClicker = { manifest: { id: 'atom-clicker', name: 'ATOM Core Clicker' }, init: init, _comboMultiplier: comboMultiplier, _clickGain: clickGain, _convertShards: convertShards, _milestonesReached: milestonesReached, _nextMilestone: nextMilestone, _clicksToNextMilestone: clicksToNextMilestone, _milestoneProgressFor: milestoneProgressFor, _shardsPerClickFor: shardsPerClickFor, MILESTONES: MILESTONES, SHARD_CONVERSION: SHARD_CONVERSION, COMBO_WINDOW_MS: COMBO_WINDOW_MS, GOLDEN_BONUS: GOLDEN_BONUS };
+  global.AtomClicker = { manifest: { id: 'atom-clicker', name: 'ATOM Core Clicker' }, init: init, _comboMultiplier: comboMultiplier, _clickGain: clickGain, _convertShards: convertShards, _milestonesReached: milestonesReached, _nextMilestone: nextMilestone, _clicksToNextMilestone: clicksToNextMilestone, _milestoneProgressFor: milestoneProgressFor, _shardsPerClickFor: shardsPerClickFor, _bankedPerClickFor: bankedPerClickFor, MILESTONES: MILESTONES, SHARD_CONVERSION: SHARD_CONVERSION, COMBO_WINDOW_MS: COMBO_WINDOW_MS, GOLDEN_BONUS: GOLDEN_BONUS };
 })(typeof window !== 'undefined' ? window : globalThis);
