@@ -1,11 +1,11 @@
 {
  "canvas": false,
- "description": "Build mining rigs, hire overseers, earn while away. Local save.",
+ "description": "Build mining rigs, hire overseers, earn while away. Prestige for a permanent multiplier, rig skins. Local save.",
  "image": "assets/sprites/tower-validator.png",
  "entry": "tycoon.js",
  "id": "space-tycoon",
  "name": "Space Tycoon",
- "version": "1.0.0",
+ "version": "3.16.0",
  "tags": [
   "Idle",
   "Tycoon",
