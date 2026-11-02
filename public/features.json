@@ -1775,10 +1775,16 @@
       "category": "Hub",
       "title": "Store card shows title/description/tags/buttons (banner overlay no longer covers them); game top bar static so it never overlaps the board; ATOM shield bar clamped inside the canvas",
       "tested": "live browser re-check clicks PLAY; editor checks: no storeCard featured, hl rule, static topbar, bar clamp"
+    },
+    {
+      "id": "sharp-board-dof-off-default",
+      "category": "Cosmos BTD",
+      "title": "Sharp board by default: tilt-shift blur bands default OFF so the whole map is crisp like the game-screen look; still re-enableable in Settings",
+      "tested": "live browser check: top of board sharp on jungle map"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 296,
+  "totalFeatures": 297,
   "updated": "2026-11-02",
-  "version": "3.49.6"
+  "version": "3.49.7"
 }
