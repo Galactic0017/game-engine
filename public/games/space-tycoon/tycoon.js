@@ -265,7 +265,7 @@
         }).join('') + '</div>'
         + '<p><button id="tycCollect">Collect now</button> <button id="tycOverseer">Assign my hero as overseer (+10%)</button> <button id="tycPrestige" ' + (canPrestige(state) ? '' : 'disabled') + '>Prestige — reset for +25% forever (' + PRESTIGE_COST + ' credits)</button></p>'
         + '<p class="muted">Prestige progress: ' + prog.pct + '% — ' + (prog.remaining > 0 ? prog.remaining + ' credits to go.' : 'ready to prestige!') + (secToPrestige != null && secToPrestige > 0 ? ' About ' + secToPrestige + 's at the current rate.' : '') + '</p>'
-        + '<p class="muted">Next rig: ' + nextRig.name + ' \u2014 ' + nextRig.cost + ' credits' + (secToNextRig != null && secToNextRig > 0 ? ' About ' + secToNextRig + 's at the current rate.' : secToNextRig === 0 ? ' \u2014 affordable now!' : '') + '</p>'
+        + '<p class="muted">Next rig: ' + nextRig.name + ' — ' + nextRig.cost + ' credits' + (secToNextRig != null && secToNextRig > 0 ? ' About ' + secToNextRig + 's at the current rate.' : secToNextRig === 0 ? ' — affordable now!' : '') + '</p>'
         + '<p class="muted">Lifetime per rig: ' + lifetimePerRigFor(state.lifetimeEarned, state.rigs) + ' credits earned per owned rig.</p>'
         + '<p class="muted">Average rig level: ' + avgRigLevelFor(state.rigs) + ' across owned rigs.</p>'
         + '<p class="muted">Earnings per rig: ' + earningsPerRigFor(state.rigs, state.prestigeCount, state.overseers.length) + ' credits/s per owned rig.</p>'
