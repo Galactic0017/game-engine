@@ -204,3 +204,21 @@ works through them top-down, tests each batch, and pushes to GitHub
 
 ## v3.49.7 — Sharp board
 - The tilt-shift blur bands blurred the top/bottom of the board; they now default off so the board is sharp all over. Still available in Settings as "Cinematic tilt-shift bands".
+
+## v3.49.8 — Realistic jungle, full-game features, marketplace redesign
+
+- Realistic jungle map: meadow patches, rocky cliff borders, pond shores with reeds and lily pads, pebble-edged stone path (realistic-jungle)
+- Towers sit on stone (jungle) / metal (space) pedestals with a shadow base (tower-pedestals)
+- Selected tower shows a soft range fill plus an outer ring, like the reference look (range-polish)
+- Pause menu: Resume, Restart run, Map switch, Settings, Exit to Home Hub (pause-menu)
+- Call Wave button in the top deck between waves (manual start, +25g skip bonus after wave 1) (call-wave-early)
+- Undo last placement: full refund, only between waves; placements lock when the wave starts (undo-placement)
+- 4x game speed option (clamped 1-4x) (speed-4x)
+- Top-deck sound on/off toggle (restores the volume setting on unmute) (mute-toggle)
+- Top deck shows enemies left and total pops live (foes-pops-chips)
+- Inspector shows the next wave's composition, danger rating, and boss warning (next-wave-preview)
+- Marketplace redesign: hero portrait cards, level badges, rarity edges, big ATOM price, live for-sale/floor/average stats, scrolling tables (marketplace-cards)
+- Skins section removed from the marketplace (skins changed nothing visible) (skins-removed)
+- DEV STUDIO SETUP button and Dev Tools menu entry removed (dev-setup-removed)
+- Phone + desktop polish: 560px layout (compact top bars, smaller deck tiles, full-width inspector, 16px inputs), marketplace tables scroll (responsive-phone)
+

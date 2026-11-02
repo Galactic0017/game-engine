@@ -740,3 +740,6 @@ Live status: see Run log.
 
 ## Sharp board 3.49.7 (live browser check found blurred top strip)
 - DONE 3.49.7: dof defaults false in btd.js state + shell settings defaults; settings toggle preserved. Auto-improve loop stays DISABLED.
+
+## Realistic look + full game 3.49.8 (main chat, user: make it look like this realistic, full game with all features)
+- DONE 3.49.8: realistic jungle painter, pedestals, range polish, pause menu, call-wave-early, undo, 4x, mute, foes/pops chips, next-wave preview, marketplace cards, skins removed, dev setup removed, phone/desktop polish. Auto-improve loop stays DISABLED.
