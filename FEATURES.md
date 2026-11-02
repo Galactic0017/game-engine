@@ -201,3 +201,6 @@ works through them top-down, tests each batch, and pushes to GitHub
 ## v3.49.6 — Two maps
 - Space map kept; Jungle map added (bright grass, foliage borders, stone-slab winding path, START marker, leafy trees, same track geometry, waves and ATOM orb). Switch with Map: Space/Jungle in the game top bar; the choice is remembered.
 - Store card fix (same version): the `featured` banner overlay covered the card art over the title/buttons; the card now uses its own highlight class, the top bar no longer overlaps the board, and the shield bar fits inside the canvas.
+
+## v3.49.7 — Sharp board
+- The tilt-shift blur bands blurred the top/bottom of the board; they now default off so the board is sharp all over. Still available in Settings as "Cinematic tilt-shift bands".

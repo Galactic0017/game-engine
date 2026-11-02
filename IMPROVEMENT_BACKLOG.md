@@ -737,3 +737,6 @@ Live status: see Run log.
 ## Two maps 3.49.6 (main chat, user: Have 2 maps)
 - DONE 3.49.6: Space + Jungle skins, top-bar switch, localStorage persistence. HOLD PUSH until the v3.49.5 PLAY-open browser re-check lands. Auto-improve loop stays DISABLED.
 - Card/overlay fix folded into 3.49.6 before push: `.featured img` absolute overlay was covering the store card; renamed to `hl`. Re-verify PLAY click in a real browser after deploy.
+
+## Sharp board 3.49.7 (live browser check found blurred top strip)
+- DONE 3.49.7: dof defaults false in btd.js state + shell settings defaults; settings toggle preserved. Auto-improve loop stays DISABLED.
