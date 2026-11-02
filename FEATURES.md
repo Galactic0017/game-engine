@@ -197,3 +197,7 @@ works through them top-down, tests each batch, and pushes to GitHub
 
 ## v3.49.5 — Game would not open from /game/cosmos-btd: fixed
 - Relative hub.css / engine script paths resolved under /game/ and came back as HTML, so the page stayed unstyled and init never ran. Added <base href="/"> and made head asset refs root-absolute; every route now loads the same files.
+
+## v3.49.6 — Two maps
+- Space map kept; Jungle map added (bright grass, foliage borders, stone-slab winding path, START marker, leafy trees, same track geometry, waves and ATOM orb). Switch with Map: Space/Jungle in the game top bar; the choice is remembered.
+- Store card fix (same version): the `featured` banner overlay covered the card art over the title/buttons; the card now uses its own highlight class, the top bar no longer overlaps the board, and the shield bar fits inside the canvas.

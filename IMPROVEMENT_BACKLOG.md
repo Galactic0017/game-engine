@@ -733,3 +733,7 @@ Live status: see Run log.
 
 ## Absolute paths 3.49.5 (main chat, user report: game not opening)
 - DONE 3.49.5: <base href="/"> + absolute head refs. Live browser check found the hub PLAY button unclickable/covered and /game/cosmos-btd stuck unstyled at 0%; the path bug explains the direct-load stall. Re-verify by clicking PLAY in a real browser after deploy. Auto-improve loop stays DISABLED.
+
+## Two maps 3.49.6 (main chat, user: Have 2 maps)
+- DONE 3.49.6: Space + Jungle skins, top-bar switch, localStorage persistence. HOLD PUSH until the v3.49.5 PLAY-open browser re-check lands. Auto-improve loop stays DISABLED.
+- Card/overlay fix folded into 3.49.6 before push: `.featured img` absolute overlay was covering the store card; renamed to `hl`. Re-verify PLAY click in a real browser after deploy.
