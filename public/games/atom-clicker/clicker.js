@@ -25,6 +25,11 @@
   var MILESTONES = [100, 500, 1000, 2500, 5000];
   function milestonesReached(clicks) { return MILESTONES.filter(function (m) { return (clicks || 0) >= m; }); }
   function nextMilestone(clicks) { for (var i = 0; i < MILESTONES.length; i++) if ((clicks || 0) < MILESTONES[i]) return MILESTONES[i]; return null; }
+  /* Batch 25: clicks to the next milestone — how many more total
+   * clicks until the next milestone threshold, 0 once all five
+   * are reached. Pure; exposed in state as
+   * clicksToNextMilestone alongside nextMilestone. */
+  function clicksToNextMilestone(clicks) { var n = nextMilestone(clicks); return n == null ? 0 : n - (clicks || 0); }
   function comboMultiplier(streak) { return Math.min(3, 1 + 0.1 * Math.floor((streak || 0) / 10)); }
   function clickGain(state, now) {
     var surging = now < (state.surgeUntil || 0);
@@ -118,9 +123,9 @@
       click: clickCore,
       endSession: endSession,
       convertBanked: convertBanked,
-      getState: function () { return { shards: state.shards, banked: state.banked, clicks: state.clicks, proof: proof, combo: state.combo, bestCombo: state.bestCombo, goldenActive: Date.now() < state.goldenUntil, goldenEvents: state.goldenEvents, surgeUntil: state.surgeUntil, milestones: state.milestones.slice(), nextMilestone: nextMilestone(state.clicks) }; },
+      getState: function () { return { shards: state.shards, banked: state.banked, clicks: state.clicks, proof: proof, combo: state.combo, bestCombo: state.bestCombo, goldenActive: Date.now() < state.goldenUntil, goldenEvents: state.goldenEvents, surgeUntil: state.surgeUntil, milestones: state.milestones.slice(), nextMilestone: nextMilestone(state.clicks), clicksToNextMilestone: clicksToNextMilestone(state.clicks) }; },
       destroy: function () { destroyed = true; if (surgeTimer) clearInterval(surgeTimer); if (opts.bus) opts.bus.emit('game:ended', 'atom-clicker', {}); }
     };
   }
-  global.AtomClicker = { manifest: { id: 'atom-clicker', name: 'ATOM Core Clicker' }, init: init, _comboMultiplier: comboMultiplier, _clickGain: clickGain, _convertShards: convertShards, _milestonesReached: milestonesReached, _nextMilestone: nextMilestone, MILESTONES: MILESTONES, SHARD_CONVERSION: SHARD_CONVERSION, COMBO_WINDOW_MS: COMBO_WINDOW_MS, GOLDEN_BONUS: GOLDEN_BONUS };
+  global.AtomClicker = { manifest: { id: 'atom-clicker', name: 'ATOM Core Clicker' }, init: init, _comboMultiplier: comboMultiplier, _clickGain: clickGain, _convertShards: convertShards, _milestonesReached: milestonesReached, _nextMilestone: nextMilestone, _clicksToNextMilestone: clicksToNextMilestone, MILESTONES: MILESTONES, SHARD_CONVERSION: SHARD_CONVERSION, COMBO_WINDOW_MS: COMBO_WINDOW_MS, GOLDEN_BONUS: GOLDEN_BONUS };
 })(typeof window !== 'undefined' ? window : globalThis);
