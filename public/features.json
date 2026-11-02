@@ -1865,10 +1865,22 @@
       "id": "responsive-phone",
       "tested": "editor harness: phone media query present; browser-checked at phone width",
       "title": "Phone + desktop polish: 560px layout (compact top bars, smaller deck tiles, full-width inspector, 16px inputs), marketplace tables scroll"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "menu-outside-close",
+      "tested": "editor harness: outside-click + Escape handlers present",
+      "title": "Library ... menu closes on outside click and Escape instead of intercepting PLAY clicks"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "place-selects-tower",
+      "tested": "harness: placed tower exposes inspect kind dart; undo clears it",
+      "title": "Placing a tower selects it, so the Entity Inspector (stats, upgrades, Undo) opens at once"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 311,
+  "totalFeatures": 313,
   "updated": "2026-11-02",
-  "version": "3.49.8"
+  "version": "3.49.9"
 }
