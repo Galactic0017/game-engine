@@ -821,10 +821,34 @@
    "id": "miner-rich-vein",
    "tested": "miner harness: the mine that takes totalMined to a multiple of 10 yields +2 ore of the same type and richVeins +1; other mines yield +1; R restart resets richVeins",
    "title": "Rich vein \u2014 every 10th mined rock yields a bonus ore of the same type"
+  },
+  {
+   "category": "Cosmos BTD",
+   "id": "hero-xp-progress",
+   "tested": "BTD harness: heroXpProgress(0)={level 1, 0 into, 100 to next}, (150)={level 2, 50 into, 50 to next}, (250)={level 3}; heroXpProgress in HUD and getState",
+   "title": "Hero XP progress \u2014 HUD/state show the in-run hero level implied by hero XP plus XP into it and XP to the next level (100 XP per level)"
+  },
+  {
+   "category": "Games",
+   "id": "shooter-accuracy",
+   "tested": "shooter harness: accuracyFor(0,0)=0, (10,3)=30, (4,5) capped at 100; accuracy in HUD, getState and the game-over screen",
+   "title": "Shooter accuracy \u2014 kills per firing volley as a percent (capped 100), shown in the HUD, state and game-over screen"
+  },
+  {
+   "category": "Asteroid Miner",
+   "id": "miner-cargo-breakdown",
+   "tested": "miner harness: empty cargo -> breakdown [] and richestOre null; iron x10 + gold x1 -> breakdown richest-first (iron 50, gold 50 tie keeps ore order) and richestOre iron; scanner level does not change ordering",
+   "title": "Miner cargo breakdown \u2014 per-ore counts and base values richest-first, plus the richest ore in cargo, in HUD and state"
+  },
+  {
+   "category": "ATOM Core Clicker",
+   "id": "clicker-milestones",
+   "tested": "tycoon/clicker harness: milestonesReached(99)=[], (100)=[100], (5000)=all 5; crossing 100 clicks toasts once and persists milestones=[100]; legacy save with 600 clicks seeds [100,500] silently with no toast",
+   "title": "Click milestones \u2014 100/500/1000/2500/5000 total clicks toast once each, persist with the local save, next milestone shown in the game"
   }
  ],
  "platform": "GAME",
- "totalFeatures": 137,
+ "totalFeatures": 141,
  "updated": "2026-11-01",
- "version": "3.20.0"
+ "version": "3.21.0"
 }
