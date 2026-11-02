@@ -1,6 +1,6 @@
 {
  "canvas": false,
- "description": "Tap the ATOM core, chain combo streaks, catch golden shards and surges, bank shards. Convert 100 shards to 10 credits. Local save. Batch 22: click milestones. Batch 25: clicks to the next milestone. Batch 28: milestone progress percent. Batch 30: shards-per-click average. Batch 32: banked-per-click average. Batch 34: clicks-per-golden average. Batch 36: shards-per-golden average. Batch 37: banked-per-golden average. Batch 38: golden-share percent.",
+ "description": "Tap the ATOM core, chain combo streaks, catch golden shards and surges, bank shards. Convert 100 shards to 10 credits. Local save. Batch 22: click milestones. Batch 25: clicks to the next milestone. Batch 28: milestone progress percent. Batch 30: shards-per-click average. Batch 32: banked-per-click average. Batch 34: clicks-per-golden average. Batch 36: shards-per-golden average. Batch 37: banked-per-golden average. Batch 38: golden-share percent. Batch 39: clicks-per-milestone average.",
  "entry": "clicker.js",
  "id": "atom-clicker",
  "image": "assets/sprites/hero-astra.png",
