@@ -1333,56 +1333,86 @@
       "title": "Credits per rig \u2014 current credits held per owned rig, in state and the panel"
     },
     {
-      "id": "rail-tabs",
-      "title": "Right sidebar tabs",
       "description": "Right sidebar organized into Social / You / Play tabs; wallet stays pinned above.",
-      "tested": "Harness: rail tab bar, 3 panes, all 10 sidebar boxes present once each, wallet above tabs."
+      "id": "rail-tabs",
+      "tested": "Harness: rail tab bar, 3 panes, all 10 sidebar boxes present once each, wallet above tabs.",
+      "title": "Right sidebar tabs"
     },
     {
-      "id": "rail-pane-social",
-      "title": "Social pane",
       "description": "Friends, Challenges and Referral grouped in the Social sidebar tab (default tab).",
-      "tested": "Harness: Social pane active by default with friendsBox, challengeBox, referralBox inside."
+      "id": "rail-pane-social",
+      "tested": "Harness: Social pane active by default with friendsBox, challengeBox, referralBox inside.",
+      "title": "Social pane"
     },
     {
-      "id": "rail-pane-you-play",
-      "title": "You and Play panes",
       "description": "You pane holds Profile, My Heroes, Quests, Achievements; Play pane holds Top Players, Recently Played, Settings.",
-      "tested": "Harness: You and Play panes hold their boxes; tab switching toggles the active pane only."
+      "id": "rail-pane-you-play",
+      "tested": "Harness: You and Play panes hold their boxes; tab switching toggles the active pane only.",
+      "title": "You and Play panes"
     },
     {
-      "id": "btd-gold-per-wave",
-      "title": "Gold per wave \u2014 current gold held per wave reached, in HUD/state",
       "description": "Current unspent gold held per wave reached, to one decimal; 0 with no wave yet.",
-      "tested": "Harness: goldPerWaveFor helper (0/25/2.3/zero-wave) + HUD/state echo at 100 gold / 4 waves."
+      "id": "btd-gold-per-wave",
+      "tested": "Harness: goldPerWaveFor helper (0/25/2.3/zero-wave) + HUD/state echo at 100 gold / 4 waves.",
+      "title": "Gold per wave \u2014 current gold held per wave reached, in HUD/state"
     },
     {
-      "id": "shooter-powerups-per-minute",
-      "title": "Power-ups per minute \u2014 power-ups collected per minute of run time, in HUD/state + game-over",
       "description": "Total power-ups collected per minute of run time, to one decimal; 0 with no elapsed time yet.",
-      "tested": "Harness: powerupsPerMinuteFor helper (0/60/2.3/zero-time) + HUD/state echo at 120 power-ups / 120s; server test checks the game-over line."
+      "id": "shooter-powerups-per-minute",
+      "tested": "Harness: powerupsPerMinuteFor helper (0/60/2.3/zero-time) + HUD/state echo at 120 power-ups / 120s; server test checks the game-over line.",
+      "title": "Power-ups per minute \u2014 power-ups collected per minute of run time, in HUD/state + game-over"
     },
     {
-      "id": "miner-credits-per-belt",
-      "title": "Credits per belt \u2014 current unbanked credits held per belt, in HUD/state",
       "description": "Current unbanked credits held per belt reached, to one decimal; 0 with no belt yet.",
-      "tested": "Harness: creditsPerBeltFor helper (0/25/2.3/zero-belt) + HUD/state echo at 100 credits / 4 belts."
+      "id": "miner-credits-per-belt",
+      "tested": "Harness: creditsPerBeltFor helper (0/25/2.3/zero-belt) + HUD/state echo at 100 credits / 4 belts.",
+      "title": "Credits per belt \u2014 current unbanked credits held per belt, in HUD/state"
     },
     {
-      "id": "clicker-shards-per-milestone",
-      "title": "Shards per milestone \u2014 held + banked shards per milestone hit, in state + panel",
       "description": "Held plus banked shards per milestone hit, to one decimal; 0 with no milestone hit yet.",
-      "tested": "Harness: shardsPerMilestoneFor helper (0/50/2.3/zero-hits) + state echo + panel render line (50 at 60 held + 40 banked / 2 hits)."
+      "id": "clicker-shards-per-milestone",
+      "tested": "Harness: shardsPerMilestoneFor helper (0/50/2.3/zero-hits) + state echo + panel render line (50 at 60 held + 40 banked / 2 hits).",
+      "title": "Shards per milestone \u2014 held + banked shards per milestone hit, in state + panel"
     },
     {
-      "id": "tycoon-lifetime-per-prestige",
-      "title": "Lifetime per prestige \u2014 lifetime credits earned per prestige, in state + panel",
       "description": "Lifetime credits earned per prestige taken, to one decimal; 0 with no prestige yet.",
-      "tested": "Harness: lifetimePerPrestigeFor helper (0/50/2.3/zero-prestige) + state echo + panel render line (50 at 100 lifetime / 2 prestiges)."
+      "id": "tycoon-lifetime-per-prestige",
+      "tested": "Harness: lifetimePerPrestigeFor helper (0/50/2.3/zero-prestige) + state echo + panel render line (50 at 100 lifetime / 2 prestiges).",
+      "title": "Lifetime per prestige \u2014 lifetime credits earned per prestige, in state + panel"
+    },
+    {
+      "description": "Pops per minute of run time, to one decimal; 0 with no elapsed run time yet.",
+      "id": "btd-pops-per-minute",
+      "tested": "Harness: popsPerMinuteFor helper (0/60/2.3/zero-time) + HUD/state echo at 120 pops / 120s.",
+      "title": "Pops per minute \u2014 pops per minute of run time, in HUD/state"
+    },
+    {
+      "description": "Score per boss defeated, to one decimal; 0 with no boss defeated yet.",
+      "id": "shooter-score-per-boss",
+      "tested": "Harness: scorePerBossFor helper (0/60/2.3/zero-bosses) + HUD/state echo at 120 score / 2 bosses; server test checks the game-over line.",
+      "title": "Score per boss \u2014 score per boss defeated, in HUD/state + game-over screen"
+    },
+    {
+      "description": "Current unbanked credits held per completed shift, to one decimal; 0 with no shift completed yet.",
+      "id": "miner-credits-per-shift",
+      "tested": "Harness: creditsPerShiftFor helper (0/25/2.3/zero-shifts) + HUD/state echo at 100 credits / 4 shifts.",
+      "title": "Credits per shift \u2014 current unbanked credits held per completed shift, in HUD/state"
+    },
+    {
+      "description": "Banked shards per milestone hit, to one decimal; 0 with no milestone hit yet.",
+      "id": "clicker-banked-per-milestone",
+      "tested": "Harness: bankedPerMilestoneFor helper (0/20/2.3/zero-hits) + state echo + panel render line (20 at 40 banked / 2 hits).",
+      "title": "Banked per milestone \u2014 banked shards per milestone hit, in state + panel"
+    },
+    {
+      "description": "Current credits held (floored) per prestige taken, to one decimal; 0 with no prestige yet.",
+      "id": "tycoon-credits-per-prestige",
+      "tested": "Harness: creditsPerPrestigeFor helper (0/50/2.3/zero-prestige) + state echo + panel render line (50 at 100 credits / 2 prestiges).",
+      "title": "Credits per prestige \u2014 current credits held per prestige, in state + panel"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 230,
+  "totalFeatures": 235,
   "updated": "2026-11-02",
-  "version": "3.40.0"
+  "version": "3.41.0"
 }
