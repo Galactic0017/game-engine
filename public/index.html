@@ -18,7 +18,8 @@
 <meta name="twitter:title" content="GAME — game.atomstaking.app">
 <meta name="twitter:description" content="GAME by GalacticTools: protect the ATOM orb in Cosmos BTD — 50 waves, 8 towers, heroes and live PvP duels. Real Keplr wallet, no contracts, CEO-escrow hero marketplace.">
 <meta name="twitter:image" content="https://game.atomstaking.app/assets/sprites/og-share.jpg">
-<link rel="stylesheet" href="hub.css">
+<base href="/">
+<link rel="stylesheet" href="/hub.css">
 </head>
 <body>
 <div id="hubLoader" class="hubLoader" role="status" aria-label="Loading GAME hub">
@@ -159,17 +160,17 @@
 
 <div id="toasts" aria-live="polite"></div>
 
-<script src="engine/event-bus.js"></script>
-<script src="engine/wallet.js"></script>
-<script src="engine/rpc-watcher.js"></script>
-<script src="engine/engine-host.js"></script>
+<script src="/engine/event-bus.js"></script>
+<script src="/engine/wallet.js"></script>
+<script src="/engine/rpc-watcher.js"></script>
+<script src="/engine/engine-host.js"></script>
 <!-- Batch 15: game modules lazy-load on first selection via
      GameScriptLoader (see shell.js) — no game scripts here, so the
      hub loads only the selected game's code. -->
-<script src="engine/marketplace-ui.js"></script>
-<script src="engine/ceo-ui.js"></script>
-<script src="engine/mod-loader.js"></script>
-<script src="engine/devtools.js"></script>
-<script src="engine/shell.js"></script>
+<script src="/engine/marketplace-ui.js"></script>
+<script src="/engine/ceo-ui.js"></script>
+<script src="/engine/mod-loader.js"></script>
+<script src="/engine/devtools.js"></script>
+<script src="/engine/shell.js"></script>
 </body>
 </html>

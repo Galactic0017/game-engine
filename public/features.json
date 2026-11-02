@@ -1757,10 +1757,16 @@
       "category": "Hub",
       "title": "Deep links /game/cosmos-btd serve the hub HTML via a static Vercel rewrite to /index.html",
       "tested": "live curl: /game/cosmos-btd 200 with hub ids AND /api/config JSON, both verified"
+    },
+    {
+      "id": "base-href-absolute-paths",
+      "category": "Hub",
+      "title": "Root-absolute asset paths via <base href=\"/\">: CSS, scripts, images and lazy game loads resolve from the site root on /game/cosmos-btd too",
+      "tested": "serve checks: base tag + absolute head refs in served index.html; live browser re-check clicks PLAY"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 293,
+  "totalFeatures": 294,
   "updated": "2026-11-02",
-  "version": "3.49.4"
+  "version": "3.49.5"
 }
