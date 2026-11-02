@@ -10,6 +10,12 @@ are only features actually built and tested — never claims.
 - Social (default): Friends, Challenges, Referral. You: Profile, My Heroes, Quests, Achievements. Play: Top Players, Recently Played, Settings.
 - All 10 sidebar box ids preserved; render functions untouched; tab switching mirrors the existing showView pattern.
 
+## v3.41.0 — 2026-11-02 — 5 features (235 total)
+
+Game feel XXIII: pops per minute (BTD), score per boss (Shooter, incl. game-over line), credits per shift (Miner), banked per milestone (Clicker, panel line), credits per prestige (Tycoon, panel line). All five are HUD/state ratio readouts over existing counters; no gameplay, economy, or escrow changes.
+
+Honest limits: HUD/state/panel data only, harness-verified (no browser screenshot check); the shooter game-over line and the clicker/tycoon panel lines are render-string checked in the harness; credits-per-shift, banked-per-milestone and credits-per-prestige use current unspent/banked balances, not cumulative earnings; pops-per-minute is 0 until the first wave starts.
+
 ## v3.40.0 — 2026-11-02 — 5 features (230 total)
 
 Game feel XXII: gold per wave (BTD), power-ups per minute (Shooter, incl. game-over line), credits per belt (Miner), shards per milestone (Clicker, panel line), lifetime per prestige (Tycoon, panel line). All five are HUD/state ratio readouts over existing counters; no gameplay, economy, or escrow changes.
