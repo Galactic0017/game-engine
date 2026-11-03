@@ -773,3 +773,6 @@ Live status: see Run log.
 
 ## Deploy trigger 3 — 2026-11-02 20:05 EST
 - User chose to keep retrying triggers. Two lone trigger commits (28e9686, 51a4644) got no Vercel deployment; production is still 44ac27f. Retrying after a longer gap so Vercel builds the full HEAD tree (3.49.14 framing fix).
+
+## 2D default 3.49.15 (user: 3D still not working, does not look like the reference image)
+- DONE 3.49.15: init flip in btd.js — 3D starts only when opts.render3d === true; the painted 2D game (jungle, range rings, beams, damage numbers, orb) is the default again. 3D code kept, opt-in.

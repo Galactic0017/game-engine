@@ -248,3 +248,7 @@ works through them top-down, tests each batch, and pushes to GitHub
 ## v3.49.14 — 3D framing fix
 
 - WebGL canvas sized/positioned from the 2D canvas box (btd-3d-frame-fix); pixel ratio capped at 1.5 (btd-3d-perf-cap); CEO panel copy corrected
+
+## v3.49.15 — 2D default restored
+
+- 2D renderer is the default again (the reference look); 3D only when explicitly enabled via setRender3d (btd-2d-default, btd-3d-opt-in)
