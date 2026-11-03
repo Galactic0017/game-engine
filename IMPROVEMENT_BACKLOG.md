@@ -767,3 +767,6 @@ Live status: see Run log.
 
 ## Deploy trigger 2026-11-02 19:27 EST
 - Vercel again deployed only the first commit of the push (44ac27f); the index.html/features.json and btd3d.js commits never got deployments. This commit triggers a fresh deployment from the full HEAD tree (3.49.14).
+
+## Deploy trigger 2 — 2026-11-02 19:36 EST
+- The 28e9686 trigger commit got no Vercel deployment at all (dashboard shows none for it or for 8a92456; current production is still 44ac27f). Retrying with a fresh lone commit so Vercel builds the full HEAD tree (3.49.14 framing fix).
