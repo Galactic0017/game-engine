@@ -2003,10 +2003,22 @@
       "id": "btd-3d-perf-cap",
       "tested": "node 3D smoke test: 19 checks",
       "title": "3D pixel ratio capped at 1.5 to keep the frame rate up on HiDPI screens"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-2d-default",
+      "tested": "BTD harness: 343 checks; live browser check pending",
+      "title": "2D renderer is the default again: painted jungle map, range rings, beams, damage numbers, ATOM orb overlay, bottom deck, inspector"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-3d-opt-in",
+      "tested": "node 3D smoke test: 19 checks",
+      "title": "3D renderer kept as opt-in via setRender3d only; preload stays best-effort with 2D fallback"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 334,
+  "totalFeatures": 336,
   "updated": "2026-11-02",
-  "version": "3.49.14"
+  "version": "3.49.15"
 }
