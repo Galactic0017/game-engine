@@ -2340,7 +2340,7 @@
     st.blurCv = mkCv(240, 150); st.blurCtx = st.blurCv.getContext('2d');
     st.vigCv = mkCv(W, H);
     st.render3d = false; st._r3d = null; st._r3dListeners = null;
-    try { if ((!opts || opts.render3d !== false) && typeof window !== 'undefined' && window.CosmosBTD3D && window.CosmosBTD3D.isAvailable()) { st.render3d = true; ensureRenderer3d(st); if (!st._r3d) st.render3d = false; } } catch (e) { st.render3d = false; st._r3d = null; }
+    try { if ((opts && opts.render3d === true) && typeof window !== 'undefined' && window.CosmosBTD3D && window.CosmosBTD3D.isAvailable()) { st.render3d = true; ensureRenderer3d(st); if (!st._r3d) st.render3d = false; } } catch (e) { st.render3d = false; st._r3d = null; }
     var vg = st.vigCv.getContext('2d');
     var vgr = vg.createRadialGradient(W / 2, H / 2, H * 0.34, W / 2, H / 2, H * 0.75);
     vgr.addColorStop(0, 'rgba(0,0,0,0)'); vgr.addColorStop(1, 'rgba(0,0,0,.38)');
