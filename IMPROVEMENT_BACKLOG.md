@@ -782,3 +782,6 @@ Live status: see Run log.
 
 ## Deploy trigger 5 — 2026-11-02 20:25 EST
 - Trigger 4 (1542e4b) also got no Vercel deployment; the live site still serves the 3.49.14 tree with the broken 3D default. User chose to keep retrying triggers. This lone commit retries the full HEAD tree (3.49.15 2D default).
+
+## Deploy trigger 6 — 2026-11-02 20:31 EST
+- Trigger 5 (714b3a9) also got no Vercel deployment; the live site still serves the 3.49.14 tree with the broken 3D default. User chose to keep retrying triggers. This lone commit retries the full HEAD tree (3.49.15 2D default).
