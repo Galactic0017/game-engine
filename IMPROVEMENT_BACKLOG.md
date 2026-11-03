@@ -764,3 +764,6 @@ Live status: see Run log.
 
 ## 3D framing fix 3.49.14 (live check: terrain filled the view, no orb/path, 10-17 FPS)
 - DONE 3.49.14: anchorBox sizing in btd3d.js (the width:100%/no-height canvas rendered buffer-height tall and clipped the scene), pixelRatio cap 1.5, CEO copy fix in index.html.
+
+## Deploy trigger 2026-11-02 19:27 EST
+- Vercel again deployed only the first commit of the push (44ac27f); the index.html/features.json and btd3d.js commits never got deployments. This commit triggers a fresh deployment from the full HEAD tree (3.49.14).
