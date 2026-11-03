@@ -406,21 +406,25 @@
     var caches = makeCaches(THREE);
 
     var renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1, 2));
+    renderer.setPixelRatio(Math.min(typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1, 1.5));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputEncoding = THREE.sRGBEncoding;
     var dom = renderer.domElement;
-    dom.style.width = '100%';
-    dom.style.maxWidth = W + 'px';
+    var anchor = null;
+    try { anchor = container.querySelector ? container.querySelector('canvas') : null; } catch (e) { anchor = null; }
+    if (anchor === dom) anchor = null;
     dom.style.display = 'block';
     /* Overlay the 2D canvas exactly (same box): absolute positioning so
      * the WebGL view covers the 2D frame instead of stacking below it.
-     * Input keeps working because clicks land on this canvas and the
-     * wiring patch forwards them to the 2D handlers. */
+     * The exact box comes from the 2D canvas (anchorBox/syncDomBox),
+     * never from width:100% with an unset height — that made the
+     * canvas buffer-height tall and clipped the scene. Input keeps
+     * working because clicks land on this canvas and the wiring
+     * forwards them to the 2D handlers. */
     dom.style.position = 'absolute';
-    dom.style.top = '0';
-    dom.style.left = '0';
+    dom.style.top = '0px';
+    dom.style.left = '0px';
     if (!container.style.position) container.style.position = 'relative';
     container.appendChild(dom);
 
@@ -565,9 +569,21 @@
       pGeo.attributes.color.needsUpdate = true;
     }
 
+    function anchorBox() {
+      if (anchor && anchor.clientWidth > 0) {
+        return { w: anchor.clientWidth, h: anchor.clientHeight > 0 ? anchor.clientHeight : Math.round(anchor.clientWidth * H / W), l: anchor.offsetLeft || 0, t: anchor.offsetTop || 0 };
+      }
+      var cw0 = container.clientWidth || W;
+      return { w: cw0, h: Math.round(cw0 * H / W), l: 0, t: 0 };
+    }
     function resize(w, h) {
-      var cw = w || (container.clientWidth || W);
-      var ch = h || Math.round(cw * H / W);
+      var box = anchorBox();
+      var cw = w || box.w;
+      var ch = h || box.h;
+      dom.style.left = box.l + 'px';
+      dom.style.top = box.t + 'px';
+      dom.style.width = cw + 'px';
+      dom.style.height = ch + 'px';
       renderer.setSize(cw, ch, false);
       camera.aspect = cw / ch;
       camera.updateProjectionMatrix();
@@ -650,7 +666,7 @@
         renderer.setPixelRatio(1);
         renderer.shadowMap.enabled = false;
       } else {
-        renderer.setPixelRatio(Math.min(typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1, 2));
+        renderer.setPixelRatio(Math.min(typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1, 1.5));
         renderer.shadowMap.enabled = true;
       }
       if (scene) scene.traverse(function (o) { if (o.material) o.material.needsUpdate = true; });
