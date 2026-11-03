@@ -758,3 +758,6 @@ Live status: see Run log.
 
 ## Deploy trigger 2026-11-02 19:07 EST
 - Vercel only built the first commit of the 3.49.12 push (067461e); the later commits with the 3D files never got deployments, so production serves an incomplete tree. This commit exists only to trigger a fresh deployment from the full HEAD tree.
+
+## 3D input fix 3.49.13 (user: the 3D is broken)
+- DONE 3.49.13: root cause was init-order — ensureRenderer3d ran before st._listeners existed, so the WebGL canvas never got input handlers. Fixed with attachRenderer3dListeners called both places. Deploy lesson (2026-11-02): multi-commit web pushes strand later commits — Vercel deployed only the first 3.49.12 commit; a single trigger commit fixed it. Verify served markers after every push; trigger if stranded.

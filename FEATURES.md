@@ -240,3 +240,7 @@ works through them top-down, tests each batch, and pushes to GitHub
 ## v3.49.12 — Real 3D rebuild, stage 1: Three.js renderer wired in
 
 - Vendored Three.js r147, btd3d.js renderer (lit terrain, path ribbon, orb, towers, balloons, particles), wiring with 2D fallback, best-effort preload (btd-3d-renderer, btd-3d-wiring, btd-3d-preload)
+
+## v3.49.13 — 3D input fix
+
+- WebGL canvas now receives mouse/click/touch handlers (btd-3d-input-fix); first 3D render error surfaced in HUD state (btd-3d-error-surface)
