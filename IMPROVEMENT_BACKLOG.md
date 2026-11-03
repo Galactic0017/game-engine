@@ -776,3 +776,6 @@ Live status: see Run log.
 
 ## 2D default 3.49.15 (user: 3D still not working, does not look like the reference image)
 - DONE 3.49.15: init flip in btd.js — 3D starts only when opts.render3d === true; the painted 2D game (jungle, range rings, beams, damage numbers, orb) is the default again. 3D code kept, opt-in.
+
+## Deploy trigger 4 — 2026-11-02 20:18 EST
+- Vercel again deployed only the first commit of the 3.49.15 push (2fbc375); features.json and btd.js commits did not deploy, so the live game is still the 3D-default build. This lone commit triggers a fresh deployment from the full HEAD tree (dba29d1).
