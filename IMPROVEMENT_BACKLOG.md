@@ -779,3 +779,6 @@ Live status: see Run log.
 
 ## Deploy trigger 4 — 2026-11-02 20:18 EST
 - Vercel again deployed only the first commit of the 3.49.15 push (2fbc375); features.json and btd.js commits did not deploy, so the live game is still the 3D-default build. This lone commit triggers a fresh deployment from the full HEAD tree (dba29d1).
+
+## Deploy trigger 5 — 2026-11-02 20:25 EST
+- Trigger 4 (1542e4b) also got no Vercel deployment; the live site still serves the 3.49.14 tree with the broken 3D default. User chose to keep retrying triggers. This lone commit retries the full HEAD tree (3.49.15 2D default).
