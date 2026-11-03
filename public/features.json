@@ -1979,10 +1979,22 @@
       "id": "btd-3d-preload",
       "tested": "editor harness: loadBtd3d marker",
       "title": "Three.js and the 3D renderer preload best-effort before the game module; failures fall back to 2D"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-3d-input-fix",
+      "tested": "BTD harness 343 checks",
+      "title": "3D board input fixed: taps/clicks reach the WebGL canvas (handlers attach after listeners exist)"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-3d-error-surface",
+      "tested": "BTD harness: render3dError field",
+      "title": "First 3D render error is surfaced in HUD state instead of silently falling back to 2D"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 330,
+  "totalFeatures": 332,
   "updated": "2026-11-02",
-  "version": "3.49.12"
+  "version": "3.49.13"
 }
