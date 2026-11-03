@@ -770,3 +770,6 @@ Live status: see Run log.
 
 ## Deploy trigger 2 — 2026-11-02 19:36 EST
 - The 28e9686 trigger commit got no Vercel deployment at all (dashboard shows none for it or for 8a92456; current production is still 44ac27f). Retrying with a fresh lone commit so Vercel builds the full HEAD tree (3.49.14 framing fix).
+
+## Deploy trigger 3 — 2026-11-02 20:05 EST
+- User chose to keep retrying triggers. Two lone trigger commits (28e9686, 51a4644) got no Vercel deployment; production is still 44ac27f. Retrying after a longer gap so Vercel builds the full HEAD tree (3.49.14 framing fix).
