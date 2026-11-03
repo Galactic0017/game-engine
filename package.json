@@ -1,6 +1,6 @@
 {
   "name": "game-engine",
-  "version": "3.49.13",
+  "version": "3.49.14",
   "description": "GAME - game.atomstaking.app - game engine/platform by GalacticTools. Real Keplr wallet, no contracts, CEO-escrow hero marketplace.",
   "main": "server.js",
   "scripts": {

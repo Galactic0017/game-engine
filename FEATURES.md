@@ -244,3 +244,7 @@ works through them top-down, tests each batch, and pushes to GitHub
 ## v3.49.13 — 3D input fix
 
 - WebGL canvas now receives mouse/click/touch handlers (btd-3d-input-fix); first 3D render error surfaced in HUD state (btd-3d-error-surface)
+
+## v3.49.14 — 3D framing fix
+
+- WebGL canvas sized/positioned from the 2D canvas box (btd-3d-frame-fix); pixel ratio capped at 1.5 (btd-3d-perf-cap); CEO panel copy corrected

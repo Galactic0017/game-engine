@@ -761,3 +761,6 @@ Live status: see Run log.
 
 ## 3D input fix 3.49.13 (user: the 3D is broken)
 - DONE 3.49.13: root cause was init-order — ensureRenderer3d ran before st._listeners existed, so the WebGL canvas never got input handlers. Fixed with attachRenderer3dListeners called both places. Deploy lesson (2026-11-02): multi-commit web pushes strand later commits — Vercel deployed only the first 3.49.12 commit; a single trigger commit fixed it. Verify served markers after every push; trigger if stranded.
+
+## 3D framing fix 3.49.14 (live check: terrain filled the view, no orb/path, 10-17 FPS)
+- DONE 3.49.14: anchorBox sizing in btd3d.js (the width:100%/no-height canvas rendered buffer-height tall and clipped the scene), pixelRatio cap 1.5, CEO copy fix in index.html.
