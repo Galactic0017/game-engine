@@ -755,3 +755,6 @@ Live status: see Run log.
 
 ## 3D rebuild stage 1 — 3.49.12 (user: rebuild in real 3D, make it very good)
 - DONE 3.49.12: Three.js r147 vendored, btd3d.js renderer, wiring patch applied, preload chain in shell.js, 2D fallback intact. UE5 cannot run on this website. Stage 2 still open: attack beams, floaters, range-ring visuals, ghost polish, hero/weather/ability FX in 3D, win/lose screens. Auto-improve loop stays DISABLED.
+
+## Deploy trigger 2026-11-02 19:07 EST
+- Vercel only built the first commit of the 3.49.12 push (067461e); the later commits with the 3D files never got deployments, so production serves an incomplete tree. This commit exists only to trigger a fresh deployment from the full HEAD tree.
