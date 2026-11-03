@@ -1991,10 +1991,22 @@
       "id": "btd-3d-error-surface",
       "tested": "BTD harness: render3dError field",
       "title": "First 3D render error is surfaced in HUD state instead of silently falling back to 2D"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-3d-frame-fix",
+      "tested": "editor harness: anchorBox marker; live browser check pending",
+      "title": "3D canvas anchored to the 2D canvas box: full board, orb and path visible, clicks map correctly"
+    },
+    {
+      "category": "Cosmos BTD",
+      "id": "btd-3d-perf-cap",
+      "tested": "node 3D smoke test: 19 checks",
+      "title": "3D pixel ratio capped at 1.5 to keep the frame rate up on HiDPI screens"
     }
   ],
   "platform": "GAME",
-  "totalFeatures": 332,
+  "totalFeatures": 334,
   "updated": "2026-11-02",
-  "version": "3.49.13"
+  "version": "3.49.14"
 }
